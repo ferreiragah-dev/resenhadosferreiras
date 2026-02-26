@@ -329,8 +329,8 @@ function renderPlayerCard(player) {
   const team = findTeam(player.teamId);
   const linkedUser = registeredUsers.find((u) => u.id === player.userId);
   const teamNumbers = getTeamGoalsForAgainst(player.teamId);
-  const playerGP = Number(player.goalsPro ?? teamNumbers.gp || 0);
-  const playerGC = Number(player.goalsContra ?? teamNumbers.gc || 0);
+  const playerGP = Number((player.goalsPro ?? teamNumbers.gp) || 0);
+  const playerGC = Number((player.goalsContra ?? teamNumbers.gc) || 0);
   const photo = player.photoDataUrl
     ? `<img src="${esc(player.photoDataUrl)}" alt="Foto de ${esc(player.name)}">`
     : `<div class="player-photo-placeholder">${esc(initials(player.name))}</div>`;
