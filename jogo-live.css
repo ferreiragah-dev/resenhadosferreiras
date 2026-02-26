@@ -1,0 +1,177 @@
+body{
+  margin:0;
+  background:#000;
+  color:#9ae6b4;
+  font-family:Arial, sans-serif;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:100vh;
+}
+
+.app{
+  width:100%;
+  max-width:420px;
+  padding:20px;
+  position:relative;
+}
+
+.scoreboard{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:10px;
+  position:relative;
+  z-index:2;
+}
+
+.team-name{
+  width:30%;
+  font-weight:700;
+  font-size:.85rem;
+}
+
+.score{
+  font-size:2.6rem;
+  font-weight:900;
+  color:#22c55e;
+  text-align:center;
+  width:40%;
+}
+
+.timer{
+  text-align:center;
+  font-size:2.8rem;
+  font-weight:900;
+  color:#22c55e;
+  margin:12px 0 18px 0;
+  position:relative;
+  z-index:2;
+}
+
+.controls{
+  display:flex;
+  justify-content:center;
+  gap:10px;
+  margin-bottom:18px;
+  position:relative;
+  z-index:2;
+}
+
+button{
+  background:#22c55e;
+  border:none;
+  border-radius:10px;
+  padding:10px 14px;
+  font-weight:700;
+  color:#000;
+  font-size:.8rem;
+}
+
+button.secondary{
+  background:#065f46;
+  color:#9ae6b4;
+}
+
+.goal-controls{
+  display:flex;
+  justify-content:space-between;
+  margin-bottom:20px;
+  position:relative;
+  z-index:2;
+}
+
+.goal-controls div{
+  width:48%;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.goal-btn{
+  background:#16a34a;
+  color:#000;
+  font-weight:700;
+  border-radius:8px;
+  padding:8px;
+  border:none;
+  font-size:.75rem;
+}
+
+.goal-btn.secondary{
+  background:#064e3b;
+  color:#9ae6b4;
+}
+
+.players{
+  position:absolute;
+  top:20px;
+  bottom:20px;
+  left:20px;
+  right:20px;
+  display:flex;
+  justify-content:space-between;
+  pointer-events:none;
+}
+
+.player-list{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  width:38%;
+}
+
+.player-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding-bottom:10px;
+  border-bottom:1px solid rgba(34,197,94,.25);
+}
+
+.player-row.right{
+  justify-content:flex-end;
+}
+
+.player-name{
+  font-size:.8rem;
+}
+
+.avatar{
+  position:relative;
+  width:40px;
+  height:40px;
+  border-radius:50%;
+  background:#001a12;
+  border:2px solid #22c55e;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:700;
+  font-size:.75rem;
+  color:#22c55e;
+  overflow:hidden;
+}
+
+.avatar img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+
+.captain-badge{
+  position:absolute;
+  bottom:-4px;
+  right:-4px;
+  width:18px;
+  height:18px;
+  border-radius:50%;
+  background:#22c55e;
+  color:#000;
+  font-size:.65rem;
+  font-weight:800;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}

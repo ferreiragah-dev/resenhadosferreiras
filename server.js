@@ -205,6 +205,19 @@ app.get('/api/public/teams', async (_req, res) => {
   res.json({ teams });
 });
 
+app.get('/api/public/roster', async (_req, res) => {
+  const tournament = await readTournamentState();
+  const teams = (tournament.teams || []).map((t) => ({ id: t.id, name: t.name, color: t.color || '#0f766e' }));
+  const players = (tournament.players || []).map((p) => ({
+    id: p.id,
+    name: p.name || 'Jogador',
+    teamId: p.teamId || '',
+    photoDataUrl: p.photoDataUrl || '',
+    isCaptain: Boolean(p.isCaptain)
+  }));
+  res.json({ teams, players });
+});
+
 app.get('/api/state', adminRequired, async (_req, res) => {
   res.json({ tournament: await readTournamentState() });
 });
@@ -353,6 +366,8 @@ app.use(express.static(__dirname, { extensions: ['html'] }));
 
 app.get('/', (_req, res) => res.redirect('/admin'));
 app.get('/admin', (_req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/jogo', (_req, res) => res.sendFile(path.join(__dirname, 'jogo.html')));
+app.get('/jogo/ao-vivo', (_req, res) => res.sendFile(path.join(__dirname, 'jogo-live.html')));
 app.get('/player/home', (_req, res) => res.sendFile(path.join(__dirname, 'player-home.html')));
 app.get('/player', (_req, res) => res.sendFile(path.join(__dirname, 'player.html')));
 app.get('*', (req, res) => {

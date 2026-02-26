@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Partida Ao Vivo</title>
+<link rel="stylesheet" href="/jogo-live.css?v=1">
+</head>
+<body>
+
+<div class="app">
+  <div class="players">
+    <div class="player-list" id="playersA"></div>
+    <div class="player-list" id="playersB"></div>
+  </div>
+
+  <div class="scoreboard">
+    <div class="team-name" id="teamAName">Time A</div>
+    <div class="score">
+      <span id="scoreA">0</span> x <span id="scoreB">0</span>
+    </div>
+    <div class="team-name" id="teamBName" style="text-align:right;">Time B</div>
+  </div>
+
+  <div class="timer" id="timer">10:00</div>
+
+  <div class="controls">
+    <button onclick="startTimer()">▶</button>
+    <button class="secondary" onclick="pauseTimer()">⏸</button>
+    <button class="secondary" onclick="resetGame()">🔄</button>
+  </div>
+
+  <div class="goal-controls">
+    <div>
+      <button class="goal-btn" id="goalPlusA">⚽ + Time A</button>
+      <button class="goal-btn secondary" id="goalMinusA">➖ Time A</button>
+    </div>
+    <div>
+      <button class="goal-btn" id="goalPlusB">⚽ + Time B</button>
+      <button class="goal-btn secondary" id="goalMinusB">➖ Time B</button>
+    </div>
+  </div>
+</div>
+
+<script src="/jogo-live.js?v=1" defer></script>
+</body>
+</html>
