@@ -24,6 +24,7 @@ function bindEvents() {
   if (els.goToRegisterLink) {
     els.goToRegisterLink.addEventListener('click', function (e) {
       e.preventDefault();
+      populateRegisterTeams().catch(function () {});
       switchAuthView('register');
     });
   }
@@ -103,15 +104,21 @@ function switchAuthView(view) {
 
 async function populateRegisterTeams() {
   if (!els.registerTeamSelect) return;
+  var currentValue = els.registerTeamSelect.value || '';
   try {
     const data = await api('/api/public/teams');
     const teams = data && Array.isArray(data.teams) ? data.teams : [];
+    if (!teams.length) {
+      els.registerTeamSelect.innerHTML = '<option value="">Nenhum time cadastrado</option>';
+      return;
+    }
     els.registerTeamSelect.innerHTML = '<option value="">Selecione</option>' +
       teams.sort(function (a, b) { return String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR'); })
         .map(function (t) { return '<option value="' + esc(t.id) + '">' + esc(t.name) + '</option>'; })
         .join('');
+    if (currentValue) els.registerTeamSelect.value = currentValue;
   } catch (_err) {
-    els.registerTeamSelect.innerHTML = '<option value="">Selecione</option>';
+    els.registerTeamSelect.innerHTML = '<option value="">Erro ao carregar times</option>';
   }
 }
 
