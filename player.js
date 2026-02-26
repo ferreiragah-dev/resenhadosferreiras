@@ -1,5 +1,4 @@
 ﻿const TOKEN_KEY = 'resenha-player-token';
-let countdownInterval = null;
 
 const els = {
   authScreen: document.getElementById('authScreen'),
@@ -14,18 +13,13 @@ const els = {
   registerName: document.getElementById('registerName'),
   registerEmail: document.getElementById('registerEmail'),
   registerPassword: document.getElementById('registerPassword'),
-  welcomeName: document.getElementById('welcomeName'),
-  countdownSubtitle: document.getElementById('countdownSubtitle'),
-  countdownFooter: document.getElementById('countdownFooter'),
-  days: document.getElementById('days'),
-  hours: document.getElementById('hours'),
-  minutes: document.getElementById('minutes'),
-  seconds: document.getElementById('seconds'),
-  teamBox: document.getElementById('teamBox'),
-  myCards: document.getElementById('myCards'),
+  mainAvatar: document.getElementById('mainAvatar'),
+  mainName: document.getElementById('mainName'),
+  mainTeam: document.getElementById('mainTeam'),
+  mainStats: document.getElementById('mainStats'),
   teammatesList: document.getElementById('teammatesList'),
-  logoutBtn: document.getElementById('logoutBtn'),
   refreshHomeBtn: document.getElementById('refreshHomeBtn'),
+  logoutBtn: document.getElementById('logoutBtn'),
   linkPendingBox: document.getElementById('linkPendingBox'),
   linkPendingText: document.getElementById('linkPendingText')
 };
@@ -70,14 +64,13 @@ function bindEvents() {
     }
   });
 
-  els.logoutBtn.addEventListener('click', () => {
-    stopCountdown();
-    localStorage.removeItem(TOKEN_KEY);
-    showAuth();
-  });
-
   els.refreshHomeBtn.addEventListener('click', () => {
     loadHome().catch((err) => setMessage(err.message || 'Falha ao atualizar'));
+  });
+
+  els.logoutBtn.addEventListener('click', () => {
+    localStorage.removeItem(TOKEN_KEY);
+    showAuth();
   });
 }
 
@@ -99,7 +92,6 @@ function switchAuthTab(tab) {
 }
 
 function showAuth() {
-  stopCountdown();
   els.authScreen.hidden = false;
   els.homeScreen.hidden = true;
 }
@@ -111,114 +103,81 @@ async function loadHome() {
 
   els.authScreen.hidden = true;
   els.homeScreen.hidden = false;
-  els.welcomeName.textContent = '⚽ A resenha ja vai comecar';
-  els.countdownSubtitle.textContent = data.user?.name
-    ? `${data.user.name}, prepare a camisa, a gelada e o grito de gol`
-    : 'Prepare a camisa, a gelada e o grito de gol';
-  els.countdownFooter.textContent = '⏱ Contagem regressiva para a resenha do futebol';
-
-  startCountdown(data.settings?.eventStartAt || '');
 
   if (!data.linked) {
     els.linkPendingBox.hidden = false;
     els.linkPendingText.textContent = data.message || 'Aguardando vinculo no painel.';
-    els.teamBox.innerHTML = '<p class="team-note">Sem time vinculado ainda.</p>';
-    els.myCards.innerHTML = stat('🟨 Amarelos', 0) + stat('🟥 Vermelhos', 0) + stat('⚽ Gols', 0);
-    els.teammatesList.innerHTML = '<p class="team-note">Nenhum companheiro para exibir.</p>';
+    renderMainProfile({
+      name: data.user?.name || 'Jogador',
+      teamName: 'Sem time',
+      photoDataUrl: '',
+      assists: 0,
+      teamGoalsFor: 0,
+      teamGoalsAgainst: 0,
+      yellowCards: 0,
+      redCards: 0
+    });
+    els.teammatesList.innerHTML = '<div class="empty-state">Nenhum companheiro para exibir.</div>';
     return;
   }
 
   els.linkPendingBox.hidden = true;
-
-  if (data.team) {
-    els.teamBox.innerHTML = `
-      <div class="team-pill"><span class="team-dot" style="background:${esc(data.team.color || '#22c55e')}"></span>${esc(data.team.name)}</div>
-      <p class="team-note">Voce esta neste time da resenha.</p>`;
-  } else {
-    els.teamBox.innerHTML = '<p class="team-note">Voce ainda nao foi colocado em um time.</p>';
-  }
-
-  els.myCards.innerHTML =
-    stat('🟨 Amarelos', data.player?.yellowCards || 0) +
-    stat('🟥 Vermelhos', data.player?.redCards || 0) +
-    stat('⚽ Gols', data.player?.goals || 0);
+  renderMainProfile({
+    name: data.player?.name || data.user?.name || 'Jogador',
+    teamName: data.team?.name || 'Sem time',
+    photoDataUrl: data.player?.photoDataUrl || '',
+    assists: data.player?.assists || 0,
+    teamGoalsFor: data.teamStats?.goalsFor || 0,
+    teamGoalsAgainst: data.teamStats?.goalsAgainst || 0,
+    yellowCards: data.player?.yellowCards || 0,
+    redCards: data.player?.redCards || 0
+  });
 
   const mates = Array.isArray(data.teammates) ? data.teammates : [];
-  els.teammatesList.innerHTML = mates.length ? mates.map(renderMate).join('') : '<p class="team-note">Nenhum companheiro para exibir.</p>';
+  els.teammatesList.innerHTML = mates.length ? mates.map(renderMate).join('') : '<div class="empty-state">Nenhum companheiro para exibir.</div>';
 }
 
-function startCountdown(eventStartAt) {
-  stopCountdown();
-
-  if (!eventStartAt) {
-    setCountdownValues(0, 0, 0, 0);
-    els.countdownFooter.textContent = '⏱ Horario da resenha ainda nao foi definido no PWA.';
-    return;
-  }
-
-  const target = new Date(eventStartAt).getTime();
-  if (!Number.isFinite(target)) {
-    setCountdownValues(0, 0, 0, 0);
-    els.countdownFooter.textContent = '⏱ Horario invalido configurado para a resenha.';
-    return;
-  }
-
-  const tick = () => {
-    const now = Date.now();
-    const diff = target - now;
-
-    if (diff <= 0) {
-      setCountdownValues(0, 0, 0, 0);
-      els.welcomeName.textContent = '⚽ A resenha comecou!';
-      els.countdownFooter.textContent = 'Bora jogar!';
-      stopCountdown();
-      return;
-    }
-
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-    const minutes = Math.floor((diff / (1000 * 60)) % 60);
-    const seconds = Math.floor((diff / 1000) % 60);
-
-    setCountdownValues(days, hours, minutes, seconds);
-    els.countdownFooter.textContent = `⏱ Contagem regressiva para ${formatDateTime(eventStartAt)}`;
-  };
-
-  tick();
-  countdownInterval = setInterval(tick, 1000);
+function renderMainProfile(profile) {
+  els.mainAvatar.src = profile.photoDataUrl || avatarFallback(profile.name, 96);
+  els.mainName.textContent = profile.name;
+  els.mainTeam.textContent = profile.teamName;
+  els.mainStats.innerHTML = [
+    statBox(profile.assists, 'A'),
+    statBox(profile.teamGoalsFor, 'GP'),
+    statBox(profile.teamGoalsAgainst, 'GC'),
+    statBox(profile.yellowCards, 'CA'),
+    statBox(profile.redCards, 'CV')
+  ].join('');
 }
 
-function stopCountdown() {
-  if (countdownInterval) {
-    clearInterval(countdownInterval);
-    countdownInterval = null;
-  }
-}
-
-function setCountdownValues(days, hours, minutes, seconds) {
-  els.days.textContent = String(days);
-  els.hours.textContent = String(hours).padStart(2, '0');
-  els.minutes.textContent = String(minutes).padStart(2, '0');
-  els.seconds.textContent = String(seconds).padStart(2, '0');
+function statBox(value, label) {
+  return `<div class="stat"><div class="value">${Number(value) || 0}</div><div class="label">${label}</div></div>`;
 }
 
 function renderMate(m) {
+  const photo = m.photoDataUrl || avatarFallback(m.name, 36);
   return `
-    <article class="mate">
-      <div class="mate-top">
-        <div class="mate-name">${esc(m.name)} ${m.number != null ? `#${m.number}` : ''}</div>
-        ${m.isMe ? '<span class="badge-me">Voce</span>' : ''}
+    <div class="player-item">
+      <div class="player-left">
+        <img class="player-avatar" src="${esc(photo)}" alt="${esc(m.name)}">
+        <div class="player-name">${esc(m.name)}${m.isMe ? ' (voce)' : ''}</div>
       </div>
-      <div class="mate-stats">
-        <span>🟨 ${m.yellowCards || 0}</span>
-        <span>🟥 ${m.redCards || 0}</span>
-        <span>⚽ ${m.goals || 0}</span>
+      <div class="player-stats">
+        <span>GP ${Number(m.goals || 0)}</span>
+        <span>A ${Number(m.assists || 0)}</span>
+        <span>CA ${Number(m.yellowCards || 0)}</span>
       </div>
-    </article>`;
+    </div>`;
 }
 
-function stat(label, value) {
-  return `<div class="stat"><span>${label}</span><strong>${value}</strong></div>`;
+function avatarFallback(name, size) {
+  const initials = String(name || 'J')
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((p) => (p[0] || '').toUpperCase())
+    .join('') || 'J';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><rect width="100%" height="100%" rx="${Math.floor(size/2)}" fill="#03180b"/><circle cx="${size/2}" cy="${size/2}" r="${size/2-2}" fill="none" stroke="#22c55e" stroke-width="2"/><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="Arial" font-size="${Math.floor(size*0.32)}" fill="#22c55e" font-weight="700">${initials}</text></svg>`;
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
 
 async function api(url, options = {}) {
@@ -233,15 +192,6 @@ async function api(url, options = {}) {
 
 function setMessage(text) {
   els.authMessage.textContent = text || '';
-}
-
-function formatDateTime(value) {
-  const d = new Date(value);
-  if (!Number.isFinite(d.getTime())) return 'horario da resenha';
-  return d.toLocaleString('pt-BR', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit'
-  });
 }
 
 function esc(v) {

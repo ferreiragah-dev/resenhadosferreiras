@@ -1,91 +1,66 @@
 ﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#000000">
-  <title>Resenha do Futebol - Jogador</title>
-  <link rel="stylesheet" href="player.css">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Resenha do Futebol - Jogador</title>
+<link rel="stylesheet" href="player.css">
 </head>
 <body>
-  <main class="player-app">
-    <section id="authScreen" class="auth-wrap card">
-      <div class="brand">
-        <p>Resenha dos Ferreira</p>
-        <h1>Area do Jogador</h1>
+<div class="app">
+  <section id="authScreen" class="auth-card">
+    <div class="auth-title">Resenha dos Ferreira</div>
+    <div class="auth-sub">Cadastro e login do jogador</div>
+
+    <div class="auth-tabs" role="tablist" aria-label="Autenticacao">
+      <button class="auth-tab is-active" data-auth-tab="login" type="button">Entrar</button>
+      <button class="auth-tab" data-auth-tab="register" type="button">Cadastrar</button>
+    </div>
+
+    <form id="loginForm" class="auth-form" data-panel="login">
+      <label>Email<input id="loginEmail" type="email" autocomplete="email" required></label>
+      <label>Senha<input id="loginPassword" type="password" autocomplete="current-password" required></label>
+      <button class="primary" type="submit">Entrar</button>
+    </form>
+
+    <form id="registerForm" class="auth-form" data-panel="register" hidden>
+      <label>Seu nome<input id="registerName" type="text" autocomplete="name" required></label>
+      <label>Email<input id="registerEmail" type="email" autocomplete="email" required></label>
+      <label>Senha<input id="registerPassword" type="password" autocomplete="new-password" minlength="4" required></label>
+      <button class="primary" type="submit">Criar conta</button>
+    </form>
+
+    <p id="authMessage" class="auth-message"></p>
+  </section>
+
+  <section id="homeScreen" hidden>
+    <div id="linkPendingBox" class="pending-box" hidden>
+      <strong>Aguardando vinculo no PWA</strong>
+      <p id="linkPendingText"></p>
+    </div>
+
+    <div class="main-profile">
+      <img id="mainAvatar" class="avatar" alt="Foto do jogador">
+      <div id="mainName" class="name">Jogador</div>
+      <div id="mainTeam" class="team">Sem time</div>
+
+      <div id="mainStats" class="stats"></div>
+    </div>
+
+    <div class="team-list">
+      <div class="section-row">
+        <div class="section-title">Companheiros de Time</div>
+        <div class="section-actions">
+          <button id="refreshHomeBtn" class="ghost-btn" type="button">Atualizar</button>
+          <button id="logoutBtn" class="ghost-btn" type="button">Sair</button>
+        </div>
       </div>
 
-      <div class="auth-tabs" role="tablist" aria-label="Autenticacao">
-        <button class="auth-tab is-active" data-auth-tab="login" type="button">Entrar</button>
-        <button class="auth-tab" data-auth-tab="register" type="button">Cadastrar</button>
-      </div>
+      <div id="teammatesList"></div>
+    </div>
+  </section>
+</div>
 
-      <form id="loginForm" class="auth-form" data-panel="login">
-        <label>Email<input id="loginEmail" type="email" autocomplete="email" required></label>
-        <label>Senha<input id="loginPassword" type="password" autocomplete="current-password" required></label>
-        <button class="primary" type="submit">Entrar</button>
-      </form>
-
-      <form id="registerForm" class="auth-form" data-panel="register" hidden>
-        <label>Seu nome<input id="registerName" type="text" autocomplete="name" required></label>
-        <label>Email<input id="registerEmail" type="email" autocomplete="email" required></label>
-        <label>Senha<input id="registerPassword" type="password" autocomplete="new-password" minlength="4" required></label>
-        <button class="primary" type="submit">Criar conta</button>
-      </form>
-
-      <p id="authMessage" class="auth-message"></p>
-    </section>
-
-    <section id="homeScreen" class="home-wrap" hidden>
-      <div class="container">
-        <div class="field"></div>
-        <div class="circle"></div>
-
-        <div class="top-bar">
-          <div>
-            <div class="subtitle">Resenha dos Ferreira</div>
-            <h1 id="welcomeName">⚽ A resenha ja vai comecar</h1>
-          </div>
-          <button id="logoutBtn" class="ghost small" type="button">Sair</button>
-        </div>
-
-        <div class="subtitle" id="countdownSubtitle">Prepare a camisa, a gelada e o grito de gol</div>
-
-        <div class="countdown">
-          <div class="box"><div class="value" id="days">0</div><div class="label">Dias</div></div>
-          <div class="box"><div class="value" id="hours">00</div><div class="label">Horas</div></div>
-          <div class="box"><div class="value" id="minutes">00</div><div class="label">Min</div></div>
-          <div class="box"><div class="value" id="seconds">00</div><div class="label">Seg</div></div>
-        </div>
-
-        <div class="footer" id="countdownFooter">⏱ Contagem regressiva para a resenha do futebol</div>
-      </div>
-
-      <section id="linkPendingBox" class="panel warn" hidden>
-        <h3>Aguardando vinculo</h3>
-        <p id="linkPendingText"></p>
-      </section>
-
-      <section class="panel">
-        <div class="panel-head">
-          <h3>Meu time</h3>
-          <button id="refreshHomeBtn" class="ghost small" type="button">Atualizar</button>
-        </div>
-        <div id="teamBox"></div>
-      </section>
-
-      <section class="panel">
-        <h3>Meus numeros</h3>
-        <div id="myCards" class="stats-row"></div>
-      </section>
-
-      <section class="panel">
-        <h3>Companheiros</h3>
-        <div id="teammatesList" class="teammates-list"></div>
-      </section>
-    </section>
-  </main>
-
-  <script src="player.js" defer></script>
+<script src="player.js" defer></script>
 </body>
 </html>

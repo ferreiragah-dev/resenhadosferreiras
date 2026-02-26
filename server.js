@@ -181,6 +181,15 @@ app.get('/api/player/home', authRequired, async (req, res) => {
   }
 
   const team = tournament.teams.find((t) => t.id === player.teamId) || null;
+  const teamStats = team
+    ? tournament.matches.reduce((acc, m) => {
+        if (m.teamAId !== team.id && m.teamBId !== team.id) return acc;
+        const isA = m.teamAId === team.id;
+        acc.goalsFor += Number(isA ? m.goalsA : m.goalsB) || 0;
+        acc.goalsAgainst += Number(isA ? m.goalsB : m.goalsA) || 0;
+        return acc;
+      }, { goalsFor: 0, goalsAgainst: 0 })
+    : { goalsFor: 0, goalsAgainst: 0 };
   const teammates = team
     ? tournament.players
         .filter((p) => p.teamId === team.id)
@@ -192,6 +201,8 @@ app.get('/api/player/home', authRequired, async (req, res) => {
           yellowCards: p.yellowCards || 0,
           redCards: p.redCards || 0,
           goals: p.goals || 0,
+          assists: p.assists || 0,
+          photoDataUrl: p.photoDataUrl || '',
           isMe: p.id === player.id
         }))
     : [];
@@ -210,9 +221,11 @@ app.get('/api/player/home', authRequired, async (req, res) => {
       yellowCards: player.yellowCards || 0,
       redCards: player.redCards || 0,
       goals: player.goals || 0,
+      assists: player.assists || 0,
       photoDataUrl: player.photoDataUrl || ''
     },
     team: team ? { id: team.id, name: team.name, color: team.color || '#0f766e' } : null,
+    teamStats,
     teammates
   });
 });
