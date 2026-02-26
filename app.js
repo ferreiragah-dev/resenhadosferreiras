@@ -744,11 +744,13 @@ function generateBracketFromTeams() {
   persistAndRender();
 }
 function renderRankings() {
-  const players = [...state.players].map((p) => ({ ...p, rankingPoints: (p.goals || 0) * 3 - (p.yellowCards || 0) - (p.redCards || 0) * 3 }))
+  const players = [...state.players]
+    .map((p) => ({ ...p, rankingPoints: (p.goals || 0) * 3 - (p.yellowCards || 0) - (p.redCards || 0) * 3 }))
+    .filter((p) => Number(p.goals || 0) > 0 || Number(p.yellowCards || 0) > 0 || Number(p.redCards || 0) > 0)
     .sort((a, b) => b.rankingPoints - a.rankingPoints || (b.goals || 0) - (a.goals || 0) || a.name.localeCompare(b.name, 'pt-BR'));
 
   if (!players.length) {
-    els.playerRanking.innerHTML = '<p class="muted">Sem jogadores para ranking.</p>';
+    els.playerRanking.innerHTML = '<p class="muted">Sem jogadores com gols ou cartões para ranking.</p>';
   } else {
     els.playerRanking.innerHTML = `
       <table><thead><tr><th>#</th><th>Jogador</th><th>Time</th><th>Gols</th><th>🟨</th><th>🟥</th><th>Pontos</th></tr></thead><tbody>
