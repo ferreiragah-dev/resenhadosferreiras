@@ -96,6 +96,7 @@ app.post('/api/auth/register', async (req, res) => {
     const name = String(req.body?.name || '').trim();
     const email = String(req.body?.email || '').trim().toLowerCase();
     const password = String(req.body?.password || '');
+    const requestedTeamId = String(req.body?.teamId || '').trim();
 
     if (!name || !email || !password) return res.status(400).json({ error: 'Nome, email e senha sao obrigatorios' });
     if (password.length < 4) return res.status(400).json({ error: 'Senha deve ter pelo menos 4 caracteres' });
@@ -118,14 +119,26 @@ app.post('/api/auth/register', async (req, res) => {
 
     // Cria automaticamente o jogador no elenco (sem time) para aparecer no PWA admin.
     const tournament = await readTournamentState();
-    const alreadyExistsInRoster = (tournament.players || []).some((p) => p && (p.userId === user.id || String(p.name || '').trim() === user.name));
-    if (!alreadyExistsInRoster) {
+    const teamExists = (tournament.teams || []).some((t) => t && t.id === requestedTeamId);
+    const normalizedTeamId = teamExists ? requestedTeamId : '';
+    const sameNamePlayer = (tournament.players || []).find((p) => p && String(p.name || '').trim().toLowerCase() === user.name.toLowerCase());
+    const linkedPlayer = (tournament.players || []).find((p) => p && p.userId === user.id);
+
+    if (linkedPlayer) {
+      if (normalizedTeamId) linkedPlayer.teamId = normalizedTeamId;
+      if (!linkedPlayer.userId) linkedPlayer.userId = user.id;
+      await writeTournamentState(tournament);
+    } else if (sameNamePlayer) {
+      sameNamePlayer.userId = user.id;
+      if (normalizedTeamId) sameNamePlayer.teamId = normalizedTeamId;
+      await writeTournamentState(tournament);
+    } else {
       tournament.players.push({
         id: uid(),
         name: user.name,
         number: null,
         position: '',
-        teamId: '',
+        teamId: normalizedTeamId,
         userId: user.id,
         photoDataUrl: '',
         yellowCards: 0,

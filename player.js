@@ -63,7 +63,8 @@ function bindEvents() {
           body: JSON.stringify({
             name: els.registerName.value,
             email: els.registerEmail.value,
-            password: els.registerPassword.value
+            password: els.registerPassword.value,
+            teamId: els.registerTeamSelect ? els.registerTeamSelect.value : ''
           })
         });
         localStorage.setItem(TOKEN_KEY, data.token);
