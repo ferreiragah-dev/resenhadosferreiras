@@ -12,66 +12,94 @@
   min-height:100vh;
 }
 
-.auth-card{
-  margin-top:8vh;
-  border:1px solid rgba(34,197,94,.25);
-  border-radius:14px;
-  padding:14px;
-  background:rgba(0,0,0,.85);
+/* LOGIN / CADASTRO */
+#authScreen{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:100vh;
+  flex-direction:column;
 }
 
-.auth-title{
-  font-size:1.1rem;
+.auth-view{ width:100%; }
+
+.auth{
+  width:100%;
+  max-width:360px;
+  padding:24px;
+  margin:0 auto;
+}
+
+.logo{
+  text-align:center;
+  font-size:1.4rem;
+  font-weight:800;
   color:#22c55e;
-  font-weight:700;
+  margin-bottom:24px;
 }
 
-.auth-sub{
-  font-size:.85rem;
+.auth-form{ margin:0; }
+
+.input-group{
+  margin-bottom:14px;
+}
+
+label{
+  display:block;
+  font-size:.7rem;
+  opacity:.7;
+  margin-bottom:6px;
+}
+
+input, select{
+  width:100%;
+  background:#020617;
+  border:1px solid rgba(34,197,94,.4);
+  border-radius:10px;
+  padding:12px;
+  color:#9ae6b4;
+  outline:none;
+}
+
+input::placeholder{
+  color:#6ee7b7;
+  opacity:.4;
+}
+
+button{
+  width:100%;
+  background:#22c55e;
+  color:#000;
+  border:none;
+  border-radius:10px;
+  padding:12px;
+  font-weight:700;
+  margin-top:12px;
+}
+
+.link{
+  text-align:center;
+  font-size:.75rem;
+  margin-top:14px;
   opacity:.8;
-  margin:4px 0 12px;
 }
 
-.auth-tabs{
-  display:grid;
-  grid-template-columns:repeat(2,1fr);
-  gap:8px;
-  margin-bottom:10px;
+.link a{
+  color:#22c55e;
+  text-decoration:none;
 }
 
-.auth-tab{
-  border:1px solid rgba(34,197,94,.35);
-  border-radius:10px;
-  background:#000;
-  color:#9ae6b4;
-  padding:10px;
-  font-weight:700;
+.auth-message{
+  width:100%;
+  max-width:360px;
+  margin:8px auto 0;
+  color:#fca5a5;
+  font-size:.8rem;
+  text-align:center;
+  min-height:1rem;
 }
 
-.auth-tab.is-active{
-  background:#22c55e;
-  color:#03240f;
-}
-
-.auth-form{ display:grid; gap:10px; }
-.auth-form label{ display:grid; gap:6px; font-size:.9rem; }
-.auth-form input{
-  background:#000;
-  border:1px solid rgba(34,197,94,.35);
-  color:#9ae6b4;
-  border-radius:10px;
-  padding:10px 12px;
-}
-.primary{
-  border:1px solid rgba(34,197,94,.6);
-  border-radius:10px;
-  padding:10px 12px;
-  background:#22c55e;
-  color:#03240f;
-  font-weight:700;
-}
-.auth-message{ min-height:1rem; color:#fca5a5; font-size:.85rem; }
-
+/* HOME DO JOGADOR */
 .pending-box{
   border:1px solid rgba(250,204,21,.35);
   color:#fde68a;
@@ -153,6 +181,8 @@
 
 .section-actions{ display:flex; gap:8px; }
 .ghost-btn{
+  width:auto;
+  margin-top:0;
   border:1px solid rgba(34,197,94,.3);
   background:#000;
   color:#9ae6b4;

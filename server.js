@@ -231,8 +231,14 @@ app.get('/api/player/home', authRequired, async (req, res) => {
 });
 
 app.use(express.static(__dirname, { extensions: ['html'] }));
+
+app.get('/', (_req, res) => res.redirect('/admin'));
+app.get('/admin', (_req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/player', (_req, res) => res.sendFile(path.join(__dirname, 'player.html')));
-app.get('*', (_req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('*', (req, res) => {
+  if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'Rota nao encontrada' });
+  res.redirect('/admin');
+});
 
 await initDb();
 await migrateLegacyJsonIfNeeded();

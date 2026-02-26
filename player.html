@@ -8,27 +8,66 @@
 </head>
 <body>
 <div class="app">
-  <section id="authScreen" class="auth-card">
-    <div class="auth-title">Resenha dos Ferreira</div>
-    <div class="auth-sub">Cadastro e login do jogador</div>
+  <section id="authScreen">
+    <div id="playerLoginView" class="auth-view">
+      <div class="auth">
+        <div class="logo">⚽ Resenha FC</div>
 
-    <div class="auth-tabs" role="tablist" aria-label="Autenticacao">
-      <button class="auth-tab is-active" data-auth-tab="login" type="button">Entrar</button>
-      <button class="auth-tab" data-auth-tab="register" type="button">Cadastrar</button>
+        <form id="loginForm" class="auth-form">
+          <div class="input-group">
+            <label>Email</label>
+            <input id="loginEmail" type="email" placeholder="seu@email.com" autocomplete="email" required />
+          </div>
+
+          <div class="input-group">
+            <label>Senha</label>
+            <input id="loginPassword" type="password" placeholder="••••••••" autocomplete="current-password" required />
+          </div>
+
+          <button type="submit">Entrar</button>
+        </form>
+
+        <div class="link">
+          Nao tem conta? <a href="#" id="goToRegisterLink">Criar conta</a>
+        </div>
+      </div>
     </div>
 
-    <form id="loginForm" class="auth-form" data-panel="login">
-      <label>Email<input id="loginEmail" type="email" autocomplete="email" required></label>
-      <label>Senha<input id="loginPassword" type="password" autocomplete="current-password" required></label>
-      <button class="primary" type="submit">Entrar</button>
-    </form>
+    <div id="playerRegisterView" class="auth-view" hidden>
+      <div class="auth">
+        <div class="logo">⚽ Criar Conta</div>
 
-    <form id="registerForm" class="auth-form" data-panel="register" hidden>
-      <label>Seu nome<input id="registerName" type="text" autocomplete="name" required></label>
-      <label>Email<input id="registerEmail" type="email" autocomplete="email" required></label>
-      <label>Senha<input id="registerPassword" type="password" autocomplete="new-password" minlength="4" required></label>
-      <button class="primary" type="submit">Criar conta</button>
-    </form>
+        <form id="registerForm" class="auth-form">
+          <div class="input-group">
+            <label>Nome</label>
+            <input id="registerName" type="text" placeholder="Seu nome" autocomplete="name" required />
+          </div>
+
+          <div class="input-group">
+            <label>Email</label>
+            <input id="registerEmail" type="email" placeholder="seu@email.com" autocomplete="email" required />
+          </div>
+
+          <div class="input-group">
+            <label>Senha</label>
+            <input id="registerPassword" type="password" placeholder="Crie uma senha" autocomplete="new-password" minlength="4" required />
+          </div>
+
+          <div class="input-group">
+            <label>Seu time</label>
+            <select id="registerTeamSelect">
+              <option value="">Selecione</option>
+            </select>
+          </div>
+
+          <button type="submit">Cadastrar</button>
+        </form>
+
+        <div class="link">
+          Ja tem conta? <a href="#" id="goToLoginLink">Entrar</a>
+        </div>
+      </div>
+    </div>
 
     <p id="authMessage" class="auth-message"></p>
   </section>

@@ -3,8 +3,10 @@
 const els = {
   authScreen: document.getElementById('authScreen'),
   homeScreen: document.getElementById('homeScreen'),
-  authTabs: [...document.querySelectorAll('.auth-tab')],
-  authPanels: [...document.querySelectorAll('.auth-form')],
+  playerLoginView: document.getElementById('playerLoginView'),
+  playerRegisterView: document.getElementById('playerRegisterView'),
+  goToRegisterLink: document.getElementById('goToRegisterLink'),
+  goToLoginLink: document.getElementById('goToLoginLink'),
   loginForm: document.getElementById('loginForm'),
   registerForm: document.getElementById('registerForm'),
   authMessage: document.getElementById('authMessage'),
@@ -13,6 +15,7 @@ const els = {
   registerName: document.getElementById('registerName'),
   registerEmail: document.getElementById('registerEmail'),
   registerPassword: document.getElementById('registerPassword'),
+  registerTeamSelect: document.getElementById('registerTeamSelect'),
   mainAvatar: document.getElementById('mainAvatar'),
   mainName: document.getElementById('mainName'),
   mainTeam: document.getElementById('mainTeam'),
@@ -28,7 +31,15 @@ bindEvents();
 bootstrap();
 
 function bindEvents() {
-  els.authTabs.forEach((btn) => btn.addEventListener('click', () => switchAuthTab(btn.dataset.authTab)));
+  els.goToRegisterLink?.addEventListener('click', (e) => {
+    e.preventDefault();
+    switchAuthView('register');
+  });
+
+  els.goToLoginLink?.addEventListener('click', (e) => {
+    e.preventDefault();
+    switchAuthView('login');
+  });
 
   els.loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -76,6 +87,7 @@ function bindEvents() {
 
 async function bootstrap() {
   const token = localStorage.getItem(TOKEN_KEY);
+  await populateRegisterTeams();
   if (!token) return showAuth();
   try {
     await loadHome();
@@ -85,15 +97,29 @@ async function bootstrap() {
   }
 }
 
-function switchAuthTab(tab) {
-  els.authTabs.forEach((btn) => btn.classList.toggle('is-active', btn.dataset.authTab === tab));
-  els.authPanels.forEach((panel) => { panel.hidden = panel.dataset.panel !== tab; });
+function switchAuthView(view) {
+  els.playerLoginView.hidden = view !== 'login';
+  els.playerRegisterView.hidden = view !== 'register';
   setMessage('');
 }
 
 function showAuth() {
   els.authScreen.hidden = false;
   els.homeScreen.hidden = true;
+  switchAuthView('login');
+  populateRegisterTeams().catch(() => {});
+}
+
+async function populateRegisterTeams() {
+  try {
+    const data = await api('/api/state');
+    const teams = Array.isArray(data?.tournament?.teams) ? data.tournament.teams : [];
+    els.registerTeamSelect.innerHTML = '<option value="">Selecione</option>' +
+      teams.sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR'))
+        .map((t) => `<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('');
+  } catch {
+    els.registerTeamSelect.innerHTML = '<option value="">Selecione</option>';
+  }
 }
 
 async function loadHome() {
@@ -171,11 +197,7 @@ function renderMate(m) {
 }
 
 function avatarFallback(name, size) {
-  const initials = String(name || 'J')
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((p) => (p[0] || '').toUpperCase())
-    .join('') || 'J';
+  const initials = String(name || 'J').split(/\s+/).slice(0, 2).map((p) => (p[0] || '').toUpperCase()).join('') || 'J';
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><rect width="100%" height="100%" rx="${Math.floor(size/2)}" fill="#03180b"/><circle cx="${size/2}" cy="${size/2}" r="${size/2-2}" fill="none" stroke="#22c55e" stroke-width="2"/><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="Arial" font-size="${Math.floor(size*0.32)}" fill="#22c55e" font-weight="700">${initials}</text></svg>`;
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
