@@ -1,4 +1,4 @@
-const CACHE_NAME = "resenha-ferreira-campeonato-cache-v21";
+const CACHE_NAME = "resenha-ferreira-campeonato-cache-v22";
 const ASSETS = ["/admin", "/player", "/player/home", "/jogo", "/jogo/ao-vivo", "/index.html", "/player.html", "/player-home.html", "/jogo.html", "/jogo-live.html", "/styles.css", "/player.css", "/player-home.css", "/jogo.css", "/jogo-live.css", "/app.js", "/player.js", "/player-home.js", "/jogo.js", "/jogo-live.js", "/manifest.webmanifest", "/icons/icon-192.svg", "/icons/icon-512.svg"];
 
 self.addEventListener("install", (event) => {

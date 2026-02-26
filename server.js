@@ -261,6 +261,7 @@ app.post('/api/public/live-game/start', async (req, res) => {
   try {
     const body = req.body || {};
     const tournament = await readTournamentState();
+    const incomingEvents = Array.isArray(body.events) ? body.events : [];
     const liveGame = {
       id: body.id || uid(),
       teamAId: String(body.teamAId || ''),
@@ -269,6 +270,7 @@ app.post('/api/public/live-game/start', async (req, res) => {
       teamBName: String(body.teamBName || 'Time B'),
       scoreA: Number(body.scoreA || 0),
       scoreB: Number(body.scoreB || 0),
+      events: incomingEvents.slice(0, 200).map(normalizeLiveEvent),
       duration: Number(body.duration || 600),
       remaining: Number(body.remaining || 600),
       running: true,
@@ -296,6 +298,7 @@ app.post('/api/public/live-game/update', async (req, res) => {
 
     current.scoreA = Number(body.scoreA ?? current.scoreA ?? 0);
     current.scoreB = Number(body.scoreB ?? current.scoreB ?? 0);
+    if (Array.isArray(body.events)) current.events = body.events.slice(0, 200).map(normalizeLiveEvent);
     current.remaining = Number(body.remaining ?? current.remaining ?? 0);
     current.duration = Number(body.duration ?? current.duration ?? 600);
     if (typeof body.running !== 'undefined') current.running = Boolean(body.running);
@@ -322,6 +325,7 @@ app.post('/api/public/live-game/end', async (req, res) => {
 
     current.scoreA = Number(body.scoreA ?? current.scoreA ?? 0);
     current.scoreB = Number(body.scoreB ?? current.scoreB ?? 0);
+    if (Array.isArray(body.events)) current.events = body.events.slice(0, 200).map(normalizeLiveEvent);
     current.remaining = Number(body.remaining ?? current.remaining ?? 0);
     current.running = false;
     current.endedAt = Date.now();
@@ -339,6 +343,20 @@ app.post('/api/public/live-game/end', async (req, res) => {
     res.status(500).json({ error: 'Falha ao encerrar jogo ao vivo' });
   }
 });
+
+function normalizeLiveEvent(evt = {}) {
+  return {
+    id: String(evt.id || uid()),
+    type: String(evt.type || ''),
+    side: String(evt.side || ''),
+    playerId: String(evt.playerId || ''),
+    playerName: String(evt.playerName || 'Jogador'),
+    teamName: String(evt.teamName || ''),
+    elapsed: Number(evt.elapsed || 0),
+    minute: Number(evt.minute || 0),
+    createdAt: Number(evt.createdAt || Date.now())
+  };
+}
 
 app.get('/api/state', adminRequired, async (_req, res) => {
   res.json({ tournament: await readTournamentState() });

@@ -186,6 +186,136 @@ button.secondary{
   color:#9ae6b4;
 }
 
+.timeline-panel{
+  margin-top:14px;
+  border:1px solid rgba(34,197,94,.22);
+  border-radius:12px;
+  padding:12px 10px;
+  background:rgba(2,6,23,.55);
+}
+
+.timeline-title{
+  color:#22c55e;
+  font-size:.82rem;
+  font-weight:800;
+  margin-bottom:10px;
+  text-transform:uppercase;
+  letter-spacing:.4px;
+}
+
+.timeline-list{
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  min-height:70px;
+}
+
+.timeline-list::before{
+  content:"";
+  position:absolute;
+  top:0;
+  bottom:0;
+  left:50%;
+  width:1px;
+  background:rgba(148,163,184,.45);
+  transform:translateX(-50%);
+}
+
+.timeline-empty{
+  position:relative;
+  z-index:1;
+  margin:auto;
+  font-size:.78rem;
+  opacity:.7;
+  padding:8px 10px;
+  border-radius:10px;
+  background:rgba(0,0,0,.5);
+  border:1px solid rgba(34,197,94,.15);
+}
+
+.timeline-item{
+  position:relative;
+  display:grid;
+  grid-template-columns:1fr 52px 1fr;
+  gap:8px;
+  align-items:center;
+  z-index:1;
+}
+
+.timeline-side{
+  font-size:.74rem;
+  line-height:1.2;
+}
+
+.timeline-side.left{
+  text-align:right;
+}
+
+.timeline-side.right{
+  text-align:left;
+}
+
+.timeline-card{
+  display:inline-flex;
+  flex-direction:column;
+  gap:2px;
+  max-width:100%;
+  border:1px solid rgba(34,197,94,.18);
+  border-radius:10px;
+  background:rgba(0,0,0,.45);
+  padding:6px 8px;
+}
+
+.timeline-side.left .timeline-card{
+  align-items:flex-end;
+}
+
+.timeline-side.right .timeline-card{
+  align-items:flex-start;
+}
+
+.timeline-event{
+  color:#d1fae5;
+}
+
+.timeline-player{
+  opacity:.8;
+  font-size:.68rem;
+}
+
+.timeline-center{
+  text-align:center;
+  font-size:.75rem;
+  color:#cbd5e1;
+  font-weight:700;
+}
+
+.timeline-dot{
+  width:8px;
+  height:8px;
+  border-radius:999px;
+  background:#22c55e;
+  display:block;
+  margin:3px auto 4px;
+  box-shadow:0 0 0 3px rgba(34,197,94,.18);
+}
+
+.timeline-tag{
+  display:inline-block;
+  margin-left:4px;
+  padding:0 4px;
+  border-radius:4px;
+  font-size:.62rem;
+  font-weight:700;
+}
+
+.timeline-tag.gp{ background:#14532d; color:#86efac; }
+.timeline-tag.a{ background:#064e3b; color:#a7f3d0; }
+.timeline-tag.gc{ background:#3f3f46; color:#e4e4e7; }
+.timeline-tag.ca{ background:#f59e0b; color:#111827; }
+.timeline-tag.cv{ background:#dc2626; color:#fff; }
+
 .live-modal{
   position:fixed;
   inset:0;

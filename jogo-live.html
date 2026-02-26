@@ -1,10 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Partida Ao Vivo</title>
-<link rel="stylesheet" href="/jogo-live.css?v=4">
+<link rel="stylesheet" href="/jogo-live.css?v=5">
 </head>
 <body>
 
@@ -24,20 +24,27 @@
       <div class="timer" id="timer">10:00</div>
 
       <div class="controls">
-        <button onclick="startTimer()">▶</button>
-        <button class="secondary" onclick="pauseTimer()">⏸</button>
-        <button class="secondary" onclick="resetGame()">🔄</button>
-        <button class="secondary" onclick="endGame()">⏹ Encerrar</button>
+        <button onclick="startTimer()">Play</button>
+        <button class="secondary" onclick="pauseTimer()">Pausar</button>
+        <button class="secondary" onclick="resetGame()">Reset</button>
+        <button class="secondary" onclick="endGame()">Encerrar</button>
       </div>
 
       <div class="goal-controls">
         <div>
-          <button class="goal-btn" id="goalPlusA">⚽ + Time A</button>
-          <button class="goal-btn secondary" id="goalMinusA">➖ Time A</button>
+          <button class="goal-btn" id="goalPlusA">Gol + Time A</button>
+          <button class="goal-btn secondary" id="goalMinusA">Gol - Time A</button>
         </div>
         <div>
-          <button class="goal-btn" id="goalPlusB">⚽ + Time B</button>
-          <button class="goal-btn secondary" id="goalMinusB">➖ Time B</button>
+          <button class="goal-btn" id="goalPlusB">Gol + Time B</button>
+          <button class="goal-btn secondary" id="goalMinusB">Gol - Time B</button>
+        </div>
+      </div>
+
+      <div class="timeline-panel">
+        <div class="timeline-title">Timeline da Partida</div>
+        <div class="timeline-list" id="eventTimeline">
+          <div class="timeline-empty">Nenhum evento registrado.</div>
         </div>
       </div>
     </div>
@@ -49,19 +56,19 @@
 <div id="playerActionModal" class="live-modal hidden" aria-hidden="true">
   <div class="live-modal-backdrop" id="playerActionBackdrop"></div>
   <div class="live-modal-card" role="dialog" aria-modal="true" aria-labelledby="playerActionTitle">
-    <div class="live-modal-title" id="playerActionTitle">Ações do jogador</div>
+    <div class="live-modal-title" id="playerActionTitle">Acoes do jogador</div>
     <div class="live-modal-sub" id="playerActionSubtitle"></div>
     <div class="live-action-grid">
-      <button class="live-action-btn" data-action-stat="A">A - Assistência</button>
-      <button class="live-action-btn" data-action-stat="GP">GP - Gol Pró</button>
+      <button class="live-action-btn" data-action-stat="A">A - Assistencia</button>
+      <button class="live-action-btn" data-action-stat="GP">GP - Gol Pro</button>
       <button class="live-action-btn" data-action-stat="GC">GC - Gol Contra</button>
-      <button class="live-action-btn" data-action-stat="CA">CA - Cartão Amarelo</button>
-      <button class="live-action-btn" data-action-stat="CV">CV - Cartão Vermelho</button>
+      <button class="live-action-btn" data-action-stat="CA">CA - Cartao Amarelo</button>
+      <button class="live-action-btn" data-action-stat="CV">CV - Cartao Vermelho</button>
     </div>
     <button class="close-btn" id="closePlayerActionBtn" type="button">Fechar</button>
   </div>
 </div>
 
-<script src="/jogo-live.js?v=5" defer></script>
+<script src="/jogo-live.js?v=6" defer></script>
 </body>
 </html>

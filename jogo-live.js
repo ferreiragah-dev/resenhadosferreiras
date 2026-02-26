@@ -1,4 +1,4 @@
-var duration = 600;
+﻿var duration = 600;
 var remaining = duration;
 var interval = null;
 var scoreA = 0;
@@ -7,47 +7,54 @@ var currentPlayerAction = null;
 var teamAPlayers = [];
 var teamBPlayers = [];
 var playerLiveStats = {};
+var matchEvents = [];
 var liveGameId = null;
 var matchStarted = false;
 var matchMeta = { teamAId: '', teamBId: '', teamAName: 'Time A', teamBName: 'Time B' };
 var lastSyncAt = 0;
 
-document.addEventListener('DOMContentLoaded', function () {
+window.addEventListener('DOMContentLoaded', function () {
   var q = new URLSearchParams(window.location.search);
   var teamAId = q.get('teamA') || '';
   var teamBId = q.get('teamB') || '';
   var teamAName = q.get('teamAName') || 'Time A';
   var teamBName = q.get('teamBName') || 'Time B';
+
   liveGameId = 'live_' + Date.now();
   matchMeta = { teamAId: teamAId, teamBId: teamBId, teamAName: teamAName, teamBName: teamBName };
 
   setText('teamAName', teamAName);
   setText('teamBName', teamBName);
-  setText('goalPlusA', '⚽ + ' + teamAName);
-  setText('goalMinusA', '➖ ' + teamAName);
-  setText('goalPlusB', '⚽ + ' + teamBName);
-  setText('goalMinusB', '➖ ' + teamBName);
+  setText('goalPlusA', 'Gol + ' + teamAName);
+  setText('goalMinusA', 'Gol - ' + teamAName);
+  setText('goalPlusB', 'Gol + ' + teamBName);
+  setText('goalMinusB', 'Gol - ' + teamBName);
 
   bindGoalButtons();
   bindPlayerActionModal();
   loadRoster(teamAId, teamBId);
   updateDisplay();
   updateScore();
+  renderTimeline();
 });
 
 function bindGoalButtons() {
-  byId('goalPlusA').addEventListener('click', function () { addGoal('A'); });
-  byId('goalMinusA').addEventListener('click', function () { removeGoal('A'); });
-  byId('goalPlusB').addEventListener('click', function () { addGoal('B'); });
-  byId('goalMinusB').addEventListener('click', function () { removeGoal('B'); });
+  var plusA = byId('goalPlusA');
+  var minusA = byId('goalMinusA');
+  var plusB = byId('goalPlusB');
+  var minusB = byId('goalMinusB');
+  if (plusA) plusA.addEventListener('click', function () { addGoal('A'); });
+  if (minusA) minusA.addEventListener('click', function () { removeGoal('A'); });
+  if (plusB) plusB.addEventListener('click', function () { addGoal('B'); });
+  if (minusB) minusB.addEventListener('click', function () { removeGoal('B'); });
 }
 
 async function loadRoster(teamAId, teamBId) {
   try {
     var data = await api('/api/public/roster');
     var players = Array.isArray(data.players) ? data.players : [];
-    teamAPlayers = players.filter(function (p) { return p.teamId === teamAId; });
-    teamBPlayers = players.filter(function (p) { return p.teamId === teamBId; });
+    teamAPlayers = players.filter(function (p) { return String(p.teamId || '') === String(teamAId || ''); });
+    teamBPlayers = players.filter(function (p) { return String(p.teamId || '') === String(teamBId || ''); });
     renderPlayers('playersA', teamAPlayers, false, 'A');
     renderPlayers('playersB', teamBPlayers, true, 'B');
   } catch (_err) {
@@ -65,16 +72,19 @@ function renderPlayers(targetId, players, right, side) {
     root.innerHTML = '';
     return;
   }
+
   root.innerHTML = players.slice(0, 8).map(function (p) {
     var stats = ensurePlayerStats(p.id);
     var avatar = p.photoDataUrl
-      ? '<img src="' + esc(p.photoDataUrl) + '" alt="' + esc(p.name) + '">'
+      ? '<img src="' + esc(p.photoDataUrl) + '" alt="' + esc(p.name) + '">' 
       : esc(initials(p.name));
     var statsHtml = renderLiveStatChips(stats);
+    var info = '<div class="player-info"><div class="player-name">' + esc(p.name) + '</div>' + statsHtml + '</div>';
+    var avatarHtml = '<div class="avatar" data-player-action="' + esc(p.id) + '" data-player-side="' + side + '" data-player-name="' + esc(p.name) + '">' +
+      avatar + (p.isCaptain ? '<div class="captain-badge">C</div>' : '') + '</div>';
+
     return '<div class="player-row' + (right ? ' right' : '') + '">' +
-      (right ? '<div class="player-info"><div class="player-name">' + esc(p.name) + '</div>' + statsHtml + '</div>' : '') +
-      '<div class="avatar" data-player-action="' + esc(p.id) + '" data-player-side="' + side + '" data-player-name="' + esc(p.name) + '">' + avatar + (p.isCaptain ? '<div class="captain-badge">C</div>' : '') + '</div>' +
-      (!right ? '<div class="player-info"><div class="player-name">' + esc(p.name) + '</div>' + statsHtml + '</div>' : '') +
+      (right ? info + avatarHtml : avatarHtml + info) +
       '</div>';
   }).join('');
 }
@@ -105,7 +115,7 @@ function bindPlayerActionModal() {
   var actionButtons = Array.prototype.slice.call(document.querySelectorAll('[data-action-stat]'));
 
   function onAvatarClick(e) {
-    var target = e.target.closest('[data-player-action]');
+    var target = e.target && e.target.closest ? e.target.closest('[data-player-action]') : null;
     if (!target) return;
     openPlayerActionModal({
       id: target.getAttribute('data-player-action'),
@@ -129,7 +139,7 @@ function bindPlayerActionModal() {
 
   if (modal) {
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') closePlayerActionModal();
+      if (e && e.key === 'Escape') closePlayerActionModal();
     });
   }
 }
@@ -138,7 +148,7 @@ function openPlayerActionModal(player) {
   currentPlayerAction = player;
   var modal = byId('playerActionModal');
   var subtitle = byId('playerActionSubtitle');
-  if (subtitle) subtitle.textContent = player.name + ' • Time ' + player.side;
+  if (subtitle) subtitle.textContent = player.name + ' - Time ' + player.side;
   if (modal) {
     modal.classList.remove('hidden');
     modal.setAttribute('aria-hidden', 'false');
@@ -156,45 +166,104 @@ function closePlayerActionModal() {
 
 async function applyPlayerAction(player, stat) {
   var stats = ensurePlayerStats(player.id);
-  if (!stats[stat] && stats[stat] !== 0) return;
+  if (typeof stats[stat] === 'undefined') return;
   stats[stat] += 1;
 
-  if (stat === 'GP') {
-    addGoal(player.side === 'A' ? 'A' : 'B');
-  }
+  var event = createMatchEvent(player, stat);
+  matchEvents.unshift(event);
 
-  if (stat === 'GC') {
-    // Apenas contabiliza para o jogador, sem alterar placar automaticamente.
+  if (stat === 'GP') {
+    if (player.side === 'A') addGoal('A'); else addGoal('B');
   }
 
   renderPlayers('playersA', teamAPlayers, false, 'A');
   renderPlayers('playersB', teamBPlayers, true, 'B');
+  renderTimeline();
   closePlayerActionModal();
 
   try {
     await apiPost('/api/public/player-action', { playerId: player.id, action: stat });
+    syncLiveGame('update').catch(function () {});
   } catch (err) {
-    console.error('Falha ao sincronizar ação do jogador:', err);
+    console.error('Falha ao sincronizar acao do jogador:', err);
   }
 }
 
-function updateDisplay(){
-  var minutes = Math.floor(remaining / 60);
-  var seconds = remaining % 60;
-  byId('timer').textContent =
-    String(minutes).padStart(2,'0') + ':' +
-    String(seconds).padStart(2,'0');
+function createMatchEvent(player, stat) {
+  var elapsed = Math.max(0, Number(duration || 0) - Number(remaining || 0));
+  return {
+    id: 'evt_' + Date.now() + '_' + Math.floor(Math.random() * 100000),
+    type: String(stat || ''),
+    side: player.side === 'B' ? 'B' : 'A',
+    playerId: String(player.id || ''),
+    playerName: String(player.name || 'Jogador'),
+    teamName: player.side === 'B' ? matchMeta.teamBName : matchMeta.teamAName,
+    elapsed: elapsed,
+    minute: Math.max(1, Math.ceil(elapsed / 60)),
+    createdAt: Date.now()
+  };
 }
 
-function startTimer(){
-  if(interval) return;
+function renderTimeline() {
+  var root = byId('eventTimeline');
+  if (!root) return;
+  if (!matchEvents.length) {
+    root.innerHTML = '<div class="timeline-empty">Nenhum evento registrado.</div>';
+    return;
+  }
+
+  root.innerHTML = matchEvents.slice(0, 50).map(function (evt) {
+    var leftCard = evt.side === 'A' ? timelineCardHtml(evt) : '';
+    var rightCard = evt.side === 'B' ? timelineCardHtml(evt) : '';
+    return '<div class="timeline-item">' +
+      '<div class="timeline-side left">' + leftCard + '</div>' +
+      '<div class="timeline-center"><span class="timeline-dot"></span>' + esc(formatEventMinute(evt)) + '</div>' +
+      '<div class="timeline-side right">' + rightCard + '</div>' +
+      '</div>';
+  }).join('');
+}
+
+function timelineCardHtml(evt) {
+  return '<div class="timeline-card">' +
+    '<div class="timeline-event">' + esc(eventLabel(evt.type)) + ' <span class="timeline-tag ' + esc(String(evt.type || '').toLowerCase()) + '">' + esc(evt.type) + '</span></div>' +
+    '<div class="timeline-player">' + esc(evt.playerName || 'Jogador') + '</div>' +
+    '</div>';
+}
+
+function formatEventMinute(evt) {
+  var minute = Number(evt && evt.minute || 0);
+  if (minute > 0) return String(minute) + "'";
+  var elapsed = Number(evt && evt.elapsed || 0);
+  var mm = Math.floor(elapsed / 60);
+  var ss = elapsed % 60;
+  return String(mm).padStart(2, '0') + ':' + String(ss).padStart(2, '0');
+}
+
+function eventLabel(type) {
+  if (type === 'A') return 'Assistencia';
+  if (type === 'GP') return 'Gol pro';
+  if (type === 'GC') return 'Gol contra';
+  if (type === 'CA') return 'Cartao amarelo';
+  if (type === 'CV') return 'Cartao vermelho';
+  return 'Evento';
+}
+
+function updateDisplay() {
+  var minutes = Math.floor(remaining / 60);
+  var seconds = remaining % 60;
+  var el = byId('timer');
+  if (el) el.textContent = String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+}
+
+function startTimer() {
+  if (interval) return;
   if (!matchStarted) {
     matchStarted = true;
     syncLiveGame('start').catch(function (err) { console.error('Falha ao iniciar jogo ao vivo:', err); });
   }
-  interval = setInterval(function (){
-    if(remaining > 0){
-      remaining--;
+  interval = setInterval(function () {
+    if (remaining > 0) {
+      remaining -= 1;
       updateDisplay();
       throttledLiveSync();
     } else {
@@ -203,43 +272,47 @@ function startTimer(){
       syncLiveGame('update').catch(function () {});
       alert('Fim de jogo!');
     }
-  },1000);
+  }, 1000);
 }
 
-function pauseTimer(){
+function pauseTimer() {
   clearInterval(interval);
   interval = null;
   syncLiveGame('update').catch(function () {});
 }
 
-function resetGame(){
+function resetGame() {
   clearInterval(interval);
   interval = null;
   remaining = duration;
   scoreA = 0;
   scoreB = 0;
+  playerLiveStats = {};
+  matchEvents = [];
   updateDisplay();
   updateScore();
+  renderPlayers('playersA', teamAPlayers, false, 'A');
+  renderPlayers('playersB', teamBPlayers, true, 'B');
+  renderTimeline();
   syncLiveGame('update').catch(function () {});
 }
 
-function addGoal(team){
-  if(team === 'A') scoreA++;
-  else scoreB++;
+function addGoal(team) {
+  if (team === 'A') scoreA += 1; else scoreB += 1;
   updateScore();
   syncLiveGame('update').catch(function () {});
 }
 
-function removeGoal(team){
-  if(team === 'A' && scoreA > 0) scoreA--;
-  if(team === 'B' && scoreB > 0) scoreB--;
+function removeGoal(team) {
+  if (team === 'A' && scoreA > 0) scoreA -= 1;
+  if (team === 'B' && scoreB > 0) scoreB -= 1;
   updateScore();
   syncLiveGame('update').catch(function () {});
 }
 
-function updateScore(){
-  byId('scoreA').textContent = String(scoreA);
-  byId('scoreB').textContent = String(scoreB);
+function updateScore() {
+  setText('scoreA', String(scoreA));
+  setText('scoreB', String(scoreB));
 }
 
 function throttledLiveSync() {
@@ -258,6 +331,7 @@ async function syncLiveGame(mode) {
     teamBName: matchMeta.teamBName,
     scoreA: scoreA,
     scoreB: scoreB,
+    events: matchEvents,
     duration: duration,
     remaining: remaining,
     running: !!interval,
@@ -305,7 +379,9 @@ async function apiPost(url, body) {
 }
 
 function initials(name) {
-  return String(name || 'J').split(/\s+/).slice(0,2).map(function (p) { return (p[0] || '').toUpperCase(); }).join('') || 'J';
+  return String(name || 'J').split(/\s+/).slice(0, 2).map(function (p) {
+    return (p[0] || '').toUpperCase();
+  }).join('') || 'J';
 }
 
 function esc(v) {
