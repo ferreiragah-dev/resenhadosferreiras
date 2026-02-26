@@ -148,7 +148,7 @@ function closePlayerActionModal() {
   }
 }
 
-function applyPlayerAction(player, stat) {
+async function applyPlayerAction(player, stat) {
   var stats = ensurePlayerStats(player.id);
   if (!stats[stat] && stats[stat] !== 0) return;
   stats[stat] += 1;
@@ -163,6 +163,13 @@ function applyPlayerAction(player, stat) {
 
   renderPlayers('playersA', teamAPlayers, false, 'A');
   renderPlayers('playersB', teamBPlayers, true, 'B');
+  closePlayerActionModal();
+
+  try {
+    await apiPost('/api/public/player-action', { playerId: player.id, action: stat });
+  } catch (err) {
+    console.error('Falha ao sincronizar ação do jogador:', err);
+  }
 }
 
 function updateDisplay(){
@@ -224,6 +231,17 @@ function setText(id, text) { var el = byId(id); if (el) el.textContent = text; }
 
 async function api(url) {
   var res = await fetch(url);
+  var data = await res.json().catch(function () { return {}; });
+  if (!res.ok) throw new Error(data.error || 'Erro');
+  return data;
+}
+
+async function apiPost(url, body) {
+  var res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body || {})
+  });
   var data = await res.json().catch(function () { return {}; });
   if (!res.ok) throw new Error(data.error || 'Erro');
   return data;

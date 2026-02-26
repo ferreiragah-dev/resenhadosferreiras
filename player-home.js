@@ -1,4 +1,5 @@
 ﻿const TOKEN_KEY = 'resenha-player-token';
+var homePoll = null;
 
 const els = {
   tabs: Array.prototype.slice.call(document.querySelectorAll('.tab')),
@@ -52,6 +53,7 @@ async function bootstrap() {
 
   try {
     await loadHome();
+    startHomePolling();
   } catch (err) {
     console.error('Erro no bootstrap da home do jogador:', err);
     localStorage.removeItem(TOKEN_KEY);
@@ -59,6 +61,13 @@ async function bootstrap() {
   }
 }
 
+
+function startHomePolling() {
+  if (homePoll) clearInterval(homePoll);
+  homePoll = setInterval(function () {
+    loadHome().catch(function () {});
+  }, 8000);
+}
 function showTab(tab) {
   if (!els.perfil || !els.tabela) return;
   els.perfil.classList.add('hidden');
@@ -157,7 +166,7 @@ function renderTeammates(list) {
       '<div class="player-name">' + esc(m.name) + (m.isMe ? ' (voce)' : '') + '</div>' +
       '</div>' +
       '<div class="player-stats">' +
-      '<span>GP ' + Number(m.goals || 0) + '</span><span>A ' + Number(m.assists || 0) + '</span><span>CA ' + Number(m.yellowCards || 0) + '</span>' +
+      '<span>GP ' + Number(typeof m.goalsPro !== 'undefined' ? (m.goalsPro || 0) : (m.goals || 0)) + '</span><span>A ' + Number(m.assists || 0) + '</span><span>CA ' + Number(m.yellowCards || 0) + '</span>' +
       '</div>' +
       '</div>';
   }).join('');
@@ -218,3 +227,4 @@ function esc(v) {
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
 }
+

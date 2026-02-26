@@ -218,6 +218,43 @@ app.get('/api/public/roster', async (_req, res) => {
   res.json({ teams, players });
 });
 
+app.post('/api/public/player-action', async (req, res) => {
+  try {
+    const playerId = String(req.body?.playerId || '').trim();
+    const action = String(req.body?.action || '').trim().toUpperCase();
+    if (!playerId || !action) return res.status(400).json({ error: 'playerId e action são obrigatórios' });
+
+    const tournament = await readTournamentState();
+    const player = (tournament.players || []).find((p) => p && p.id === playerId);
+    if (!player) return res.status(404).json({ error: 'Jogador não encontrado' });
+
+    if (action === 'A') player.assists = Number(player.assists || 0) + 1;
+    else if (action === 'GP') {
+      player.goalsPro = Number(player.goalsPro || 0) + 1;
+      player.goals = Number(player.goals || 0) + 1;
+    } else if (action === 'GC') player.goalsContra = Number(player.goalsContra || 0) + 1;
+    else if (action === 'CA') player.yellowCards = Number(player.yellowCards || 0) + 1;
+    else if (action === 'CV') player.redCards = Number(player.redCards || 0) + 1;
+    else return res.status(400).json({ error: 'Ação inválida' });
+
+    await writeTournamentState(tournament);
+    res.json({
+      ok: true,
+      player: {
+        id: player.id,
+        assists: Number(player.assists || 0),
+        goals: Number(player.goals || 0),
+        goalsPro: Number(player.goalsPro || 0),
+        goalsContra: Number(player.goalsContra || 0),
+        yellowCards: Number(player.yellowCards || 0),
+        redCards: Number(player.redCards || 0)
+      }
+    });
+  } catch {
+    res.status(500).json({ error: 'Falha ao aplicar ação no jogador' });
+  }
+});
+
 app.get('/api/state', adminRequired, async (_req, res) => {
   res.json({ tournament: await readTournamentState() });
 });
