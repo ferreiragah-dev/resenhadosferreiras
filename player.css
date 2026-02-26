@@ -1,0 +1,231 @@
+:root {
+  --bg: #edf3f7;
+  --card: #ffffff;
+  --ink: #111827;
+  --muted: #6b7280;
+  --line: #dce5ec;
+  --primary: #12304a;
+  --primary-2: #1f4f77;
+  --warn-bg: #fff7e8;
+  --warn-line: #f3d59a;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  font-family: "Segoe UI", Tahoma, sans-serif;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 100% 0%, #dcecff 0, transparent 45%),
+    radial-gradient(circle at 0% 20%, #e4f5ef 0, transparent 40%),
+    var(--bg);
+}
+
+.player-shell {
+  width: min(100%, 520px);
+  margin: 0 auto;
+  padding: 18px 14px 28px;
+  display: grid;
+  gap: 12px;
+}
+
+.screen { display: grid; gap: 12px; }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 14px;
+  box-shadow: 0 10px 24px rgba(17, 24, 39, 0.06);
+}
+
+.brand p, .eyebrow {
+  margin: 0;
+  color: var(--primary-2);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.brand h1, .home-header h2 {
+  margin: 6px 0 0;
+  font-size: 1.35rem;
+}
+
+.auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.auth-tab {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #f7fafc;
+  padding: 10px;
+  font-weight: 700;
+}
+
+.auth-tab.is-active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+.auth-form {
+  display: grid;
+  gap: 10px;
+}
+
+.auth-form label {
+  display: grid;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+input, button {
+  font: inherit;
+}
+
+input {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+button {
+  border: none;
+  border-radius: 12px;
+  padding: 11px 12px;
+  cursor: pointer;
+}
+
+.primary {
+  background: var(--primary);
+  color: #fff;
+  font-weight: 700;
+}
+
+.ghost {
+  background: #f3f6f9;
+  border: 1px solid var(--line);
+  color: #111827;
+}
+
+.message {
+  min-height: 1.1rem;
+  margin: 0;
+  color: #b42318;
+  font-size: 0.9rem;
+}
+
+.home-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.team-box {
+  display: grid;
+  gap: 8px;
+}
+
+.team-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+}
+
+.team-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.team-note {
+  color: var(--muted);
+  margin: 0;
+}
+
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.stat {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px;
+  background: #fbfdff;
+  text-align: center;
+}
+
+.stat span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.stat strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 1.2rem;
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.teammates-list {
+  display: grid;
+  gap: 8px;
+}
+
+.mate {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+  background: #fff;
+}
+
+.mate-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mate-name {
+  font-weight: 700;
+}
+
+.badge-me {
+  font-size: 0.75rem;
+  background: #e8f4ff;
+  color: #0f4b84;
+  border: 1px solid #bfdfff;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-weight: 700;
+}
+
+.mate-stats {
+  display: flex;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.warn {
+  background: var(--warn-bg);
+  border-color: var(--warn-line);
+}

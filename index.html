@@ -15,7 +15,10 @@
       <p class="eyebrow">Resenha dos Ferreira</p>
       <h1>Campeonato de Futebol</h1>
     </div>
-    <button id="resetDataBtn" class="ghost danger" type="button">Limpar dados</button>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <a href="/player" class="ghost" style="text-decoration:none; display:inline-flex; align-items:center;">Área do jogador</a>
+      <button id="resetDataBtn" class="ghost danger" type="button">Limpar dados</button>
+    </div>
   </header>
 
   <main class="app-shell">
@@ -41,6 +44,9 @@
               </select>
             </label>
             <label>Time<select id="playerTeamId" name="teamId"><option value="">Sem time</option></select></label>
+            <label class="full">Vincular conta do jogador
+              <select id="playerUserId" name="userId"><option value="">Sem vínculo (jogador ainda não se cadastrou)</option></select>
+            </label>
             <label class="full">Foto (opcional)<input id="playerPhoto" name="photo" type="file" accept="image/*"></label>
             <button class="primary full" type="submit">Salvar jogador</button>
           </form>

@@ -2,6 +2,8 @@
 const state = loadState();
 let selectedPenaltyPlayerId = null;
 let pendingGoalEvents = [];
+let registeredUsers = [];
+let syncTimer = null;
 
 const els = {
   tabs: [...document.querySelectorAll('.tab')],
@@ -11,6 +13,7 @@ const els = {
   playerNumber: document.getElementById('playerNumber'),
   playerPosition: document.getElementById('playerPosition'),
   playerTeamId: document.getElementById('playerTeamId'),
+  playerUserId: document.getElementById('playerUserId'),
   playerPhoto: document.getElementById('playerPhoto'),
   playerSearch: document.getElementById('playerSearch'),
   playersList: document.getElementById('playersList'),
@@ -42,6 +45,7 @@ bindEvents();
 renderGoalEvents();
 renderAll();
 registerServiceWorker();
+bootstrapRemote();
 
 function defaultState() {
   return { teams: [], players: [], matches: [], bracket: [] };
@@ -70,6 +74,7 @@ function saveState() {
 function persistAndRender() {
   saveState();
   renderAll();
+  queueServerSync();
 }
 
 function bindEvents() {
@@ -96,6 +101,7 @@ function bindEvents() {
       number: toNumOrNull(els.playerNumber.value),
       position: els.playerPosition.value,
       teamId: els.playerTeamId.value || '',
+      userId: els.playerUserId?.value || '',
       photoDataUrl,
       yellowCards: 0,
       redCards: 0,
@@ -164,7 +170,7 @@ function bindEvents() {
     state.teams = fresh.teams; state.players = fresh.players; state.matches = fresh.matches; state.bracket = fresh.bracket;
     pendingGoalEvents = [];
     renderGoalEvents();
-    renderAll();
+    persistAndRender();
   });
 }
 
@@ -179,6 +185,7 @@ function switchTab(tabName) {
 
 function renderAll() {
   renderTeamOptions();
+  renderUserOptions();
   renderPlayerGoalOptions();
   renderTeams();
   renderPlayers();
@@ -199,6 +206,17 @@ function renderTeamOptions() {
   if (keepPlayerTeam) els.playerTeamId.value = keepPlayerTeam;
   if (keepA) els.matchTeamA.value = keepA;
   if (keepB) els.matchTeamB.value = keepB;
+}
+
+function renderUserOptions() {
+  if (!els.playerUserId) return;
+  const keep = els.playerUserId.value;
+  const options = [...registeredUsers]
+    .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR'))
+    .map((u) => `<option value="${esc(u.id)}">${esc(u.name)} (${esc(u.email)})</option>`)
+    .join('');
+  els.playerUserId.innerHTML = `<option value="">Sem vínculo (jogador ainda não se cadastrou)</option>${options}`;
+  if (keep) els.playerUserId.value = keep;
 }
 
 function renderPlayerGoalOptions() {
@@ -230,6 +248,7 @@ function renderPlayers() {
 
 function renderPlayerCard(player) {
   const team = findTeam(player.teamId);
+  const linkedUser = registeredUsers.find((u) => u.id === player.userId);
   const photo = player.photoDataUrl
     ? `<img src="${esc(player.photoDataUrl)}" alt="Foto de ${esc(player.name)}">`
     : `<div class="player-photo-placeholder">${esc(initials(player.name))}</div>`;
@@ -245,6 +264,7 @@ function renderPlayerCard(player) {
       <div class="player-meta">
         <div class="player-name">${esc(player.name)} ${player.number !== null ? `#${player.number}` : ''}</div>
         <div class="player-sub">${esc(player.position || '-')} • ${esc(team?.name || 'Sem time')}</div>
+        <div class="player-sub">${linkedUser ? `Conta: ${esc(linkedUser.email)}` : 'Conta: sem vínculo'}</div>
         <div class="player-sub">Gols: ${player.goals || 0}</div>
         <div class="mini-actions">
           <button class="ghost" type="button" data-player-reset-cards="${esc(player.id)}">Zerar cartões</button>
@@ -476,6 +496,62 @@ function fileToDataURL(file) {
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
+}
+
+async function bootstrapRemote() {
+  await Promise.allSettled([fetchUsersForLinking(), hydrateStateFromServer()]);
+}
+
+function queueServerSync() {
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => {
+    syncStateToServer().catch(() => {});
+  }, 250);
+}
+
+async function hydrateStateFromServer() {
+  try {
+    const data = await apiJson('/api/state');
+    if (!data || !data.tournament) return;
+    const t = data.tournament;
+    state.teams = Array.isArray(t.teams) ? t.teams : [];
+    state.players = Array.isArray(t.players) ? t.players : [];
+    state.matches = Array.isArray(t.matches) ? t.matches : [];
+    state.bracket = Array.isArray(t.bracket) ? t.bracket : [];
+    saveState();
+    renderAll();
+  } catch {
+    // fallback localStorage already loaded
+  }
+}
+
+async function fetchUsersForLinking() {
+  try {
+    const data = await apiJson('/api/users');
+    registeredUsers = Array.isArray(data.users) ? data.users : [];
+    renderUserOptions();
+  } catch {
+    registeredUsers = [];
+    renderUserOptions();
+  }
+}
+
+async function syncStateToServer() {
+  await apiJson('/api/state', {
+    method: 'PUT',
+    body: JSON.stringify({ tournament: state })
+  });
+  await fetchUsersForLinking();
+}
+
+async function apiJson(url, options = {}) {
+  const response = await fetch(url, {
+    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+    ...options
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || `Erro ${response.status}`);
+  return data;
 }
 
 function registerServiceWorker() {

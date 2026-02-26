@@ -1,5 +1,5 @@
 const CACHE_NAME = "resenha-ferreira-campeonato-cache-v1";
-const ASSETS = ["./", "./index.html", "./styles.css", "./app.js", "./manifest.webmanifest", "./icons/icon-192.svg", "./icons/icon-512.svg"];
+const ASSETS = ["./", "./index.html", "./player.html", "./styles.css", "./player.css", "./app.js", "./player.js", "./manifest.webmanifest", "./icons/icon-192.svg", "./icons/icon-512.svg"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)));
