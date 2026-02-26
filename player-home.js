@@ -250,6 +250,11 @@ function renderPlayerRanking(list) {
 
   els.playerRankingList.innerHTML = list.map(function (p, idx) {
     var photo = p.photoDataUrl || avatarFallback(p.name, 34);
+    var pts = safeNum(p.rankingPoints);
+    var goals = safeNum(p.goals);
+    var assists = safeNum(p.assists);
+    var yellowCards = safeNum(p.yellowCards);
+    var redCards = safeNum(p.redCards);
     return '<div class="player-item">' +
       '<div class="player-left">' +
       '<div class="rank-badge">' + (idx + 1) + '</div>' +
@@ -263,11 +268,11 @@ function renderPlayerRanking(list) {
       '</div>' +
       '</div>' +
       '<div class="player-stats">' +
-      '<span>Pts ' + Number(p.rankingPoints || 0) + '</span>' +
-      '<span>G ' + Number(p.goals || 0) + '</span>' +
-      '<span>A ' + Number(p.assists || 0) + '</span>' +
-      '<span>CA ' + Number(p.yellowCards || 0) + '</span>' +
-      '<span>CV ' + Number(p.redCards || 0) + '</span>' +
+      '<span>Pts ' + pts + '</span>' +
+      '<span>G ' + goals + '</span>' +
+      '<span>A ' + assists + '</span>' +
+      '<span>CA ' + yellowCards + '</span>' +
+      '<span>CV ' + redCards + '</span>' +
       '</div>' +
       '</div>';
   }).join('');
@@ -398,6 +403,11 @@ function formatSeconds(total) {
   var m = Math.floor(sec / 60);
   var s = sec % 60;
   return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+}
+
+function safeNum(v) {
+  var n = Number(v);
+  return Number.isFinite(n) ? n : 0;
 }
 
 function statBox(value, label) {

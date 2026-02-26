@@ -361,6 +361,11 @@ function normalizeLiveEvent(evt = {}) {
   };
 }
 
+function toStatNumber(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
 app.get('/api/state', adminRequired, async (_req, res) => {
   res.json({ tournament: await readTournamentState() });
 });
@@ -488,17 +493,21 @@ app.get('/api/player/home', authRequired, async (req, res) => {
 
   const playerRanking = (tournament.players || [])
     .map((p) => {
-      const rankingPoints = Number((p.goals || 0) * 3) - Number(p.yellowCards || 0) - Number(p.redCards || 0) * 3;
+      const goals = Math.max(0, toStatNumber(p.goals));
+      const assists = Math.max(0, toStatNumber(p.assists));
+      const yellowCards = Math.max(0, toStatNumber(p.yellowCards));
+      const redCards = Math.max(0, toStatNumber(p.redCards));
+      const rankingPoints = goals * 3 - yellowCards - redCards * 3;
       const rankingTeam = (tournament.teams || []).find((t) => t.id === p.teamId);
       return {
         id: p.id,
         name: p.name || 'Jogador',
         teamName: rankingTeam ? rankingTeam.name : 'Sem time',
         photoDataUrl: p.photoDataUrl || '',
-        goals: Number(p.goals || 0),
-        assists: Number(p.assists || 0),
-        yellowCards: Number(p.yellowCards || 0),
-        redCards: Number(p.redCards || 0),
+        goals,
+        assists,
+        yellowCards,
+        redCards,
         rankingPoints,
         isCaptain: Boolean(p.isCaptain)
       };
