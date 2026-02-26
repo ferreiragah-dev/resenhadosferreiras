@@ -57,6 +57,8 @@ function bindEvents() {
       await loadHome();
       switchAuthView('login');
     } catch (err) {
+      console.error('Erro no login/loadHome:', err);
+      showAuth();
       setMessage(err.message || 'Falha no login');
     }
   });
@@ -77,6 +79,8 @@ function bindEvents() {
       await loadHome();
       switchAuthView('login');
     } catch (err) {
+      console.error('Erro no cadastro/loadHome:', err);
+      showAuth();
       setMessage(err.message || 'Falha no cadastro');
     }
   });
@@ -133,9 +137,6 @@ async function loadHome() {
   if (!token) throw new Error('Sessao expirada');
   const data = await api('/api/player/home', { headers: { Authorization: `Bearer ${token}` } });
 
-  els.authScreen.hidden = true;
-  els.homeScreen.hidden = false;
-
   if (!data.linked) {
     els.linkPendingBox.hidden = false;
     els.linkPendingText.textContent = data.message || 'Aguardando vinculo no painel.';
@@ -150,6 +151,8 @@ async function loadHome() {
       redCards: 0
     });
     els.teammatesList.innerHTML = '<div class="empty-state">Nenhum companheiro para exibir.</div>';
+    els.authScreen.hidden = true;
+    els.homeScreen.hidden = false;
     return;
   }
 
@@ -167,6 +170,8 @@ async function loadHome() {
 
   const mates = Array.isArray(data.teammates) ? data.teammates : [];
   els.teammatesList.innerHTML = mates.length ? mates.map(renderMate).join('') : '<div class="empty-state">Nenhum companheiro para exibir.</div>';
+  els.authScreen.hidden = true;
+  els.homeScreen.hidden = false;
 }
 
 function renderMainProfile(profile) {
