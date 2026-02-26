@@ -248,8 +248,8 @@ function bindEvents() {
     if (!selectedPenaltyPlayerId || !action || action === 'cancel') { selectedPenaltyPlayerId = null; return; }
     const p = state.players.find((x) => x.id === selectedPenaltyPlayerId);
     if (!p) return;
-    if (action === 'yellow') p.yellowCards = (p.yellowCards || 0) + 1;
-    if (action === 'red') p.redCards = (p.redCards || 0) + 1;
+    if (action === 'yellow') applyPlayerRelatedDelta(p, 'yellowCards', 1);
+    if (action === 'red') applyPlayerRelatedDelta(p, 'redCards', 1);
     selectedPenaltyPlayerId = null;
     persistAndRender();
   });
@@ -792,8 +792,8 @@ function openPenaltyDialog(playerId) {
     return;
   }
   const ans = prompt(`Penalidade para ${player.name}: 1=amarelo, 2=vermelho`);
-  if (ans === '1') { player.yellowCards = (player.yellowCards || 0) + 1; persistAndRender(); }
-  if (ans === '2') { player.redCards = (player.redCards || 0) + 1; persistAndRender(); }
+  if (ans === '1') { applyPlayerRelatedDelta(player, 'yellowCards', 1); persistAndRender(); }
+  if (ans === '2') { applyPlayerRelatedDelta(player, 'redCards', 1); persistAndRender(); }
 }
 
 function deletePlayer(id) {
@@ -818,7 +818,7 @@ function togglePlayerCaptain(id) {
 function addPlayerAssist(id) {
   const player = state.players.find((p) => p.id === id);
   if (!player) return;
-  player.assists = (player.assists || 0) + 1;
+  applyPlayerRelatedDelta(player, 'assists', 1);
   persistAndRender();
 }
 
@@ -826,8 +826,40 @@ function changePlayerStat(id, field, delta) {
   const player = state.players.find((p) => p.id === id);
   if (!player) return;
   if (!['assists', 'goalsPro', 'goalsContra'].includes(field)) return;
-  player[field] = Math.max(0, Number(player[field] || 0) + Number(delta || 0));
+  applyPlayerRelatedDelta(player, field, Number(delta || 0));
   persistAndRender();
+}
+
+function applyPlayerRelatedDelta(player, field, delta) {
+  if (!player) return;
+  const d = Number(delta || 0);
+  if (!Number.isFinite(d) || d === 0) return;
+
+  if (field === 'assists') {
+    player.assists = Math.max(0, Number(player.assists || 0) + d);
+    return;
+  }
+
+  if (field === 'goalsPro') {
+    player.goalsPro = Math.max(0, Number(player.goalsPro || 0) + d);
+    // GP manual do elenco deve refletir também no total de gols do jogador (ranking).
+    player.goals = Math.max(0, Number(player.goals || 0) + d);
+    return;
+  }
+
+  if (field === 'goalsContra') {
+    player.goalsContra = Math.max(0, Number(player.goalsContra || 0) + d);
+    return;
+  }
+
+  if (field === 'yellowCards') {
+    player.yellowCards = Math.max(0, Number(player.yellowCards || 0) + d);
+    return;
+  }
+
+  if (field === 'redCards') {
+    player.redCards = Math.max(0, Number(player.redCards || 0) + d);
+  }
 }
 
 function resetPlayerAGS(id) {
