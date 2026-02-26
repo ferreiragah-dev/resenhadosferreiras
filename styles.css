@@ -111,6 +111,24 @@ button { border: none; border-radius: 10px; padding: 10px 12px; cursor: pointer;
 .team-card-top, .match-row { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
 .team-pill { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; }
 .team-dot { width: 12px; height: 12px; border-radius: 999px; border: 1px solid rgba(0,0,0,.2); }
+.team-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 4px;
+}
+.team-stat-field {
+  display: grid;
+  gap: 4px;
+  font-size: .72rem;
+  color: var(--muted);
+  font-weight: 700;
+}
+.team-stat-field input {
+  padding: 7px 8px;
+  border-radius: 8px;
+  font-size: .82rem;
+}
 .stats-builder { border: 1px dashed var(--line); border-radius: 12px; padding: 10px; background: #fffcf2; }
 .goal-inputs { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; }
 .goal-event { display: flex; justify-content: space-between; gap: 8px; border: 1px solid var(--line); border-radius: 10px; background: #fff; padding: 8px 10px; }

@@ -299,6 +299,28 @@ app.get('/api/player/home', authRequired, async (req, res) => {
         })
     : [];
 
+  const standings = (tournament.teams || []).map((t) => {
+    const s = t && t.stats && typeof t.stats === 'object' ? t.stats : {};
+    return {
+      id: t.id,
+      name: t.name,
+      color: t.color || '#0f766e',
+      points: Number(s.points || 0),
+      games: Number(s.games || 0),
+      wins: Number(s.wins || 0),
+      draws: Number(s.draws || 0),
+      losses: Number(s.losses || 0),
+      goalsPro: Number(s.goalsPro || 0),
+      goalsContra: Number(s.goalsContra || 0),
+      goalDiff: Number(s.goalDiff || 0)
+    };
+  }).sort((a, b) =>
+    b.points - a.points ||
+    b.goalDiff - a.goalDiff ||
+    b.goalsPro - a.goalsPro ||
+    String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR')
+  );
+
   res.json({
     user: publicUser(user),
     linked: true,
@@ -322,7 +344,8 @@ app.get('/api/player/home', authRequired, async (req, res) => {
     team: team ? { id: team.id, name: team.name, color: team.color || '#0f766e' } : null,
     teamStats,
     teammates,
-    matches
+    matches,
+    standings
   });
 });
 

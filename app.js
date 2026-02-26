@@ -111,7 +111,13 @@ function bindEvents() {
     e.preventDefault();
     const name = els.teamName.value.trim();
     if (!name) return;
-    state.teams.push({ id: uid(), name, color: els.teamColor.value || '#0f766e', createdAt: Date.now() });
+    state.teams.push({
+      id: uid(),
+      name,
+      color: els.teamColor.value || '#0f766e',
+      stats: defaultTeamStats(),
+      createdAt: Date.now()
+    });
     els.teamForm.reset();
     els.teamColor.value = '#0f766e';
     persistAndRender();
@@ -389,6 +395,46 @@ function getTeamGoalsForAgainst(teamId) {
   return { gp, gc };
 }
 
+function defaultTeamStats() {
+  return { points: 0, games: 0, wins: 0, draws: 0, losses: 0, goalsPro: 0, goalsContra: 0, goalDiff: 0 };
+}
+
+function getTeamManualStats(team) {
+  const s = team && team.stats && typeof team.stats === 'object' ? team.stats : {};
+  return {
+    points: Number(s.points || 0),
+    games: Number(s.games || 0),
+    wins: Number(s.wins || 0),
+    draws: Number(s.draws || 0),
+    losses: Number(s.losses || 0),
+    goalsPro: Number(s.goalsPro || 0),
+    goalsContra: Number(s.goalsContra || 0),
+    goalDiff: Number(s.goalDiff || 0)
+  };
+}
+
+function saveTeamStatsFromCard(teamId) {
+  const team = state.teams.find((t) => t.id === teamId);
+  if (!team) return;
+  const stats = defaultTeamStats();
+  document.querySelectorAll(`[data-team-stat-input^="${cssEscape(teamId)}|"]`).forEach((input) => {
+    const parts = String(input.dataset.teamStatInput || '').split('|');
+    if (parts.length !== 2) return;
+    const field = parts[1];
+    if (!(field in stats)) return;
+    stats[field] = Math.max(0, Number(input.value || 0));
+  });
+  team.stats = stats;
+  persistAndRender();
+}
+
+function resetTeamStats(teamId) {
+  const team = state.teams.find((t) => t.id === teamId);
+  if (!team) return;
+  team.stats = defaultTeamStats();
+  persistAndRender();
+}
+
 function renderTeams() {
   const teams = [...state.teams].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
   if (!teams.length) {
@@ -397,6 +443,7 @@ function renderTeams() {
   }
   els.teamsList.innerHTML = teams.map((team) => {
     const count = state.players.filter((p) => p.teamId === team.id).length;
+    const s = getTeamManualStats(team);
     return `
       <article class="team-card">
         <div class="team-card-top">
@@ -404,9 +451,29 @@ function renderTeams() {
           <button class="danger" type="button" data-team-delete="${esc(team.id)}">Excluir</button>
         </div>
         <p class="muted">${count} jogador(es)</p>
+        <div class="team-stats-grid">
+          ${teamStatInput(team.id, 'points', 'P', s.points)}
+          ${teamStatInput(team.id, 'games', 'J', s.games)}
+          ${teamStatInput(team.id, 'wins', 'V', s.wins)}
+          ${teamStatInput(team.id, 'draws', 'E', s.draws)}
+          ${teamStatInput(team.id, 'losses', 'D', s.losses)}
+          ${teamStatInput(team.id, 'goalsPro', 'GP', s.goalsPro)}
+          ${teamStatInput(team.id, 'goalsContra', 'GC', s.goalsContra)}
+          ${teamStatInput(team.id, 'goalDiff', 'SG', s.goalDiff)}
+        </div>
+        <div class="mini-actions">
+          <button class="ghost" type="button" data-team-stats-save="${esc(team.id)}">Salvar tabela</button>
+          <button class="ghost" type="button" data-team-stats-reset="${esc(team.id)}">Zerar tabela</button>
+        </div>
       </article>`;
   }).join('');
   els.teamsList.querySelectorAll('[data-team-delete]').forEach((btn) => btn.addEventListener('click', () => deleteTeam(btn.dataset.teamDelete)));
+  els.teamsList.querySelectorAll('[data-team-stats-save]').forEach((btn) => btn.addEventListener('click', () => saveTeamStatsFromCard(btn.dataset.teamStatsSave)));
+  els.teamsList.querySelectorAll('[data-team-stats-reset]').forEach((btn) => btn.addEventListener('click', () => resetTeamStats(btn.dataset.teamStatsReset)));
+}
+
+function teamStatInput(teamId, field, label, value) {
+  return `<label class="team-stat-field">${label}<input type="number" min="0" value="${Number(value || 0)}" data-team-stat-input="${esc(teamId)}|${field}"></label>`;
 }
 
 function renderGoalEvents() {
@@ -632,6 +699,7 @@ function uid() { return Math.random().toString(36).slice(2, 10) + Date.now().toS
 function toNumOrNull(v) { if (String(v).trim() === '') return null; const n = Number(v); return Number.isFinite(n) ? n : null; }
 function initials(name) { return String(name).split(/\s+/).slice(0, 2).map((p) => (p[0] || '').toUpperCase()).join(''); }
 function esc(v) { return String(v ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;'); }
+function cssEscape(v) { return String(v ?? '').replace(/["\\]/g, '\\$&'); }
 function formatDate(v) { const [y, m, d] = String(v).split('-'); return y && m && d ? `${d}/${m}/${y}` : String(v); }
 function stageOrder(stage) { return { Quartas: 1, Semifinal: 2, Final: 3 }[stage] || 99; }
 

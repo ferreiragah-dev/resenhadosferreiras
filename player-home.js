@@ -14,7 +14,7 @@ const els = {
   mainTeam: document.getElementById('mainTeam'),
   mainStats: document.getElementById('mainStats'),
   teammatesList: document.getElementById('teammatesList'),
-  matchesTable: document.getElementById('matchesTable')
+  standingsTable: document.getElementById('standingsTable')
 };
 
 bindEvents();
@@ -99,7 +99,7 @@ async function loadHome() {
       isCaptain: false
     });
     renderTeammates([]);
-    renderMatches([]);
+    renderStandings([]);
     return;
   }
 
@@ -118,7 +118,7 @@ async function loadHome() {
   });
 
   renderTeammates(Array.isArray(data.teammates) ? data.teammates : []);
-  renderMatches(Array.isArray(data.matches) ? data.matches : []);
+  renderStandings(Array.isArray(data.standings) ? data.standings : []);
 }
 
 function renderProfile(profile) {
@@ -163,26 +163,25 @@ function renderTeammates(list) {
   }).join('');
 }
 
-function renderMatches(list) {
-  if (!els.matchesTable) return;
+function renderStandings(list) {
+  if (!els.standingsTable) return;
   if (!list.length) {
-    els.matchesTable.innerHTML = '<div class="empty-state">Nenhum jogo encontrado para o seu time.</div>';
+    els.standingsTable.innerHTML = '<div class="empty-state">Nenhuma tabela cadastrada.</div>';
     return;
   }
 
-  els.matchesTable.innerHTML = list.map(function (m) {
-    const playerStats = m.playerStats || {};
-    const dateLabel = m.date ? formatDate(m.date) : 'Sem data';
-    const title = m.stage || 'Pelada';
-    const score = esc(m.teamAName || 'Time A') + ' ' + Number(m.goalsA || 0) + ' x ' + Number(m.goalsB || 0) + ' ' + esc(m.teamBName || 'Time B');
+  els.standingsTable.innerHTML = list.map(function (t, idx) {
     return '<div class="match">' +
-      '<div class="match-header"><span>' + dateLabel + '</span><span>' + esc(title) + '</span></div>' +
-      '<div class="score">' + score + '</div>' +
+      '<div class="match-header"><span>#' + (idx + 1) + '</span><span>' + esc(t.name || 'Time') + '</span></div>' +
       '<div class="match-stats">' +
-      '<span>⚽ GP: ' + Number(playerStats.goals || 0) + '</span>' +
-      '<span>🅰 A: ' + Number(playerStats.assists || 0) + '</span>' +
-      '<span>🟨 CA: ' + Number(playerStats.yellowCards || 0) + '</span>' +
-      '<span>🟥 CV: ' + Number(playerStats.redCards || 0) + '</span>' +
+      '<span>P ' + Number(t.points || 0) + '</span>' +
+      '<span>J ' + Number(t.games || 0) + '</span>' +
+      '<span>V ' + Number(t.wins || 0) + '</span>' +
+      '<span>E ' + Number(t.draws || 0) + '</span>' +
+      '<span>D ' + Number(t.losses || 0) + '</span>' +
+      '<span>GP ' + Number(t.goalsPro || 0) + '</span>' +
+      '<span>GC ' + Number(t.goalsContra || 0) + '</span>' +
+      '<span>SG ' + Number(t.goalDiff || 0) + '</span>' +
       '</div>' +
       '</div>';
   }).join('');
@@ -190,13 +189,6 @@ function renderMatches(list) {
 
 function statBox(value, label) {
   return '<div class="stat"><div class="value">' + (Number(value) || 0) + '</div><div class="label">' + label + '</div></div>';
-}
-
-function formatDate(v) {
-  if (!v) return 'Sem data';
-  var parts = String(v).split('-');
-  if (parts.length !== 3) return String(v);
-  return parts[2] + '/' + parts[1] + '/' + parts[0];
 }
 
 function avatarFallback(name, size) {
