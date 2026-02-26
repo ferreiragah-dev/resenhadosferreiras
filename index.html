@@ -135,7 +135,10 @@
         <section class="card">
           <div class="card-header">
             <h2>Agenda cadastrada</h2>
-            <button id="sortScheduleBtn" class="ghost" type="button">Ordenar horários</button>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button id="loadScheduleTemplateBtn" class="ghost" type="button">Carregar agenda padrão</button>
+              <button id="sortScheduleBtn" class="ghost" type="button">Ordenar horários</button>
+            </div>
           </div>
           <div id="scheduleList" class="schedule-list"></div>
         </section>

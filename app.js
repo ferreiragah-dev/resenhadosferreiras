@@ -48,6 +48,7 @@ const els = {
   scheduleTeamBLabel: document.getElementById('scheduleTeamBLabel'),
   scheduleGroupLabel: document.getElementById('scheduleGroupLabel'),
   scheduleList: document.getElementById('scheduleList'),
+  loadScheduleTemplateBtn: document.getElementById('loadScheduleTemplateBtn'),
   sortScheduleBtn: document.getElementById('sortScheduleBtn'),
   goalPlayerSelect: document.getElementById('goalPlayerSelect'),
   addGoalBtn: document.getElementById('addGoalBtn'),
@@ -237,6 +238,8 @@ function bindEvents() {
     });
     persistAndRender();
   });
+
+  els.loadScheduleTemplateBtn?.addEventListener('click', loadDefaultScheduleTemplate);
 
   els.generateBracketBtn.addEventListener('click', generateBracketFromTeams);
 
@@ -615,6 +618,37 @@ function deleteScheduleRow(id) {
   if (!confirm(`Excluir agenda ${row.time} - ${row.teamALabel} x ${row.teamBLabel}?`)) return;
   state.gameSchedule = (state.gameSchedule || []).filter((x) => x.id !== id);
   persistAndRender();
+}
+
+function loadDefaultScheduleTemplate() {
+  const hasRows = Array.isArray(state.gameSchedule) && state.gameSchedule.length > 0;
+  if (hasRows && !confirm('Substituir a agenda atual pela agenda padrão que você enviou?')) return;
+
+  const now = Date.now();
+  const rows = [
+    ['FASE DE GRUPO (2x7 minutos)', '09:00', 'Time A', 'Time B', 'Grupo A'],
+    ['FASE DE GRUPO (2x7 minutos)', '09:15', 'Time D', 'Time E', 'Grupo B'],
+    ['FASE DE GRUPO (2x7 minutos)', '09:30', 'Time A', 'Time C', 'Grupo A'],
+    ['FASE DE GRUPO (2x7 minutos)', '09:45', 'Time D', 'Time F', 'Grupo B'],
+    ['FASE DE GRUPO (2x7 minutos)', '10:00', 'Time B', 'Time C', 'Grupo A'],
+    ['FASE DE GRUPO (2x7 minutos)', '10:15', 'Time E', 'Time F', 'Grupo B'],
+    ['SEMIFINAIS (2x7 minutos)', '10:45', '1º Grupo A', '2º Grupo B', ''],
+    ['SEMIFINAIS (2x7 minutos)', '11:00', '1º Grupo B', '2º Grupo A', ''],
+    ['FINAL (2x7 minutos)', '11:30', 'Vencedor SF1', 'Vencedor SF2', '']
+  ];
+
+  state.gameSchedule = rows.map((r, idx) => ({
+    id: uid(),
+    phase: r[0],
+    time: r[1],
+    teamALabel: r[2],
+    teamBLabel: r[3],
+    groupLabel: r[4],
+    createdAt: now + idx
+  }));
+
+  persistAndRender();
+  switchTab('jogos');
 }
 
 function renderBracket() {
