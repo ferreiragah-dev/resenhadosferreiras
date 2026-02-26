@@ -6,6 +6,7 @@ const els = {
   perfil: document.getElementById('perfil'),
   tabela: document.getElementById('tabela'),
   aoVivo: document.getElementById('ao-vivo'),
+  temporada: document.getElementById('temporada'),
   jogos: document.getElementById('jogos'),
   refreshBtn: document.getElementById('refreshBtn'),
   logoutBtn: document.getElementById('logoutBtn'),
@@ -75,10 +76,11 @@ function startHomePolling() {
   }, 8000);
 }
 function showTab(tab) {
-  if (!els.perfil || !els.tabela || !els.jogos || !els.aoVivo) return;
+  if (!els.perfil || !els.tabela || !els.jogos || !els.aoVivo || !els.temporada) return;
   els.perfil.classList.add('hidden');
   els.tabela.classList.add('hidden');
   els.aoVivo.classList.add('hidden');
+  els.temporada.classList.add('hidden');
   els.jogos.classList.add('hidden');
   els.tabs.forEach(function (t) { t.classList.remove('active'); });
 
@@ -88,6 +90,9 @@ function showTab(tab) {
   } else if (tab === 'ao-vivo') {
     els.aoVivo.classList.remove('hidden');
     setActiveTab('ao-vivo');
+  } else if (tab === 'temporada') {
+    els.temporada.classList.remove('hidden');
+    setActiveTab('temporada');
   } else if (tab === 'jogos') {
     els.jogos.classList.remove('hidden');
     setActiveTab('jogos');

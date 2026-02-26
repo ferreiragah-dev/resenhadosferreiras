@@ -39,12 +39,14 @@
 
 .tabs{
   display:flex;
+  flex-wrap:wrap;
   gap:8px;
   margin-bottom:12px;
 }
 
 .tab{
   flex:1;
+  min-width:0;
   text-align:center;
   padding:10px 0;
   border:1px solid rgba(34,197,94,.35);
@@ -52,6 +54,13 @@
   font-size:.8rem;
   color:#86efac;
   cursor:pointer;
+  line-height:1.1;
+}
+
+.tab[data-tab="temporada"]{
+  font-size:.7rem;
+  padding-left:6px;
+  padding-right:6px;
 }
 
 .tab.active{
