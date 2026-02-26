@@ -50,6 +50,8 @@ document.addEventListener('DOMContentLoaded', function () {
     var opt = select.options[select.selectedIndex];
     return opt ? opt.text : '';
   }
+
+  registerSw();
 });
 
 async function api(url) {
@@ -61,9 +63,16 @@ async function api(url) {
 
 function esc(v) {
   return String(v == null ? '' : v)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function registerSw() {
+  if (!('serviceWorker' in navigator)) return;
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('/sw.js').catch(function () {});
+  });
 }

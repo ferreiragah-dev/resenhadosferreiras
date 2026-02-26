@@ -1,0 +1,15 @@
+{
+  "name": "Resenha dos Ferreira - Jogo Ao Vivo",
+  "short_name": "ResenhaJogo",
+  "id": "/jogo",
+  "start_url": "/jogo",
+  "scope": "/jogo",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "icons/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml", "purpose": "any maskable" },
+    { "src": "icons/icon-512.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

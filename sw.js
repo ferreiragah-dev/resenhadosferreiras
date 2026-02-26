@@ -1,5 +1,5 @@
-const CACHE_NAME = "resenha-ferreira-campeonato-cache-v32";
-const ASSETS = ["/admin", "/player", "/player/home", "/jogo", "/jogo/ao-vivo", "/index.html", "/player.html", "/player-home.html", "/jogo.html", "/jogo-live.html", "/styles.css", "/player.css", "/player-home.css", "/jogo.css", "/jogo-live.css", "/app.js", "/player.js", "/player-home.js", "/jogo.js", "/jogo-live.js", "/manifest.webmanifest", "/icons/icon-192.svg", "/icons/icon-512.svg"];
+const CACHE_NAME = "resenha-ferreira-campeonato-cache-v33";
+const ASSETS = ["/admin", "/player", "/player/home", "/jogo", "/jogo/ao-vivo", "/index.html", "/player.html", "/player-home.html", "/jogo.html", "/jogo-live.html", "/styles.css", "/player.css", "/player-home.css", "/jogo.css", "/jogo-live.css", "/app.js", "/player.js", "/player-home.js", "/jogo.js", "/jogo-live.js", "/manifest.webmanifest", "/manifest-jogo.webmanifest", "/icons/icon-192.svg", "/icons/icon-512.svg"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)));
