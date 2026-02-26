@@ -72,7 +72,18 @@ button { border: none; border-radius: 10px; padding: 10px 12px; cursor: pointer;
 .player-photo-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .player-photo-placeholder { width: 100%; height: 100%; display: grid; place-items: center; font-size: 2rem; font-weight: 800; color: #506273; }
 .penalty-badges { position: absolute; inset: 8px auto auto 8px; display: flex; gap: 6px; }
+.player-stat-badges { position: absolute; inset: auto 8px 8px 8px; display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-start; }
 .penalty-chip { border-radius: 999px; padding: 3px 8px; font-size: .8rem; font-weight: 700; background: rgba(255,255,255,.95); border: 1px solid #ddd; }
+.mini-chip {
+  border-radius: 999px;
+  padding: 3px 7px;
+  font-size: .72rem;
+  font-weight: 700;
+  background: rgba(0, 0, 0, 0.72);
+  color: #d1fae5;
+  border: 1px solid rgba(34, 197, 94, 0.45);
+  backdrop-filter: blur(2px);
+}
 .penalty-chip.yellow { background: #ffe07a; border-color: #e7b700; color: #654900; }
 .penalty-chip.red { background: #ff8f89; border-color: #d6342a; color: #5f0f0a; }
 .player-meta { padding: 10px; display: grid; gap: 4px; }

@@ -319,6 +319,7 @@ function renderPlayers() {
 function renderPlayerCard(player) {
   const team = findTeam(player.teamId);
   const linkedUser = registeredUsers.find((u) => u.id === player.userId);
+  const teamNumbers = getTeamGoalsForAgainst(player.teamId);
   const photo = player.photoDataUrl
     ? `<img src="${esc(player.photoDataUrl)}" alt="Foto de ${esc(player.name)}">`
     : `<div class="player-photo-placeholder">${esc(initials(player.name))}</div>`;
@@ -329,6 +330,11 @@ function renderPlayerCard(player) {
         <div class="penalty-badges">
           ${player.yellowCards ? `<span class="penalty-chip yellow">🟨 ${player.yellowCards}</span>` : ''}
           ${player.redCards ? `<span class="penalty-chip red">🟥 ${player.redCards}</span>` : ''}
+        </div>
+        <div class="player-stat-badges">
+          <span class="mini-chip">A ${Number(player.assists || 0)}</span>
+          <span class="mini-chip">GP ${teamNumbers.gp}</span>
+          <span class="mini-chip">GC ${teamNumbers.gc}</span>
         </div>
       </button>
       <div class="player-meta">
@@ -342,6 +348,19 @@ function renderPlayerCard(player) {
         </div>
       </div>
     </article>`;
+}
+
+function getTeamGoalsForAgainst(teamId) {
+  if (!teamId) return { gp: 0, gc: 0 };
+  let gp = 0;
+  let gc = 0;
+  for (const m of state.matches) {
+    if (m.teamAId !== teamId && m.teamBId !== teamId) continue;
+    const isA = m.teamAId === teamId;
+    gp += Number(isA ? m.goalsA : m.goalsB) || 0;
+    gc += Number(isA ? m.goalsB : m.goalsA) || 0;
+  }
+  return { gp, gc };
 }
 
 function renderTeams() {
