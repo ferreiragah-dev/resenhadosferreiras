@@ -227,12 +227,20 @@ function bootstrapAdminGate() {
 
 function lockAdminApp() {
   document.body.classList.add('admin-locked');
-  if (els.adminLoginGate) els.adminLoginGate.hidden = false;
+  if (els.adminLoginGate) {
+    els.adminLoginGate.hidden = false;
+    els.adminLoginGate.style.display = 'grid';
+    els.adminLoginGate.style.pointerEvents = 'auto';
+  }
 }
 
 function unlockAdminApp() {
   document.body.classList.remove('admin-locked');
-  if (els.adminLoginGate) els.adminLoginGate.hidden = true;
+  if (els.adminLoginGate) {
+    els.adminLoginGate.hidden = true;
+    els.adminLoginGate.style.display = 'none';
+    els.adminLoginGate.style.pointerEvents = 'none';
+  }
 }
 
 function renderAll() {
