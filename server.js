@@ -274,6 +274,8 @@ app.get('/player/home', (_req, res) => res.sendFile(path.join(__dirname, 'player
 app.get('/player', (_req, res) => res.sendFile(path.join(__dirname, 'player.html')));
 app.get('*', (req, res) => {
   if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'Rota nao encontrada' });
+  // Nao redireciona arquivos estaticos ausentes para /admin (isso quebra CSS/JS com MIME errado).
+  if (/\.[a-zA-Z0-9]+$/.test(req.path)) return res.status(404).send('Arquivo nao encontrado');
   res.redirect('/admin');
 });
 
