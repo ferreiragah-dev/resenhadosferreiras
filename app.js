@@ -805,11 +805,7 @@ function deletePlayer(id) {
 }
 
 function resetPlayerCards(id) {
-  const player = state.players.find((p) => p.id === id);
-  if (!player) return;
-  player.yellowCards = 0;
-  player.redCards = 0;
-  persistAndRender();
+  resetAllPlayerStats(id);
 }
 
 function togglePlayerCaptain(id) {
@@ -835,11 +831,29 @@ function changePlayerStat(id, field, delta) {
 }
 
 function resetPlayerAGS(id) {
+  resetAllPlayerStats(id);
+}
+
+function resetAllPlayerStats(id) {
   const player = state.players.find((p) => p.id === id);
   if (!player) return;
+  const confirmed = confirm(`Zerar todos os dados do jogador ${player.name}? (gols, assistencias, GP/GC e cartoes)`);
+  if (!confirmed) return;
+
+  // Zera todos os acumuladores exibidos no elenco/ranking/app do jogador.
+  player.goals = 0;
   player.assists = 0;
   player.goalsPro = 0;
   player.goalsContra = 0;
+  player.yellowCards = 0;
+  player.redCards = 0;
+
+  // Remove atribuicao de gols desse jogador nos jogos cadastrados para manter consistencia do ranking.
+  state.matches = state.matches.map((m) => ({
+    ...m,
+    goalEvents: Array.isArray(m.goalEvents) ? m.goalEvents.filter((g) => g.playerId !== id) : []
+  }));
+
   persistAndRender();
 }
 
