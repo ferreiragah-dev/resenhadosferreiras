@@ -31,15 +31,19 @@ bindEvents();
 bootstrap();
 
 function bindEvents() {
-  els.goToRegisterLink?.addEventListener('click', (e) => {
-    e.preventDefault();
-    switchAuthView('register');
-  });
+  if (els.goToRegisterLink) {
+    els.goToRegisterLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      switchAuthView('register');
+    });
+  }
 
-  els.goToLoginLink?.addEventListener('click', (e) => {
-    e.preventDefault();
-    switchAuthView('login');
-  });
+  if (els.goToLoginLink) {
+    els.goToLoginLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      switchAuthView('login');
+    });
+  }
 
   els.loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -115,7 +119,7 @@ function showAuth() {
 async function populateRegisterTeams() {
   try {
     const data = await api('/api/state');
-    const teams = Array.isArray(data?.tournament?.teams) ? data.tournament.teams : [];
+    const teams = data && data.tournament && Array.isArray(data.tournament.teams) ? data.tournament.teams : [];
     els.registerTeamSelect.innerHTML = '<option value="">Selecione</option>' +
       teams.sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR'))
         .map((t) => `<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('');
@@ -136,7 +140,7 @@ async function loadHome() {
     els.linkPendingBox.hidden = false;
     els.linkPendingText.textContent = data.message || 'Aguardando vinculo no painel.';
     renderMainProfile({
-      name: data.user?.name || 'Jogador',
+      name: (data.user && data.user.name) || 'Jogador',
       teamName: 'Sem time',
       photoDataUrl: '',
       assists: 0,
@@ -151,14 +155,14 @@ async function loadHome() {
 
   els.linkPendingBox.hidden = true;
   renderMainProfile({
-    name: data.player?.name || data.user?.name || 'Jogador',
-    teamName: data.team?.name || 'Sem time',
-    photoDataUrl: data.player?.photoDataUrl || '',
-    assists: data.player?.assists || 0,
-    teamGoalsFor: data.teamStats?.goalsFor || 0,
-    teamGoalsAgainst: data.teamStats?.goalsAgainst || 0,
-    yellowCards: data.player?.yellowCards || 0,
-    redCards: data.player?.redCards || 0
+    name: (data.player && data.player.name) || (data.user && data.user.name) || 'Jogador',
+    teamName: (data.team && data.team.name) || 'Sem time',
+    photoDataUrl: (data.player && data.player.photoDataUrl) || '',
+    assists: (data.player && data.player.assists) || 0,
+    teamGoalsFor: (data.teamStats && data.teamStats.goalsFor) || 0,
+    teamGoalsAgainst: (data.teamStats && data.teamStats.goalsAgainst) || 0,
+    yellowCards: (data.player && data.player.yellowCards) || 0,
+    redCards: (data.player && data.player.redCards) || 0
   });
 
   const mates = Array.isArray(data.teammates) ? data.teammates : [];

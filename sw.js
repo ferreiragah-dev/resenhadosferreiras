@@ -1,4 +1,4 @@
-const CACHE_NAME = "resenha-ferreira-campeonato-cache-v2";
+const CACHE_NAME = "resenha-ferreira-campeonato-cache-v3";
 const ASSETS = ["/admin", "/player", "/index.html", "/player.html", "/styles.css", "/player.css", "/app.js", "/player.js", "/manifest.webmanifest", "/icons/icon-192.svg", "/icons/icon-512.svg"];
 
 self.addEventListener("install", (event) => {
@@ -13,8 +13,32 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+  const url = new URL(event.request.url);
+  const isApi = url.pathname.startsWith("/api/");
+  const isAppShellAsset = ["/admin", "/player", "/index.html", "/player.html", "/app.js", "/player.js", "/styles.css", "/player.css"].includes(url.pathname);
+
+  if (isApi) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  if (isAppShellAsset) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response && response.status === 200) {
+            const cloned = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, cloned));
+          }
+          return response;
+        })
+        .catch(() => caches.open(CACHE_NAME).then((cache) => cache.match(event.request)).then((cached) => cached || caches.match("/admin")))
+    );
+    return;
+  }
+
   event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request).then((response) => {
+    caches.open(CACHE_NAME).then((cache) => cache.match(event.request)).then((cached) => cached || fetch(event.request).then((response) => {
       if (response && response.status === 200) {
         const cloned = response.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, cloned));
