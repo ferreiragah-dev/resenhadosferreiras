@@ -10,6 +10,23 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <section id="adminLoginGate" class="admin-login-gate">
+    <div class="admin-login-card">
+      <h2>Login do PWA</h2>
+      <p class="muted">Acesso ao painel da resenha.</p>
+      <form id="adminLoginForm" class="form-grid">
+        <label class="full">Usuário
+          <input id="adminUsername" type="text" autocomplete="username" required>
+        </label>
+        <label class="full">Senha
+          <input id="adminPassword" type="password" autocomplete="current-password" required>
+        </label>
+        <button class="primary full" type="submit">Entrar</button>
+      </form>
+      <p id="adminLoginError" class="muted" style="color:#b42318; min-height:1rem;"></p>
+    </div>
+  </section>
+
   <header class="app-header">
     <div>
       <p class="eyebrow">Resenha dos Ferreira</p>

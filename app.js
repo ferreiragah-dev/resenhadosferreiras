@@ -1,4 +1,7 @@
 ﻿const STORAGE_KEY = "resenha-ferreira-campeonato-v1";
+const ADMIN_SESSION_KEY = "resenha-ferreira-admin-auth";
+const ADMIN_FIXED_USER = "admin";
+const ADMIN_FIXED_PASSWORD = "ferreiras123@";
 const state = loadState();
 let selectedPenaltyPlayerId = null;
 let pendingGoalEvents = [];
@@ -8,6 +11,11 @@ let syncTimer = null;
 const els = {
   tabs: [...document.querySelectorAll('.tab')],
   panels: [...document.querySelectorAll('.tab-panel')],
+  adminLoginGate: document.getElementById('adminLoginGate'),
+  adminLoginForm: document.getElementById('adminLoginForm'),
+  adminUsername: document.getElementById('adminUsername'),
+  adminPassword: document.getElementById('adminPassword'),
+  adminLoginError: document.getElementById('adminLoginError'),
   playerForm: document.getElementById('playerForm'),
   playerName: document.getElementById('playerName'),
   playerNumber: document.getElementById('playerNumber'),
@@ -49,6 +57,7 @@ renderGoalEvents();
 renderAll();
 registerServiceWorker();
 bootstrapRemote();
+bootstrapAdminGate();
 
 function defaultState() {
   return { teams: [], players: [], matches: [], bracket: [], settings: { eventStartAt: '' } };
@@ -82,6 +91,18 @@ function persistAndRender() {
 }
 
 function bindEvents() {
+  els.adminLoginForm?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const user = String(els.adminUsername?.value || '').trim();
+    const pass = String(els.adminPassword?.value || '');
+    if (user === ADMIN_FIXED_USER && pass === ADMIN_FIXED_PASSWORD) {
+      sessionStorage.setItem(ADMIN_SESSION_KEY, '1');
+      if (els.adminLoginError) els.adminLoginError.textContent = '';
+      unlockAdminApp();
+      return;
+    }
+    if (els.adminLoginError) els.adminLoginError.textContent = 'Usuario ou senha invalidos.';
+  });
   els.tabs.forEach((btn) => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
 
   els.teamForm.addEventListener('submit', (e) => {
@@ -197,6 +218,21 @@ function switchTab(tabName) {
     panel.hidden = !active;
     panel.classList.toggle('is-active', active);
   });
+}
+
+function bootstrapAdminGate() {
+  const ok = sessionStorage.getItem(ADMIN_SESSION_KEY) === '1';
+  if (ok) unlockAdminApp(); else lockAdminApp();
+}
+
+function lockAdminApp() {
+  document.body.classList.add('admin-locked');
+  if (els.adminLoginGate) els.adminLoginGate.hidden = false;
+}
+
+function unlockAdminApp() {
+  document.body.classList.remove('admin-locked');
+  if (els.adminLoginGate) els.adminLoginGate.hidden = true;
 }
 
 function renderAll() {
@@ -583,3 +619,10 @@ function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
 }
+
+
+
+
+
+
+

@@ -19,6 +19,31 @@ body {
     radial-gradient(circle at 90% 0%, #fbe7b5 0, transparent 35%),
     linear-gradient(180deg, #f7f5ed 0%, #f0eee4 100%);
 }
+
+body.admin-locked .app-header,
+body.admin-locked .app-shell {
+  visibility: hidden;
+}
+
+.admin-login-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.2);
+  backdrop-filter: blur(6px);
+}
+
+.admin-login-card {
+  width: min(100%, 420px);
+  background: #fffdf8;
+  border: 1px solid rgba(214, 211, 198, 0.9);
+  border-radius: 16px;
+  box-shadow: 0 24px 60px rgba(20, 24, 18, 0.18);
+  padding: 16px;
+}
 .app-header { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 16px; }
 .eyebrow { margin: 0; color: #147a48; font-weight: 700; font-size: .9rem; }
 h1 { margin: 2px 0 0; font-size: 1.3rem; }
