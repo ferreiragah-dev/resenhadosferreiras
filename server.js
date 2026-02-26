@@ -509,6 +509,7 @@ app.get('/api/player/home', authRequired, async (req, res) => {
     teammates,
     matches,
     standings,
+    gameSchedule: Array.isArray(tournament.gameSchedule) ? tournament.gameSchedule : [],
     liveGame: tournament.liveGame || null,
     recentGames: Array.isArray(tournament.recentGames) ? tournament.recentGames : []
   });

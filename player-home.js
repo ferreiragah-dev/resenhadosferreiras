@@ -20,6 +20,7 @@ const els = {
   standingsTable: document.getElementById('standingsTable'),
   liveGameBox: document.getElementById('liveGameBox'),
   liveTimelineBox: document.getElementById('liveTimelineBox'),
+  upcomingGamesBox: document.getElementById('upcomingGamesBox'),
   recentGamesBox: document.getElementById('recentGamesBox')
 };
 
@@ -122,7 +123,7 @@ async function loadHome() {
     });
     renderTeammates([]);
     renderStandings([]);
-    renderLiveAndRecentGames(null, []);
+    renderLiveAndRecentGames(null, [], []);
     return;
   }
 
@@ -142,7 +143,11 @@ async function loadHome() {
 
   renderTeammates(Array.isArray(data.teammates) ? data.teammates : []);
   renderStandings(Array.isArray(data.standings) ? data.standings : []);
-  renderLiveAndRecentGames(data.liveGame || null, Array.isArray(data.recentGames) ? data.recentGames : []);
+  renderLiveAndRecentGames(
+    data.liveGame || null,
+    Array.isArray(data.recentGames) ? data.recentGames : [],
+    Array.isArray(data.gameSchedule) ? data.gameSchedule : []
+  );
 }
 
 function renderProfile(profile) {
@@ -211,9 +216,10 @@ function renderStandings(list) {
   }).join('');
 }
 
-function renderLiveAndRecentGames(liveGame, recentGames) {
+function renderLiveAndRecentGames(liveGame, recentGames, gameSchedule) {
   renderLiveGame(liveGame);
   renderLiveTimeline(liveGame && Array.isArray(liveGame.events) ? liveGame.events : []);
+  renderUpcomingGames(gameSchedule);
   renderRecentGames(recentGames);
 }
 
@@ -264,6 +270,33 @@ function renderRecentGames(list) {
       '<div class="match-header"><span>' + dateLabel + '</span><span>Partida</span></div>' +
       '<div class="score">' + esc(g.teamAName || 'Time A') + ' ' + Number(g.scoreA || 0) + ' x ' + Number(g.scoreB || 0) + ' ' + esc(g.teamBName || 'Time B') + '</div>' +
       '<div class="match-stats"><span>Duração: ' + formatSeconds(Number(g.duration || 600)) + '</span></div>' +
+      '</div>';
+  }).join('');
+}
+
+function renderUpcomingGames(list) {
+  if (!els.upcomingGamesBox) return;
+  if (!list || !list.length) {
+    els.upcomingGamesBox.innerHTML = '<div class="empty-state">Nenhum jogo agendado.</div>';
+    return;
+  }
+
+  var rows = list.slice().sort(function (a, b) {
+    var phaseCmp = String(a.phase || '').localeCompare(String(b.phase || ''), 'pt-BR');
+    if (phaseCmp) return phaseCmp;
+    return String(a.time || '').localeCompare(String(b.time || ''));
+  });
+
+  var lastPhase = '';
+  els.upcomingGamesBox.innerHTML = rows.map(function (g) {
+    var phase = String(g.phase || 'Fase');
+    var showPhase = phase !== lastPhase;
+    lastPhase = phase;
+    var groupLabel = String(g.groupLabel || '').trim();
+    return (showPhase ? '<div class="schedule-phase-player">' + esc(phase) + '</div>' : '') +
+      '<div class="match">' +
+      '<div class="match-header"><span>' + esc(g.time || '--:--') + '</span><span>' + esc(groupLabel || 'Agenda') + '</span></div>' +
+      '<div class="score">' + esc(g.teamALabel || 'Time A') + ' x ' + esc(g.teamBLabel || 'Time B') + '</div>' +
       '</div>';
   }).join('');
 }
