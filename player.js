@@ -1,4 +1,5 @@
 ﻿const TOKEN_KEY = 'resenha-player-token';
+const PUBLIC_TEAMS_CACHE_KEY = 'resenha-public-teams-cache';
 
 const els = {
   authScreen: document.getElementById('authScreen'),
@@ -106,8 +107,7 @@ async function populateRegisterTeams() {
   if (!els.registerTeamSelect) return;
   var currentValue = els.registerTeamSelect.value || '';
   try {
-    const data = await api('/api/public/teams');
-    const teams = data && Array.isArray(data.teams) ? data.teams : [];
+    const teams = await loadPublicTeams();
     if (!teams.length) {
       els.registerTeamSelect.innerHTML = '<option value="">Nenhum time cadastrado</option>';
       return;
@@ -118,13 +118,56 @@ async function populateRegisterTeams() {
         .join('');
     if (currentValue) els.registerTeamSelect.value = currentValue;
   } catch (_err) {
+    var cachedTeams = readCachedTeams();
+    if (cachedTeams.length) {
+      els.registerTeamSelect.innerHTML = '<option value="">Selecione</option>' +
+        cachedTeams.map(function (t) { return '<option value="' + esc(t.id) + '">' + esc(t.name) + '</option>'; }).join('');
+      if (currentValue) els.registerTeamSelect.value = currentValue;
+      return;
+    }
     els.registerTeamSelect.innerHTML = '<option value="">Erro ao carregar times</option>';
+  }
+}
+
+async function loadPublicTeams() {
+  try {
+    const data = await api('/api/public/teams?ts=' + Date.now());
+    const teams = data && Array.isArray(data.teams) ? data.teams : [];
+    cachePublicTeams(teams);
+    return teams;
+  } catch (_err) {
+    const roster = await api('/api/public/roster?ts=' + Date.now());
+    const rosterTeams = roster && Array.isArray(roster.teams) ? roster.teams : [];
+    cachePublicTeams(rosterTeams);
+    return rosterTeams;
+  }
+}
+
+function cachePublicTeams(teams) {
+  try {
+    var normalized = Array.isArray(teams) ? teams.map(function (t) {
+      return { id: String(t.id || ''), name: String(t.name || '') };
+    }).filter(function (t) { return t.id && t.name; }) : [];
+    localStorage.setItem(PUBLIC_TEAMS_CACHE_KEY, JSON.stringify(normalized));
+  } catch (_err) {}
+}
+
+function readCachedTeams() {
+  try {
+    var raw = localStorage.getItem(PUBLIC_TEAMS_CACHE_KEY);
+    if (!raw) return [];
+    var parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_err) {
+    return [];
   }
 }
 
 async function api(url, options) {
   const opts = options || {};
-  const headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
+  const headers = Object.assign({}, opts.headers || {});
+  const method = String(opts.method || 'GET').toUpperCase();
+  if (method !== 'GET' && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
   const res = await fetch(url, Object.assign({}, opts, { headers: headers }));
   const data = await res.json().catch(function () { return {}; });
   if (!res.ok) throw new Error(data.error || 'Erro na requisicao');
