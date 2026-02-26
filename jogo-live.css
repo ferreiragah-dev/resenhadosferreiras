@@ -3,144 +3,50 @@ body{
   background:#000;
   color:#9ae6b4;
   font-family:Arial, sans-serif;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  min-height:100vh;
 }
 
 .app{
-  width:100%;
-  max-width:420px;
+  max-width:900px;
+  margin:auto;
   padding:20px;
-  position:relative;
 }
 
-.scoreboard{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:10px;
-  position:relative;
-  z-index:2;
-}
-
-.team-name{
-  width:30%;
-  font-weight:700;
-  font-size:.85rem;
-}
-
-.score{
-  font-size:2.6rem;
-  font-weight:900;
-  color:#22c55e;
-  text-align:center;
-  width:40%;
-}
-
-.timer{
-  text-align:center;
-  font-size:2.8rem;
-  font-weight:900;
-  color:#22c55e;
-  margin:12px 0 18px 0;
-  position:relative;
-  z-index:2;
-}
-
-.controls{
-  display:flex;
-  justify-content:center;
+.layout{
+  display:grid;
+  grid-template-columns: 1fr 2fr 1fr;
   gap:10px;
-  margin-bottom:18px;
-  position:relative;
-  z-index:2;
+  align-items:start;
 }
 
-button{
-  background:#22c55e;
-  border:none;
-  border-radius:10px;
-  padding:10px 14px;
-  font-weight:700;
-  color:#000;
-  font-size:.8rem;
-}
-
-button.secondary{
-  background:#065f46;
-  color:#9ae6b4;
-}
-
-.goal-controls{
-  display:flex;
-  justify-content:space-between;
-  margin-bottom:20px;
-  position:relative;
-  z-index:2;
-}
-
-.goal-controls div{
-  width:48%;
-  display:flex;
-  flex-direction:column;
-  gap:6px;
-}
-
-.goal-btn{
-  background:#16a34a;
-  color:#000;
-  font-weight:700;
-  border-radius:8px;
-  padding:8px;
-  border:none;
-  font-size:.75rem;
-}
-
-.goal-btn.secondary{
-  background:#064e3b;
-  color:#9ae6b4;
-}
-
-.players{
-  position:absolute;
-  top:20px;
-  bottom:20px;
-  left:20px;
-  right:20px;
-  display:flex;
-  justify-content:space-between;
-  pointer-events:none;
-}
-
-.player-list{
+.team-column{
   display:flex;
   flex-direction:column;
   gap:14px;
-  width:38%;
+}
+
+.team-column.left{
+  align-items:flex-start;
+}
+
+.team-column.right{
+  align-items:flex-end;
 }
 
 .player-row{
   display:flex;
   align-items:center;
   gap:10px;
-  padding-bottom:10px;
-  border-bottom:1px solid rgba(34,197,94,.25);
+  font-size:.8rem;
 }
 
 .player-row.right{
-  justify-content:flex-end;
-}
-
-.player-name{
-  font-size:.8rem;
+  flex-direction:row-reverse;
 }
 
 .avatar{
   position:relative;
-  width:40px;
-  height:40px;
+  width:42px;
+  height:42px;
   border-radius:50%;
   background:#001a12;
   border:2px solid #22c55e;
@@ -174,4 +80,99 @@ button.secondary{
   display:flex;
   align-items:center;
   justify-content:center;
+}
+
+.center{
+  text-align:center;
+}
+
+.scoreboard{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:8px;
+}
+
+.team-name{
+  font-weight:700;
+  font-size:.9rem;
+}
+
+.score{
+  font-size:3rem;
+  font-weight:900;
+  color:#22c55e;
+}
+
+.timer{
+  font-size:3rem;
+  font-weight:900;
+  color:#22c55e;
+  margin:14px 0;
+}
+
+.controls{
+  display:flex;
+  justify-content:center;
+  gap:10px;
+  margin-bottom:16px;
+}
+
+button{
+  background:#22c55e;
+  border:none;
+  border-radius:10px;
+  padding:10px 16px;
+  font-weight:700;
+  color:#000;
+  font-size:.85rem;
+}
+
+button.secondary{
+  background:#065f46;
+  color:#9ae6b4;
+}
+
+.goal-controls{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.goal-controls div{
+  width:50%;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.goal-btn{
+  background:#16a34a;
+  color:#000;
+  font-weight:700;
+  border-radius:8px;
+  padding:8px;
+  border:none;
+  font-size:.8rem;
+}
+
+.goal-btn.secondary{
+  background:#064e3b;
+  color:#9ae6b4;
+}
+
+@media (max-width: 760px){
+  .layout{
+    grid-template-columns:1fr;
+    gap:16px;
+  }
+
+  .team-column{
+    align-items:stretch !important;
+  }
+
+  .team-column.right .player-row.right{
+    flex-direction:row;
+    justify-content:flex-start;
+  }
 }
