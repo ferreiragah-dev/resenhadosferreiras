@@ -133,6 +133,9 @@ function bindEvents() {
       yellowCards: 0,
       redCards: 0,
       goals: 0,
+      assists: 0,
+      goalsPro: 0,
+      goalsContra: 0,
       createdAt: Date.now()
     });
     els.playerForm.reset();
@@ -315,12 +318,19 @@ function renderPlayers() {
   els.playersList.querySelectorAll('[data-player-delete]').forEach((btn) => btn.addEventListener('click', () => deletePlayer(btn.dataset.playerDelete)));
   els.playersList.querySelectorAll('[data-player-reset-cards]').forEach((btn) => btn.addEventListener('click', () => resetPlayerCards(btn.dataset.playerResetCards)));
   els.playersList.querySelectorAll('[data-player-add-assist]').forEach((btn) => btn.addEventListener('click', () => addPlayerAssist(btn.dataset.playerAddAssist)));
+  els.playersList.querySelectorAll('[data-player-reset-ags]').forEach((btn) => btn.addEventListener('click', () => resetPlayerAGS(btn.dataset.playerResetAgs)));
+  els.playersList.querySelectorAll('[data-player-stat-op]').forEach((btn) => btn.addEventListener('click', () => {
+    const [id, field, delta] = String(btn.dataset.playerStatOp || '').split('|');
+    changePlayerStat(id, field, Number(delta || 0));
+  }));
 }
 
 function renderPlayerCard(player) {
   const team = findTeam(player.teamId);
   const linkedUser = registeredUsers.find((u) => u.id === player.userId);
   const teamNumbers = getTeamGoalsForAgainst(player.teamId);
+  const playerGP = Number(player.goalsPro ?? teamNumbers.gp || 0);
+  const playerGC = Number(player.goalsContra ?? teamNumbers.gc || 0);
   const photo = player.photoDataUrl
     ? `<img src="${esc(player.photoDataUrl)}" alt="Foto de ${esc(player.name)}">`
     : `<div class="player-photo-placeholder">${esc(initials(player.name))}</div>`;
@@ -334,8 +344,8 @@ function renderPlayerCard(player) {
         </div>
         <div class="player-stat-badges">
           <span class="mini-chip">A ${Number(player.assists || 0)}</span>
-          <span class="mini-chip">GP ${teamNumbers.gp}</span>
-          <span class="mini-chip">GC ${teamNumbers.gc}</span>
+          <span class="mini-chip">GP ${playerGP}</span>
+          <span class="mini-chip">GC ${playerGC}</span>
         </div>
       </button>
       <div class="player-meta">
@@ -343,8 +353,17 @@ function renderPlayerCard(player) {
         <div class="player-sub">${esc(player.position || '-')} • ${esc(team?.name || 'Sem time')}</div>
         <div class="player-sub">${linkedUser ? `Conta: ${esc(linkedUser.email)}` : 'Conta: sem vínculo'}</div>
         <div class="player-sub">Gols: ${player.goals || 0}</div>
+        <div class="stat-crud-grid">
+          <button class="ghost" type="button" data-player-stat-op="${esc(player.id)}|assists|1">A +1</button>
+          <button class="ghost" type="button" data-player-stat-op="${esc(player.id)}|assists|-1">A -1</button>
+          <button class="ghost" type="button" data-player-stat-op="${esc(player.id)}|goalsPro|1">GP +1</button>
+          <button class="ghost" type="button" data-player-stat-op="${esc(player.id)}|goalsPro|-1">GP -1</button>
+          <button class="ghost" type="button" data-player-stat-op="${esc(player.id)}|goalsContra|1">GC +1</button>
+          <button class="ghost" type="button" data-player-stat-op="${esc(player.id)}|goalsContra|-1">GC -1</button>
+        </div>
         <div class="mini-actions">
           <button class="ghost" type="button" data-player-add-assist="${esc(player.id)}">Assist +1</button>
+          <button class="ghost" type="button" data-player-reset-ags="${esc(player.id)}">Zerar A/GP/GC</button>
           <button class="ghost" type="button" data-player-reset-cards="${esc(player.id)}">Zerar cartões</button>
           <button class="danger" type="button" data-player-delete="${esc(player.id)}">Excluir</button>
         </div>
@@ -555,6 +574,23 @@ function addPlayerAssist(id) {
   const player = state.players.find((p) => p.id === id);
   if (!player) return;
   player.assists = (player.assists || 0) + 1;
+  persistAndRender();
+}
+
+function changePlayerStat(id, field, delta) {
+  const player = state.players.find((p) => p.id === id);
+  if (!player) return;
+  if (!['assists', 'goalsPro', 'goalsContra'].includes(field)) return;
+  player[field] = Math.max(0, Number(player[field] || 0) + Number(delta || 0));
+  persistAndRender();
+}
+
+function resetPlayerAGS(id) {
+  const player = state.players.find((p) => p.id === id);
+  if (!player) return;
+  player.assists = 0;
+  player.goalsPro = 0;
+  player.goalsContra = 0;
   persistAndRender();
 }
 

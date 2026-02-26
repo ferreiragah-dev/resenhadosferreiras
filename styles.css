@@ -89,6 +89,16 @@ button { border: none; border-radius: 10px; padding: 10px 12px; cursor: pointer;
 .player-meta { padding: 10px; display: grid; gap: 4px; }
 .player-name { font-weight: 700; }
 .player-sub { color: var(--muted); font-size: .88rem; }
+.stat-crud-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 4px;
+}
+.stat-crud-grid button {
+  padding: 7px 6px;
+  font-size: .78rem;
+}
 .mini-actions { display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
 .mini-actions button { flex: 1 1 calc(50% - 3px); padding: 8px; font-size: .85rem; }
 .teams-list, .matches-list, .goal-events { display: grid; gap: 8px; }

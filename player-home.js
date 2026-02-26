@@ -108,8 +108,8 @@ async function loadHome() {
     teamName: (data.team && data.team.name) || 'Sem time',
     photoDataUrl: (data.player && data.player.photoDataUrl) || '',
     assists: (data.player && data.player.assists) || 0,
-    teamGoalsFor: (data.teamStats && data.teamStats.goalsFor) || 0,
-    teamGoalsAgainst: (data.teamStats && data.teamStats.goalsAgainst) || 0,
+    teamGoalsFor: (data.player && typeof data.player.goalsPro !== 'undefined') ? Number(data.player.goalsPro || 0) : ((data.teamStats && data.teamStats.goalsFor) || 0),
+    teamGoalsAgainst: (data.player && typeof data.player.goalsContra !== 'undefined') ? Number(data.player.goalsContra || 0) : ((data.teamStats && data.teamStats.goalsAgainst) || 0),
     yellowCards: (data.player && data.player.yellowCards) || 0,
     redCards: (data.player && data.player.redCards) || 0
   });
