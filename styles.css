@@ -89,8 +89,8 @@ button { border: none; border-radius: 10px; padding: 10px 12px; cursor: pointer;
 .player-meta { padding: 10px; display: grid; gap: 4px; }
 .player-name { font-weight: 700; }
 .player-sub { color: var(--muted); font-size: .88rem; }
-.mini-actions { display: flex; gap: 6px; margin-top: 4px; }
-.mini-actions button { flex: 1; padding: 8px; font-size: .85rem; }
+.mini-actions { display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
+.mini-actions button { flex: 1 1 calc(50% - 3px); padding: 8px; font-size: .85rem; }
 .teams-list, .matches-list, .goal-events { display: grid; gap: 8px; }
 .team-card, .match-card { border: 1px solid var(--line); border-radius: 12px; padding: 10px; background: #fff; }
 .team-card-top, .match-row { display: flex; justify-content: space-between; gap: 8px; align-items: center; }

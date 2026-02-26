@@ -314,6 +314,7 @@ function renderPlayers() {
   els.playersList.querySelectorAll('[data-player-photo]').forEach((btn) => btn.addEventListener('click', () => openPenaltyDialog(btn.dataset.playerPhoto)));
   els.playersList.querySelectorAll('[data-player-delete]').forEach((btn) => btn.addEventListener('click', () => deletePlayer(btn.dataset.playerDelete)));
   els.playersList.querySelectorAll('[data-player-reset-cards]').forEach((btn) => btn.addEventListener('click', () => resetPlayerCards(btn.dataset.playerResetCards)));
+  els.playersList.querySelectorAll('[data-player-add-assist]').forEach((btn) => btn.addEventListener('click', () => addPlayerAssist(btn.dataset.playerAddAssist)));
 }
 
 function renderPlayerCard(player) {
@@ -343,6 +344,7 @@ function renderPlayerCard(player) {
         <div class="player-sub">${linkedUser ? `Conta: ${esc(linkedUser.email)}` : 'Conta: sem vínculo'}</div>
         <div class="player-sub">Gols: ${player.goals || 0}</div>
         <div class="mini-actions">
+          <button class="ghost" type="button" data-player-add-assist="${esc(player.id)}">Assist +1</button>
           <button class="ghost" type="button" data-player-reset-cards="${esc(player.id)}">Zerar cartões</button>
           <button class="danger" type="button" data-player-delete="${esc(player.id)}">Excluir</button>
         </div>
@@ -546,6 +548,13 @@ function resetPlayerCards(id) {
   if (!player) return;
   player.yellowCards = 0;
   player.redCards = 0;
+  persistAndRender();
+}
+
+function addPlayerAssist(id) {
+  const player = state.players.find((p) => p.id === id);
+  if (!player) return;
+  player.assists = (player.assists || 0) + 1;
   persistAndRender();
 }
 
