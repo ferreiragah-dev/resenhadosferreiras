@@ -107,6 +107,23 @@
   font-size:.85rem;
 }
 
+.topscorer-badge{
+  position:absolute;
+  left:-2px;
+  bottom:-2px;
+  width:26px;
+  height:26px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  background:#f59e0b;
+  color:#1f1300;
+  border:2px solid #000;
+  font-weight:800;
+  font-size:.8rem;
+  line-height:1;
+}
+
 .name{
   font-size:1.2rem;
   font-weight:700;
@@ -192,6 +209,20 @@
   bottom:-4px;
   font-size:.58rem;
   border-width:1px;
+}
+
+.topscorer-badge.small{
+  width:16px;
+  height:16px;
+  left:-4px;
+  bottom:-4px;
+  font-size:.5rem;
+  border-width:1px;
+}
+
+.topscorer-badge.small.left{
+  left:-4px;
+  right:auto;
 }
 
 .player-name{

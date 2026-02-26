@@ -212,13 +212,15 @@ app.get('/api/public/teams', async (_req, res) => {
 app.get('/api/public/roster', async (_req, res) => {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   const tournament = await readTournamentState();
+  const topScorerIds = getTopScorerIds(tournament.players || []);
   const teams = (tournament.teams || []).map((t) => ({ id: t.id, name: t.name, color: t.color || '#0f766e' }));
   const players = (tournament.players || []).map((p) => ({
     id: p.id,
     name: p.name || 'Jogador',
     teamId: p.teamId || '',
     photoDataUrl: p.photoDataUrl || '',
-    isCaptain: Boolean(p.isCaptain)
+    isCaptain: Boolean(p.isCaptain),
+    isTopScorer: topScorerIds.has(p.id)
   }));
   res.json({ teams, players });
 });
@@ -366,6 +368,14 @@ function toStatNumber(value) {
   return Number.isFinite(n) ? n : 0;
 }
 
+function getTopScorerIds(players = []) {
+  const list = Array.isArray(players) ? players : [];
+  let maxGoals = 0;
+  for (const p of list) maxGoals = Math.max(maxGoals, Math.max(0, toStatNumber(p?.goals)));
+  if (maxGoals <= 0) return new Set();
+  return new Set(list.filter((p) => Math.max(0, toStatNumber(p?.goals)) === maxGoals).map((p) => p.id).filter(Boolean));
+}
+
 app.get('/api/state', adminRequired, async (_req, res) => {
   res.json({ tournament: await readTournamentState() });
 });
@@ -405,6 +415,7 @@ app.get('/api/player/home', authRequired, async (req, res) => {
   }
 
   const team = tournament.teams.find((t) => t.id === player.teamId) || null;
+  const topScorerIds = getTopScorerIds(tournament.players || []);
   const teamsById = new Map((tournament.teams || []).map((t) => [t.id, t]));
   const teamStats = team
     ? tournament.matches.reduce((acc, m) => {
@@ -430,6 +441,7 @@ app.get('/api/player/home', authRequired, async (req, res) => {
           goalsPro: p.goalsPro || 0,
           goalsContra: p.goalsContra || 0,
           isCaptain: Boolean(p.isCaptain),
+          isTopScorer: topScorerIds.has(p.id),
           photoDataUrl: p.photoDataUrl || '',
           isMe: p.id === player.id
         }))
@@ -509,7 +521,8 @@ app.get('/api/player/home', authRequired, async (req, res) => {
         yellowCards,
         redCards,
         rankingPoints,
-        isCaptain: Boolean(p.isCaptain)
+        isCaptain: Boolean(p.isCaptain),
+        isTopScorer: topScorerIds.has(p.id)
       };
     })
     .sort((a, b) =>
@@ -536,6 +549,7 @@ app.get('/api/player/home', authRequired, async (req, res) => {
       goalsPro: player.goalsPro || 0,
       goalsContra: player.goalsContra || 0,
       isCaptain: Boolean(player.isCaptain),
+      isTopScorer: topScorerIds.has(player.id),
       photoDataUrl: player.photoDataUrl || ''
     },
     team: team ? { id: team.id, name: team.name, color: team.color || '#0f766e' } : null,

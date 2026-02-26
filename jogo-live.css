@@ -87,6 +87,22 @@ body{
   justify-content:center;
 }
 
+.topscorer-badge{
+  position:absolute;
+  bottom:-4px;
+  left:-4px;
+  width:18px;
+  height:18px;
+  border-radius:50%;
+  background:#f59e0b;
+  color:#1f1300;
+  font-size:.58rem;
+  font-weight:800;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
 .player-info{
   display:flex;
   flex-direction:column;

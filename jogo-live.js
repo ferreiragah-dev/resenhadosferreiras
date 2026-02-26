@@ -82,7 +82,10 @@ function renderPlayers(targetId, players, right, side) {
     var statsHtml = renderLiveStatChips(stats);
     var info = '<div class="player-info"><div class="player-name">' + esc(p.name) + '</div>' + statsHtml + '</div>';
     var avatarHtml = '<div class="avatar" data-player-action="' + esc(p.id) + '" data-player-side="' + side + '" data-player-name="' + esc(p.name) + '">' +
-      avatar + (p.isCaptain ? '<div class="captain-badge">C</div>' : '') + '</div>';
+      avatar +
+      (p.isCaptain ? '<div class="captain-badge">C</div>' : '') +
+      (p.isTopScorer ? '<div class="topscorer-badge">⚽</div>' : '') +
+      '</div>';
 
     return '<div class="player-row' + (right ? ' right' : '') + '">' +
       (right ? info + avatarHtml : avatarHtml + info) +

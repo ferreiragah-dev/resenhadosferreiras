@@ -379,6 +379,7 @@ function renderPlayers() {
 function renderPlayerCard(player) {
   const team = findTeam(player.teamId);
   const linkedUser = registeredUsers.find((u) => u.id === player.userId);
+  const isTopScorer = getTopScorerIdSet().has(player.id);
   const teamNumbers = getTeamGoalsForAgainst(player.teamId);
   const playerGP = Number((player.goalsPro ?? teamNumbers.gp) || 0);
   const playerGC = Number((player.goalsContra ?? teamNumbers.gc) || 0);
@@ -395,6 +396,7 @@ function renderPlayerCard(player) {
         </div>
         <div class="player-stat-badges">
           ${player.isCaptain ? `<span class="mini-chip captain-chip">C Capitão</span>` : ''}
+          ${isTopScorer ? `<span class="mini-chip topscorer-chip">⚽ Artilheiro</span>` : ''}
           <span class="mini-chip">A ${Number(player.assists || 0)}</span>
           <span class="mini-chip">GP ${playerGP}</span>
           <span class="mini-chip">GC ${playerGC}</span>
@@ -423,6 +425,13 @@ function renderPlayerCard(player) {
         </div>
       </div>
     </article>`;
+}
+
+function getTopScorerIdSet() {
+  let maxGoals = 0;
+  state.players.forEach((p) => { maxGoals = Math.max(maxGoals, Math.max(0, Number(p.goals || 0))); });
+  if (maxGoals <= 0) return new Set();
+  return new Set(state.players.filter((p) => Math.max(0, Number(p.goals || 0)) === maxGoals).map((p) => p.id));
 }
 
 function getTeamGoalsForAgainst(teamId) {

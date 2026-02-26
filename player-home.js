@@ -17,6 +17,7 @@ const els = {
   pendingText: document.getElementById('pendingText'),
   mainAvatar: document.getElementById('mainAvatar'),
   mainCaptainBadge: document.getElementById('mainCaptainBadge'),
+  mainTopScorerBadge: document.getElementById('mainTopScorerBadge'),
   mainName: document.getElementById('mainName'),
   mainTeam: document.getElementById('mainTeam'),
   mainStats: document.getElementById('mainStats'),
@@ -142,7 +143,8 @@ async function loadHome() {
       teamGoalsAgainst: 0,
       yellowCards: 0,
       redCards: 0,
-      isCaptain: false
+      isCaptain: false,
+      isTopScorer: false
     });
     renderTeammates([]);
     renderStandings([]);
@@ -162,7 +164,8 @@ async function loadHome() {
     teamGoalsAgainst: (data.player && typeof data.player.goalsContra !== 'undefined') ? Number(data.player.goalsContra || 0) : ((data.teamStats && data.teamStats.goalsAgainst) || 0),
     yellowCards: (data.player && data.player.yellowCards) || 0,
     redCards: (data.player && data.player.redCards) || 0,
-    isCaptain: !!(data.player && data.player.isCaptain)
+    isCaptain: !!(data.player && data.player.isCaptain),
+    isTopScorer: !!(data.player && data.player.isTopScorer)
   });
 
   renderTeammates(Array.isArray(data.teammates) ? data.teammates : []);
@@ -180,6 +183,10 @@ function renderProfile(profile) {
   if (els.mainCaptainBadge) {
     if (profile.isCaptain) els.mainCaptainBadge.classList.remove('hidden');
     else els.mainCaptainBadge.classList.add('hidden');
+  }
+  if (els.mainTopScorerBadge) {
+    if (profile.isTopScorer) els.mainTopScorerBadge.classList.remove('hidden');
+    else els.mainTopScorerBadge.classList.add('hidden');
   }
   if (els.mainName) els.mainName.textContent = profile.name;
   if (els.mainTeam) els.mainTeam.textContent = profile.teamName;
@@ -207,6 +214,7 @@ function renderTeammates(list) {
       '<div class="player-avatar-wrap">' +
       '<img class="player-avatar" src="' + esc(photo) + '" alt="' + esc(m.name) + '">' +
       (m.isCaptain ? '<span class="captain-badge small">C</span>' : '') +
+      (m.isTopScorer ? '<span class="topscorer-badge small left">⚽</span>' : '') +
       '</div>' +
       '<div class="player-name">' + esc(m.name) + (m.isMe ? ' (voce)' : '') + '</div>' +
       '</div>' +
@@ -261,6 +269,7 @@ function renderPlayerRanking(list) {
       '<div class="player-avatar-wrap">' +
       '<img class="player-avatar" src="' + esc(photo) + '" alt="' + esc(p.name) + '">' +
       (p.isCaptain ? '<span class="captain-badge small">C</span>' : '') +
+      (p.isTopScorer ? '<span class="topscorer-badge small left">⚽</span>' : '') +
       '</div>' +
       '<div>' +
       '<div class="player-name">' + esc(p.name) + '</div>' +

@@ -89,6 +89,11 @@ button { border: none; border-radius: 10px; padding: 10px 12px; cursor: pointer;
   color: #04210d;
   border-color: rgba(16, 120, 53, 0.9);
 }
+.topscorer-chip {
+  background: rgba(245, 158, 11, 0.95);
+  color: #1f1300;
+  border-color: rgba(180, 83, 9, 0.9);
+}
 .penalty-chip.yellow { background: #ffe07a; border-color: #e7b700; color: #654900; }
 .penalty-chip.red { background: #ff8f89; border-color: #d6342a; color: #5f0f0a; }
 .player-meta { padding: 10px; display: grid; gap: 4px; }
