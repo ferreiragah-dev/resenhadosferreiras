@@ -5,6 +5,7 @@ const els = {
   tabs: Array.prototype.slice.call(document.querySelectorAll('.tab')),
   perfil: document.getElementById('perfil'),
   tabela: document.getElementById('tabela'),
+  jogos: document.getElementById('jogos'),
   refreshBtn: document.getElementById('refreshBtn'),
   logoutBtn: document.getElementById('logoutBtn'),
   pendingBox: document.getElementById('pendingBox'),
@@ -15,7 +16,9 @@ const els = {
   mainTeam: document.getElementById('mainTeam'),
   mainStats: document.getElementById('mainStats'),
   teammatesList: document.getElementById('teammatesList'),
-  standingsTable: document.getElementById('standingsTable')
+  standingsTable: document.getElementById('standingsTable'),
+  liveGameBox: document.getElementById('liveGameBox'),
+  recentGamesBox: document.getElementById('recentGamesBox')
 };
 
 bindEvents();
@@ -69,14 +72,18 @@ function startHomePolling() {
   }, 8000);
 }
 function showTab(tab) {
-  if (!els.perfil || !els.tabela) return;
+  if (!els.perfil || !els.tabela || !els.jogos) return;
   els.perfil.classList.add('hidden');
   els.tabela.classList.add('hidden');
+  els.jogos.classList.add('hidden');
   els.tabs.forEach(function (t) { t.classList.remove('active'); });
 
   if (tab === 'tabela') {
     els.tabela.classList.remove('hidden');
     setActiveTab('tabela');
+  } else if (tab === 'jogos') {
+    els.jogos.classList.remove('hidden');
+    setActiveTab('jogos');
   } else {
     els.perfil.classList.remove('hidden');
     setActiveTab('perfil');
@@ -109,6 +116,7 @@ async function loadHome() {
     });
     renderTeammates([]);
     renderStandings([]);
+    renderLiveAndRecentGames(null, []);
     return;
   }
 
@@ -128,6 +136,7 @@ async function loadHome() {
 
   renderTeammates(Array.isArray(data.teammates) ? data.teammates : []);
   renderStandings(Array.isArray(data.standings) ? data.standings : []);
+  renderLiveAndRecentGames(data.liveGame || null, Array.isArray(data.recentGames) ? data.recentGames : []);
 }
 
 function renderProfile(profile) {
@@ -194,6 +203,48 @@ function renderStandings(list) {
       '</div>' +
       '</div>';
   }).join('');
+}
+
+function renderLiveAndRecentGames(liveGame, recentGames) {
+  renderLiveGame(liveGame);
+  renderRecentGames(recentGames);
+}
+
+function renderLiveGame(game) {
+  if (!els.liveGameBox) return;
+  if (!game) {
+    els.liveGameBox.innerHTML = '<div class="empty-state">Nenhum jogo ao vivo no momento.</div>';
+    return;
+  }
+  var timer = formatSeconds(Number(game.remaining || 0));
+  els.liveGameBox.innerHTML = '<div class="live-game-card">' +
+    '<div class="live-game-title">Partida ao vivo</div>' +
+    '<div class="live-game-score">' + esc(game.teamAName || 'Time A') + ' ' + Number(game.scoreA || 0) + ' x ' + Number(game.scoreB || 0) + ' ' + esc(game.teamBName || 'Time B') + '</div>' +
+    '<div class="match-stats"><span>⏱ ' + timer + '</span><span>' + (game.running ? 'Ao vivo' : 'Pausado') + '</span></div>' +
+    '</div>';
+}
+
+function renderRecentGames(list) {
+  if (!els.recentGamesBox) return;
+  if (!list || !list.length) {
+    els.recentGamesBox.innerHTML = '<div class="empty-state">Nenhum jogo recente.</div>';
+    return;
+  }
+  els.recentGamesBox.innerHTML = list.slice(0, 10).map(function (g) {
+    var dateLabel = g.endedAt ? new Date(Number(g.endedAt)).toLocaleString('pt-BR') : 'Finalizado';
+    return '<div class="match">' +
+      '<div class="match-header"><span>' + dateLabel + '</span><span>Partida</span></div>' +
+      '<div class="score">' + esc(g.teamAName || 'Time A') + ' ' + Number(g.scoreA || 0) + ' x ' + Number(g.scoreB || 0) + ' ' + esc(g.teamBName || 'Time B') + '</div>' +
+      '<div class="match-stats"><span>Duração: ' + formatSeconds(Number(g.duration || 600)) + '</span></div>' +
+      '</div>';
+  }).join('');
+}
+
+function formatSeconds(total) {
+  var sec = Math.max(0, Number(total || 0));
+  var m = Math.floor(sec / 60);
+  var s = sec % 60;
+  return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
 }
 
 function statBox(value, label) {

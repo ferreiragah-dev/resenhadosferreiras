@@ -32,7 +32,7 @@ app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 function defaultTournament() {
-  return { teams: [], players: [], matches: [], bracket: [], settings: { eventStartAt: '' } };
+  return { teams: [], players: [], matches: [], bracket: [], liveGame: null, recentGames: [], settings: { eventStartAt: '' } };
 }
 
 function normalizeTournament(input) {
@@ -43,6 +43,8 @@ function normalizeTournament(input) {
     players: Array.isArray(t.players) ? t.players.map((p) => ({ ...p, userId: p?.userId || '' })) : base.players,
     matches: Array.isArray(t.matches) ? t.matches : base.matches,
     bracket: Array.isArray(t.bracket) ? t.bracket : base.bracket,
+    liveGame: t.liveGame && typeof t.liveGame === 'object' ? t.liveGame : null,
+    recentGames: Array.isArray(t.recentGames) ? t.recentGames : [],
     settings: {
       eventStartAt: String(t?.settings?.eventStartAt || '')
     }
@@ -255,12 +257,104 @@ app.post('/api/public/player-action', async (req, res) => {
   }
 });
 
+app.post('/api/public/live-game/start', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const tournament = await readTournamentState();
+    const liveGame = {
+      id: body.id || uid(),
+      teamAId: String(body.teamAId || ''),
+      teamBId: String(body.teamBId || ''),
+      teamAName: String(body.teamAName || 'Time A'),
+      teamBName: String(body.teamBName || 'Time B'),
+      scoreA: Number(body.scoreA || 0),
+      scoreB: Number(body.scoreB || 0),
+      duration: Number(body.duration || 600),
+      remaining: Number(body.remaining || 600),
+      running: true,
+      startedAt: Number(body.startedAt || Date.now()),
+      updatedAt: Date.now()
+    };
+    tournament.liveGame = liveGame;
+    await writeTournamentState(tournament);
+    res.json({ ok: true, liveGame });
+  } catch {
+    res.status(500).json({ error: 'Falha ao iniciar jogo ao vivo' });
+  }
+});
+
+app.post('/api/public/live-game/update', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const tournament = await readTournamentState();
+    const current = tournament.liveGame && typeof tournament.liveGame === 'object' ? tournament.liveGame : null;
+    if (!current) return res.status(404).json({ error: 'Nenhum jogo ao vivo' });
+
+    if (body.id && String(body.id) !== String(current.id)) {
+      return res.status(409).json({ error: 'Jogo ao vivo diferente do atual' });
+    }
+
+    current.scoreA = Number(body.scoreA ?? current.scoreA ?? 0);
+    current.scoreB = Number(body.scoreB ?? current.scoreB ?? 0);
+    current.remaining = Number(body.remaining ?? current.remaining ?? 0);
+    current.duration = Number(body.duration ?? current.duration ?? 600);
+    if (typeof body.running !== 'undefined') current.running = Boolean(body.running);
+    current.updatedAt = Date.now();
+
+    tournament.liveGame = current;
+    await writeTournamentState(tournament);
+    res.json({ ok: true, liveGame: current });
+  } catch {
+    res.status(500).json({ error: 'Falha ao atualizar jogo ao vivo' });
+  }
+});
+
+app.post('/api/public/live-game/end', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const tournament = await readTournamentState();
+    const current = tournament.liveGame && typeof tournament.liveGame === 'object' ? tournament.liveGame : null;
+    if (!current) return res.status(404).json({ error: 'Nenhum jogo ao vivo' });
+
+    if (body.id && String(body.id) !== String(current.id)) {
+      return res.status(409).json({ error: 'Jogo ao vivo diferente do atual' });
+    }
+
+    current.scoreA = Number(body.scoreA ?? current.scoreA ?? 0);
+    current.scoreB = Number(body.scoreB ?? current.scoreB ?? 0);
+    current.remaining = Number(body.remaining ?? current.remaining ?? 0);
+    current.running = false;
+    current.endedAt = Date.now();
+    current.updatedAt = Date.now();
+    current.status = 'finished';
+
+    const recent = Array.isArray(tournament.recentGames) ? tournament.recentGames : [];
+    recent.unshift(current);
+    tournament.recentGames = recent.slice(0, 20);
+    tournament.liveGame = null;
+
+    await writeTournamentState(tournament);
+    res.json({ ok: true, recentGame: current });
+  } catch {
+    res.status(500).json({ error: 'Falha ao encerrar jogo ao vivo' });
+  }
+});
+
 app.get('/api/state', adminRequired, async (_req, res) => {
   res.json({ tournament: await readTournamentState() });
 });
 
 app.put('/api/state', adminRequired, async (req, res) => {
-  const tournament = await writeTournamentState(req.body?.tournament);
+  const current = await readTournamentState();
+  const incoming = req.body?.tournament && typeof req.body.tournament === 'object' ? req.body.tournament : {};
+  const merged = {
+    ...current,
+    ...incoming,
+    liveGame: Object.prototype.hasOwnProperty.call(incoming, 'liveGame') ? incoming.liveGame : current.liveGame,
+    recentGames: Array.isArray(incoming.recentGames) ? incoming.recentGames : current.recentGames,
+    settings: { ...(current.settings || {}), ...(incoming.settings || {}) }
+  };
+  const tournament = await writeTournamentState(merged);
   const row = await pool.query('SELECT updated_at FROM tournament_state WHERE id = 1');
   res.json({ ok: true, tournament, updatedAt: row.rows[0]?.updated_at || Date.now() });
 });
@@ -395,7 +489,9 @@ app.get('/api/player/home', authRequired, async (req, res) => {
     teamStats,
     teammates,
     matches,
-    standings
+    standings,
+    liveGame: tournament.liveGame || null,
+    recentGames: Array.isArray(tournament.recentGames) ? tournament.recentGames : []
   });
 });
 

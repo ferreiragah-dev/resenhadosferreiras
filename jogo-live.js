@@ -7,6 +7,10 @@ var currentPlayerAction = null;
 var teamAPlayers = [];
 var teamBPlayers = [];
 var playerLiveStats = {};
+var liveGameId = null;
+var matchStarted = false;
+var matchMeta = { teamAId: '', teamBId: '', teamAName: 'Time A', teamBName: 'Time B' };
+var lastSyncAt = 0;
 
 document.addEventListener('DOMContentLoaded', function () {
   var q = new URLSearchParams(window.location.search);
@@ -14,6 +18,8 @@ document.addEventListener('DOMContentLoaded', function () {
   var teamBId = q.get('teamB') || '';
   var teamAName = q.get('teamAName') || 'Time A';
   var teamBName = q.get('teamBName') || 'Time B';
+  liveGameId = 'live_' + Date.now();
+  matchMeta = { teamAId: teamAId, teamBId: teamBId, teamAName: teamAName, teamBName: teamBName };
 
   setText('teamAName', teamAName);
   setText('teamBName', teamBName);
@@ -182,13 +188,19 @@ function updateDisplay(){
 
 function startTimer(){
   if(interval) return;
+  if (!matchStarted) {
+    matchStarted = true;
+    syncLiveGame('start').catch(function (err) { console.error('Falha ao iniciar jogo ao vivo:', err); });
+  }
   interval = setInterval(function (){
     if(remaining > 0){
       remaining--;
       updateDisplay();
+      throttledLiveSync();
     } else {
       clearInterval(interval);
       interval = null;
+      syncLiveGame('update').catch(function () {});
       alert('Fim de jogo!');
     }
   },1000);
@@ -197,6 +209,7 @@ function startTimer(){
 function pauseTimer(){
   clearInterval(interval);
   interval = null;
+  syncLiveGame('update').catch(function () {});
 }
 
 function resetGame(){
@@ -207,23 +220,67 @@ function resetGame(){
   scoreB = 0;
   updateDisplay();
   updateScore();
+  syncLiveGame('update').catch(function () {});
 }
 
 function addGoal(team){
   if(team === 'A') scoreA++;
   else scoreB++;
   updateScore();
+  syncLiveGame('update').catch(function () {});
 }
 
 function removeGoal(team){
   if(team === 'A' && scoreA > 0) scoreA--;
   if(team === 'B' && scoreB > 0) scoreB--;
   updateScore();
+  syncLiveGame('update').catch(function () {});
 }
 
 function updateScore(){
   byId('scoreA').textContent = String(scoreA);
   byId('scoreB').textContent = String(scoreB);
+}
+
+function throttledLiveSync() {
+  var now = Date.now();
+  if (now - lastSyncAt < 3000) return;
+  lastSyncAt = now;
+  syncLiveGame('update').catch(function () {});
+}
+
+async function syncLiveGame(mode) {
+  var payload = {
+    id: liveGameId,
+    teamAId: matchMeta.teamAId,
+    teamBId: matchMeta.teamBId,
+    teamAName: matchMeta.teamAName,
+    teamBName: matchMeta.teamBName,
+    scoreA: scoreA,
+    scoreB: scoreB,
+    duration: duration,
+    remaining: remaining,
+    running: !!interval,
+    startedAt: Date.now()
+  };
+  if (mode === 'start') return apiPost('/api/public/live-game/start', payload);
+  if (mode === 'end') return apiPost('/api/public/live-game/end', payload);
+  return apiPost('/api/public/live-game/update', payload);
+}
+
+function endGame() {
+  var confirmed = confirm('Encerrar partida e enviar para jogos recentes?');
+  if (!confirmed) return;
+  clearInterval(interval);
+  interval = null;
+  syncLiveGame('end')
+    .then(function () {
+      alert('Partida encerrada e salva em jogos recentes.');
+    })
+    .catch(function (err) {
+      console.error('Falha ao encerrar partida:', err);
+      alert('Erro ao encerrar partida.');
+    });
 }
 
 function byId(id) { return document.getElementById(id); }
@@ -263,3 +320,4 @@ function esc(v) {
 window.startTimer = startTimer;
 window.pauseTimer = pauseTimer;
 window.resetGame = resetGame;
+window.endGame = endGame;
