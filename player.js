@@ -51,6 +51,7 @@ function bindEvents() {
       });
       localStorage.setItem(TOKEN_KEY, data.token);
       await loadHome();
+      switchAuthView('login');
     } catch (err) {
       setMessage(err.message || 'Falha no login');
     }
@@ -70,6 +71,7 @@ function bindEvents() {
       });
       localStorage.setItem(TOKEN_KEY, data.token);
       await loadHome();
+      switchAuthView('login');
     } catch (err) {
       setMessage(err.message || 'Falha no cadastro');
     }
