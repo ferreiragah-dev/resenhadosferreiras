@@ -1,5 +1,5 @@
-const CACHE_NAME = "resenha-ferreira-campeonato-cache-v3";
-const ASSETS = ["/admin", "/player", "/index.html", "/player.html", "/styles.css", "/player.css", "/app.js", "/player.js", "/manifest.webmanifest", "/icons/icon-192.svg", "/icons/icon-512.svg"];
+const CACHE_NAME = "resenha-ferreira-campeonato-cache-v4";
+const ASSETS = ["/admin", "/player", "/player/home", "/index.html", "/player.html", "/player-home.html", "/styles.css", "/player.css", "/player-home.css", "/app.js", "/player.js", "/player-home.js", "/manifest.webmanifest", "/icons/icon-192.svg", "/icons/icon-512.svg"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)));
@@ -15,7 +15,7 @@ self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
   const url = new URL(event.request.url);
   const isApi = url.pathname.startsWith("/api/");
-  const isAppShellAsset = ["/admin", "/player", "/index.html", "/player.html", "/app.js", "/player.js", "/styles.css", "/player.css"].includes(url.pathname);
+  const isAppShellAsset = ["/admin", "/player", "/player/home", "/index.html", "/player.html", "/player-home.html", "/app.js", "/player.js", "/player-home.js", "/styles.css", "/player.css", "/player-home.css"].includes(url.pathname);
 
   if (isApi) {
     event.respondWith(fetch(event.request));

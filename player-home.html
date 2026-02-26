@@ -1,0 +1,48 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Usuario | Resenha FC</title>
+<link rel="stylesheet" href="player-home.css">
+</head>
+<body>
+<div class="app">
+  <div class="top-actions">
+    <button id="refreshBtn" class="top-btn" type="button">Atualizar</button>
+    <button id="logoutBtn" class="top-btn" type="button">Sair</button>
+  </div>
+
+  <div id="pendingBox" class="pending-box hidden">
+    <strong>Aguardando vinculo no PWA</strong>
+    <p id="pendingText"></p>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="perfil">Perfil</div>
+    <div class="tab" data-tab="tabela">Tabela</div>
+  </div>
+
+  <div id="perfil">
+    <div class="main-profile">
+      <img id="mainAvatar" class="avatar" alt="Foto do jogador">
+      <div id="mainName" class="name">Jogador</div>
+      <div id="mainTeam" class="team">Sem time</div>
+
+      <div id="mainStats" class="stats"></div>
+    </div>
+
+    <div class="team-list">
+      <div class="section-title">Companheiros de Time</div>
+      <div id="teammatesList"></div>
+    </div>
+  </div>
+
+  <div id="tabela" class="hidden">
+    <div class="table" id="matchesTable"></div>
+  </div>
+</div>
+
+<script src="player-home.js" defer></script>
+</body>
+</html>

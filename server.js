@@ -181,6 +181,7 @@ app.get('/api/player/home', authRequired, async (req, res) => {
   }
 
   const team = tournament.teams.find((t) => t.id === player.teamId) || null;
+  const teamsById = new Map((tournament.teams || []).map((t) => [t.id, t]));
   const teamStats = team
     ? tournament.matches.reduce((acc, m) => {
         if (m.teamAId !== team.id && m.teamBId !== team.id) return acc;
@@ -207,6 +208,40 @@ app.get('/api/player/home', authRequired, async (req, res) => {
         }))
     : [];
 
+  const matches = team
+    ? (tournament.matches || [])
+        .filter((m) => m.teamAId === team.id || m.teamBId === team.id)
+        .sort((a, b) => {
+          const da = String(a.date || '');
+          const db = String(b.date || '');
+          if (da !== db) return db.localeCompare(da);
+          return Number(b.createdAt || 0) - Number(a.createdAt || 0);
+        })
+        .slice(0, 20)
+        .map((m) => {
+          const teamA = teamsById.get(m.teamAId);
+          const teamB = teamsById.get(m.teamBId);
+          const playerGoals = Array.isArray(m.goalEvents)
+            ? m.goalEvents.filter((g) => g && g.playerId === player.id).length
+            : 0;
+          return {
+            id: m.id,
+            date: m.date || '',
+            stage: m.stage || 'Pelada',
+            teamAName: (teamA && teamA.name) || 'Time A',
+            teamBName: (teamB && teamB.name) || 'Time B',
+            goalsA: Number(m.goalsA || 0),
+            goalsB: Number(m.goalsB || 0),
+            playerStats: {
+              goals: playerGoals,
+              assists: 0,
+              yellowCards: 0,
+              redCards: 0
+            }
+          };
+        })
+    : [];
+
   res.json({
     user: publicUser(user),
     linked: true,
@@ -226,7 +261,8 @@ app.get('/api/player/home', authRequired, async (req, res) => {
     },
     team: team ? { id: team.id, name: team.name, color: team.color || '#0f766e' } : null,
     teamStats,
-    teammates
+    teammates,
+    matches
   });
 });
 
@@ -234,6 +270,7 @@ app.use(express.static(__dirname, { extensions: ['html'] }));
 
 app.get('/', (_req, res) => res.redirect('/admin'));
 app.get('/admin', (_req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/player/home', (_req, res) => res.sendFile(path.join(__dirname, 'player-home.html')));
 app.get('/player', (_req, res) => res.sendFile(path.join(__dirname, 'player.html')));
 app.get('*', (req, res) => {
   if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'Rota nao encontrada' });
