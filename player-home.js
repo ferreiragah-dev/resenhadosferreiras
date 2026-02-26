@@ -1,5 +1,7 @@
 ﻿const TOKEN_KEY = 'resenha-player-token';
 var homePoll = null;
+var homePollMs = 0;
+var currentTab = 'perfil';
 
 const els = {
   tabs: Array.prototype.slice.call(document.querySelectorAll('.tab')),
@@ -72,10 +74,17 @@ async function bootstrap() {
 
 
 function startHomePolling() {
+  restartHomePollingForCurrentTab();
+}
+
+function restartHomePollingForCurrentTab() {
+  var nextMs = (currentTab === 'ranking' || currentTab === 'ao-vivo') ? 2000 : 8000;
+  if (homePoll && homePollMs === nextMs) return;
   if (homePoll) clearInterval(homePoll);
+  homePollMs = nextMs;
   homePoll = setInterval(function () {
     loadHome().catch(function () {});
-  }, 8000);
+  }, nextMs);
 }
 function showTab(tab) {
   if (!els.perfil || !els.tabela || !els.ranking || !els.jogos || !els.aoVivo || !els.temporada) return;
@@ -86,6 +95,7 @@ function showTab(tab) {
   els.temporada.classList.add('hidden');
   els.jogos.classList.add('hidden');
   els.tabs.forEach(function (t) { t.classList.remove('active'); });
+  currentTab = tab || 'perfil';
 
   if (tab === 'tabela') {
     els.tabela.classList.remove('hidden');
@@ -103,9 +113,11 @@ function showTab(tab) {
     els.jogos.classList.remove('hidden');
     setActiveTab('jogos');
   } else {
+    currentTab = 'perfil';
     els.perfil.classList.remove('hidden');
     setActiveTab('perfil');
   }
+  restartHomePollingForCurrentTab();
 }
 
 function setActiveTab(tab) {
