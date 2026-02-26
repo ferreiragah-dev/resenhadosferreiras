@@ -493,6 +493,14 @@ function renderTeams() {
           <div class="team-pill"><span class="team-dot" style="background:${esc(team.color)}"></span><span>${esc(team.name)}</span></div>
           <button class="danger" type="button" data-team-delete="${esc(team.id)}">Excluir</button>
         </div>
+        <div class="team-edit-grid">
+          <label>Nome do time
+            <input type="text" value="${esc(team.name)}" data-team-basic-input="${esc(team.id)}|name">
+          </label>
+          <label>Cor
+            <input type="color" value="${esc(team.color || '#0f766e')}" data-team-basic-input="${esc(team.id)}|color">
+          </label>
+        </div>
         <p class="muted">${count} jogador(es)</p>
         <div class="team-stats-grid">
           ${teamStatInput(team.id, 'points', 'P', s.points)}
@@ -505,14 +513,36 @@ function renderTeams() {
           ${teamStatInput(team.id, 'goalDiff', 'SG', s.goalDiff)}
         </div>
         <div class="mini-actions">
+          <button class="ghost" type="button" data-team-save="${esc(team.id)}">Salvar time</button>
           <button class="ghost" type="button" data-team-stats-save="${esc(team.id)}">Salvar tabela</button>
           <button class="ghost" type="button" data-team-stats-reset="${esc(team.id)}">Zerar tabela</button>
         </div>
       </article>`;
   }).join('');
   els.teamsList.querySelectorAll('[data-team-delete]').forEach((btn) => btn.addEventListener('click', () => deleteTeam(btn.dataset.teamDelete)));
+  els.teamsList.querySelectorAll('[data-team-save]').forEach((btn) => btn.addEventListener('click', () => saveTeamBasicFromCard(btn.dataset.teamSave)));
   els.teamsList.querySelectorAll('[data-team-stats-save]').forEach((btn) => btn.addEventListener('click', () => saveTeamStatsFromCard(btn.dataset.teamStatsSave)));
   els.teamsList.querySelectorAll('[data-team-stats-reset]').forEach((btn) => btn.addEventListener('click', () => resetTeamStats(btn.dataset.teamStatsReset)));
+}
+
+function saveTeamBasicFromCard(teamId) {
+  const team = state.teams.find((t) => t.id === teamId);
+  if (!team) return;
+  const patch = { name: team.name, color: team.color || '#0f766e' };
+  document.querySelectorAll(`[data-team-basic-input^="${cssEscape(teamId)}|"]`).forEach((input) => {
+    const parts = String(input.dataset.teamBasicInput || '').split('|');
+    if (parts.length !== 2) return;
+    const field = parts[1];
+    if (field === 'name') patch.name = String(input.value || '').trim();
+    if (field === 'color') patch.color = String(input.value || '').trim() || '#0f766e';
+  });
+  if (!patch.name) {
+    alert('Nome do time é obrigatório.');
+    return;
+  }
+  team.name = patch.name;
+  team.color = patch.color;
+  persistAndRender();
 }
 
 function teamStatInput(teamId, field, label, value) {
