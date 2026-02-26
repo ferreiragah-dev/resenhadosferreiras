@@ -379,7 +379,7 @@ function renderPlayers() {
 function renderPlayerCard(player) {
   const team = findTeam(player.teamId);
   const linkedUser = registeredUsers.find((u) => u.id === player.userId);
-  const isTopScorer = getTopScorerIdSet().has(player.id);
+  const isTopScorer = getTopScorerId() === player.id;
   const teamNumbers = getTeamGoalsForAgainst(player.teamId);
   const playerGP = Number((player.goalsPro ?? teamNumbers.gp) || 0);
   const playerGC = Number((player.goalsContra ?? teamNumbers.gc) || 0);
@@ -427,11 +427,24 @@ function renderPlayerCard(player) {
     </article>`;
 }
 
-function getTopScorerIdSet() {
-  let maxGoals = 0;
-  state.players.forEach((p) => { maxGoals = Math.max(maxGoals, Math.max(0, Number(p.goals || 0))); });
-  if (maxGoals <= 0) return new Set();
-  return new Set(state.players.filter((p) => Math.max(0, Number(p.goals || 0)) === maxGoals).map((p) => p.id));
+function getTopScorerId() {
+  let best = null;
+  state.players.forEach((p) => {
+    const goals = Math.max(0, Number(p.goals || 0));
+    if (!goals) return;
+    if (!best) {
+      best = { id: p.id, goals, name: String(p.name || '') };
+      return;
+    }
+    if (goals > best.goals) {
+      best = { id: p.id, goals, name: String(p.name || '') };
+      return;
+    }
+    if (goals === best.goals && String(p.name || '').localeCompare(best.name, 'pt-BR') < 0) {
+      best = { id: p.id, goals, name: String(p.name || '') };
+    }
+  });
+  return best ? best.id : '';
 }
 
 function getTeamGoalsForAgainst(teamId) {

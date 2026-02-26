@@ -212,7 +212,7 @@ app.get('/api/public/teams', async (_req, res) => {
 app.get('/api/public/roster', async (_req, res) => {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   const tournament = await readTournamentState();
-  const topScorerIds = getTopScorerIds(tournament.players || []);
+  const topScorerId = getTopScorerId(tournament.players || []);
   const teams = (tournament.teams || []).map((t) => ({ id: t.id, name: t.name, color: t.color || '#0f766e' }));
   const players = (tournament.players || []).map((p) => ({
     id: p.id,
@@ -220,7 +220,7 @@ app.get('/api/public/roster', async (_req, res) => {
     teamId: p.teamId || '',
     photoDataUrl: p.photoDataUrl || '',
     isCaptain: Boolean(p.isCaptain),
-    isTopScorer: topScorerIds.has(p.id)
+    isTopScorer: !!topScorerId && String(p.id) === String(topScorerId)
   }));
   res.json({ teams, players });
 });
@@ -368,12 +368,28 @@ function toStatNumber(value) {
   return Number.isFinite(n) ? n : 0;
 }
 
-function getTopScorerIds(players = []) {
+function getTopScorerId(players = []) {
   const list = Array.isArray(players) ? players : [];
-  let maxGoals = 0;
-  for (const p of list) maxGoals = Math.max(maxGoals, Math.max(0, toStatNumber(p?.goals)));
-  if (maxGoals <= 0) return new Set();
-  return new Set(list.filter((p) => Math.max(0, toStatNumber(p?.goals)) === maxGoals).map((p) => p.id).filter(Boolean));
+  let best = null;
+  for (const p of list) {
+    const goals = Math.max(0, toStatNumber(p?.goals));
+    if (goals <= 0) continue;
+    if (!best) {
+      best = { id: p.id, goals, name: String(p?.name || '') };
+      continue;
+    }
+    if (goals > best.goals) {
+      best = { id: p.id, goals, name: String(p?.name || '') };
+      continue;
+    }
+    if (goals === best.goals) {
+      const name = String(p?.name || '');
+      if (name.localeCompare(best.name, 'pt-BR') < 0) {
+        best = { id: p.id, goals, name };
+      }
+    }
+  }
+  return best && best.id ? String(best.id) : '';
 }
 
 app.get('/api/state', adminRequired, async (_req, res) => {
@@ -415,7 +431,7 @@ app.get('/api/player/home', authRequired, async (req, res) => {
   }
 
   const team = tournament.teams.find((t) => t.id === player.teamId) || null;
-  const topScorerIds = getTopScorerIds(tournament.players || []);
+  const topScorerId = getTopScorerId(tournament.players || []);
   const teamsById = new Map((tournament.teams || []).map((t) => [t.id, t]));
   const teamStats = team
     ? tournament.matches.reduce((acc, m) => {
@@ -441,7 +457,7 @@ app.get('/api/player/home', authRequired, async (req, res) => {
           goalsPro: p.goalsPro || 0,
           goalsContra: p.goalsContra || 0,
           isCaptain: Boolean(p.isCaptain),
-          isTopScorer: topScorerIds.has(p.id),
+          isTopScorer: !!topScorerId && String(p.id) === String(topScorerId),
           photoDataUrl: p.photoDataUrl || '',
           isMe: p.id === player.id
         }))
@@ -522,7 +538,7 @@ app.get('/api/player/home', authRequired, async (req, res) => {
         redCards,
         rankingPoints,
         isCaptain: Boolean(p.isCaptain),
-        isTopScorer: topScorerIds.has(p.id)
+        isTopScorer: !!topScorerId && String(p.id) === String(topScorerId)
       };
     })
     .sort((a, b) =>
@@ -549,7 +565,7 @@ app.get('/api/player/home', authRequired, async (req, res) => {
       goalsPro: player.goalsPro || 0,
       goalsContra: player.goalsContra || 0,
       isCaptain: Boolean(player.isCaptain),
-      isTopScorer: topScorerIds.has(player.id),
+      isTopScorer: !!topScorerId && String(player.id) === String(topScorerId),
       photoDataUrl: player.photoDataUrl || ''
     },
     team: team ? { id: team.id, name: team.name, color: team.color || '#0f766e' } : null,
