@@ -5,6 +5,10 @@ body{
   font-family:Arial, sans-serif;
 }
 
+.hidden{
+  display:none !important;
+}
+
 .app{
   max-width:900px;
   margin:auto;
