@@ -9,6 +9,7 @@ const els = {
   pendingBox: document.getElementById('pendingBox'),
   pendingText: document.getElementById('pendingText'),
   mainAvatar: document.getElementById('mainAvatar'),
+  mainCaptainBadge: document.getElementById('mainCaptainBadge'),
   mainName: document.getElementById('mainName'),
   mainTeam: document.getElementById('mainTeam'),
   mainStats: document.getElementById('mainStats'),
@@ -94,7 +95,8 @@ async function loadHome() {
       teamGoalsFor: 0,
       teamGoalsAgainst: 0,
       yellowCards: 0,
-      redCards: 0
+      redCards: 0,
+      isCaptain: false
     });
     renderTeammates([]);
     renderMatches([]);
@@ -111,7 +113,8 @@ async function loadHome() {
     teamGoalsFor: (data.player && typeof data.player.goalsPro !== 'undefined') ? Number(data.player.goalsPro || 0) : ((data.teamStats && data.teamStats.goalsFor) || 0),
     teamGoalsAgainst: (data.player && typeof data.player.goalsContra !== 'undefined') ? Number(data.player.goalsContra || 0) : ((data.teamStats && data.teamStats.goalsAgainst) || 0),
     yellowCards: (data.player && data.player.yellowCards) || 0,
-    redCards: (data.player && data.player.redCards) || 0
+    redCards: (data.player && data.player.redCards) || 0,
+    isCaptain: !!(data.player && data.player.isCaptain)
   });
 
   renderTeammates(Array.isArray(data.teammates) ? data.teammates : []);
@@ -120,6 +123,10 @@ async function loadHome() {
 
 function renderProfile(profile) {
   if (els.mainAvatar) els.mainAvatar.src = profile.photoDataUrl || avatarFallback(profile.name, 96);
+  if (els.mainCaptainBadge) {
+    if (profile.isCaptain) els.mainCaptainBadge.classList.remove('hidden');
+    else els.mainCaptainBadge.classList.add('hidden');
+  }
   if (els.mainName) els.mainName.textContent = profile.name;
   if (els.mainTeam) els.mainTeam.textContent = profile.teamName;
   if (els.mainStats) {
@@ -143,7 +150,10 @@ function renderTeammates(list) {
     const photo = m.photoDataUrl || avatarFallback(m.name, 34);
     return '<div class="player-item">' +
       '<div class="player-left">' +
+      '<div class="player-avatar-wrap">' +
       '<img class="player-avatar" src="' + esc(photo) + '" alt="' + esc(m.name) + '">' +
+      (m.isCaptain ? '<span class="captain-badge small">C</span>' : '') +
+      '</div>' +
       '<div class="player-name">' + esc(m.name) + (m.isMe ? ' (voce)' : '') + '</div>' +
       '</div>' +
       '<div class="player-stats">' +

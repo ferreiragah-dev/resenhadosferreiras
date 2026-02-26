@@ -136,6 +136,7 @@ function bindEvents() {
       assists: 0,
       goalsPro: 0,
       goalsContra: 0,
+      isCaptain: false,
       createdAt: Date.now()
     });
     els.playerForm.reset();
@@ -323,6 +324,7 @@ function renderPlayers() {
     const [id, field, delta] = String(btn.dataset.playerStatOp || '').split('|');
     changePlayerStat(id, field, Number(delta || 0));
   }));
+  els.playersList.querySelectorAll('[data-player-toggle-captain]').forEach((btn) => btn.addEventListener('click', () => togglePlayerCaptain(btn.dataset.playerToggleCaptain)));
 }
 
 function renderPlayerCard(player) {
@@ -343,6 +345,7 @@ function renderPlayerCard(player) {
           ${player.redCards ? `<span class="penalty-chip red">🟥 ${player.redCards}</span>` : ''}
         </div>
         <div class="player-stat-badges">
+          ${player.isCaptain ? `<span class="mini-chip captain-chip">C Capitão</span>` : ''}
           <span class="mini-chip">A ${Number(player.assists || 0)}</span>
           <span class="mini-chip">GP ${playerGP}</span>
           <span class="mini-chip">GC ${playerGC}</span>
@@ -352,6 +355,7 @@ function renderPlayerCard(player) {
         <div class="player-name">${esc(player.name)} ${player.number !== null ? `#${player.number}` : ''}</div>
         <div class="player-sub">${esc(player.position || '-')} • ${esc(team?.name || 'Sem time')}</div>
         <div class="player-sub">${linkedUser ? `Conta: ${esc(linkedUser.email)}` : 'Conta: sem vínculo'}</div>
+        <div class="player-sub">Capitão: ${player.isCaptain ? 'Sim' : 'Não'}</div>
         <div class="player-sub">Gols: ${player.goals || 0}</div>
         <div class="stat-crud-grid">
           <button class="ghost" type="button" data-player-stat-op="${esc(player.id)}|assists|1">A +1</button>
@@ -362,6 +366,7 @@ function renderPlayerCard(player) {
           <button class="ghost" type="button" data-player-stat-op="${esc(player.id)}|goalsContra|-1">GC -1</button>
         </div>
         <div class="mini-actions">
+          <button class="ghost" type="button" data-player-toggle-captain="${esc(player.id)}">${player.isCaptain ? 'Remover C' : 'Tornar C'}</button>
           <button class="ghost" type="button" data-player-add-assist="${esc(player.id)}">Assist +1</button>
           <button class="ghost" type="button" data-player-reset-ags="${esc(player.id)}">Zerar A/GP/GC</button>
           <button class="ghost" type="button" data-player-reset-cards="${esc(player.id)}">Zerar cartões</button>
@@ -567,6 +572,13 @@ function resetPlayerCards(id) {
   if (!player) return;
   player.yellowCards = 0;
   player.redCards = 0;
+  persistAndRender();
+}
+
+function togglePlayerCaptain(id) {
+  const player = state.players.find((p) => p.id === id);
+  if (!player) return;
+  player.isCaptain = !player.isCaptain;
   persistAndRender();
 }
 

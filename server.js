@@ -156,6 +156,7 @@ app.post('/api/auth/register', async (req, res) => {
         assists: 0,
         goalsPro: 0,
         goalsContra: 0,
+        isCaptain: false,
         createdAt: Date.now()
       });
       await writeTournamentState(tournament);
@@ -258,6 +259,7 @@ app.get('/api/player/home', authRequired, async (req, res) => {
           assists: p.assists || 0,
           goalsPro: p.goalsPro || 0,
           goalsContra: p.goalsContra || 0,
+          isCaptain: Boolean(p.isCaptain),
           photoDataUrl: p.photoDataUrl || '',
           isMe: p.id === player.id
         }))
@@ -314,6 +316,7 @@ app.get('/api/player/home', authRequired, async (req, res) => {
       assists: player.assists || 0,
       goalsPro: player.goalsPro || 0,
       goalsContra: player.goalsContra || 0,
+      isCaptain: Boolean(player.isCaptain),
       photoDataUrl: player.photoDataUrl || ''
     },
     team: team ? { id: team.id, name: team.name, color: team.color || '#0f766e' } : null,

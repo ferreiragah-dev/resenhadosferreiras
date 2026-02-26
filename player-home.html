@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Usuario | Resenha FC</title>
-<link rel="stylesheet" href="/player-home.css?v=5">
+<link rel="stylesheet" href="/player-home.css?v=6">
 </head>
 <body>
 <div class="app">
@@ -25,7 +25,10 @@
 
   <div id="perfil">
     <div class="main-profile">
-      <img id="mainAvatar" class="avatar" alt="Foto do jogador">
+      <div class="avatar-wrap">
+        <img id="mainAvatar" class="avatar" alt="Foto do jogador">
+        <span id="mainCaptainBadge" class="captain-badge hidden">C</span>
+      </div>
       <div id="mainName" class="name">Jogador</div>
       <div id="mainTeam" class="team">Sem time</div>
 
@@ -43,6 +46,6 @@
   </div>
 </div>
 
-<script src="/player-home.js?v=5" defer></script>
+<script src="/player-home.js?v=6" defer></script>
 </body>
 </html>
