@@ -7,6 +7,7 @@ let selectedPenaltyPlayerId = null;
 let pendingGoalEvents = [];
 let registeredUsers = [];
 let syncTimer = null;
+let remotePollTimer = null;
 
 const els = {
   tabs: [...document.querySelectorAll('.tab')],
@@ -58,6 +59,7 @@ renderAll();
 registerServiceWorker();
 bootstrapRemote();
 bootstrapAdminGate();
+startRemotePolling();
 
 function defaultState() {
   return { teams: [], players: [], matches: [], bracket: [], settings: { eventStartAt: '' } };
@@ -568,6 +570,17 @@ function fileToDataURL(file) {
 
 async function bootstrapRemote() {
   await Promise.allSettled([fetchUsersForLinking(), hydrateStateFromServer()]);
+}
+
+function startRemotePolling() {
+  if (remotePollTimer) clearInterval(remotePollTimer);
+  remotePollTimer = setInterval(() => {
+    // Evita sobrescrever formulário enquanto admin está digitando.
+    const activeTag = document.activeElement && document.activeElement.tagName ? document.activeElement.tagName : '';
+    if (activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT') return;
+    fetchUsersForLinking().catch(() => {});
+    hydrateStateFromServer().catch(() => {});
+  }, 10000);
 }
 
 function queueServerSync() {

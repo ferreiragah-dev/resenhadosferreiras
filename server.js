@@ -116,6 +116,27 @@ app.post('/api/auth/register', async (req, res) => {
       [user.id, user.name, user.email, user.passwordHash, user.createdAt]
     );
 
+    // Cria automaticamente o jogador no elenco (sem time) para aparecer no PWA admin.
+    const tournament = await readTournamentState();
+    const alreadyExistsInRoster = (tournament.players || []).some((p) => p && (p.userId === user.id || String(p.name || '').trim() === user.name));
+    if (!alreadyExistsInRoster) {
+      tournament.players.push({
+        id: uid(),
+        name: user.name,
+        number: null,
+        position: '',
+        teamId: '',
+        userId: user.id,
+        photoDataUrl: '',
+        yellowCards: 0,
+        redCards: 0,
+        goals: 0,
+        assists: 0,
+        createdAt: Date.now()
+      });
+      await writeTournamentState(tournament);
+    }
+
     res.status(201).json({ token: issueToken(user), user: { id: user.id, name: user.name, email: user.email, createdAt: user.createdAt } });
   } catch (err) {
     res.status(500).json({ error: 'Falha ao cadastrar usuario' });

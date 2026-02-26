@@ -1,4 +1,4 @@
-const CACHE_NAME = "resenha-ferreira-campeonato-cache-v6";
+const CACHE_NAME = "resenha-ferreira-campeonato-cache-v7";
 const ASSETS = ["/admin", "/player", "/player/home", "/index.html", "/player.html", "/player-home.html", "/styles.css", "/player.css", "/player-home.css", "/app.js", "/player.js", "/player-home.js", "/manifest.webmanifest", "/icons/icon-192.svg", "/icons/icon-512.svg"];
 
 self.addEventListener("install", (event) => {
