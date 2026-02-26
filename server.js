@@ -486,6 +486,29 @@ app.get('/api/player/home', authRequired, async (req, res) => {
     String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR')
   );
 
+  const playerRanking = (tournament.players || [])
+    .map((p) => {
+      const rankingPoints = Number((p.goals || 0) * 3) - Number(p.yellowCards || 0) - Number(p.redCards || 0) * 3;
+      const rankingTeam = (tournament.teams || []).find((t) => t.id === p.teamId);
+      return {
+        id: p.id,
+        name: p.name || 'Jogador',
+        teamName: rankingTeam ? rankingTeam.name : 'Sem time',
+        photoDataUrl: p.photoDataUrl || '',
+        goals: Number(p.goals || 0),
+        assists: Number(p.assists || 0),
+        yellowCards: Number(p.yellowCards || 0),
+        redCards: Number(p.redCards || 0),
+        rankingPoints,
+        isCaptain: Boolean(p.isCaptain)
+      };
+    })
+    .sort((a, b) =>
+      b.rankingPoints - a.rankingPoints ||
+      b.goals - a.goals ||
+      String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR')
+    );
+
   res.json({
     user: publicUser(user),
     linked: true,
@@ -511,6 +534,7 @@ app.get('/api/player/home', authRequired, async (req, res) => {
     teammates,
     matches,
     standings,
+    playerRanking,
     gameSchedule: Array.isArray(tournament.gameSchedule) ? tournament.gameSchedule : [],
     liveGame: tournament.liveGame || null,
     recentGames: Array.isArray(tournament.recentGames) ? tournament.recentGames : []

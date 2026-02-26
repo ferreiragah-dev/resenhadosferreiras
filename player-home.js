@@ -5,6 +5,7 @@ const els = {
   tabs: Array.prototype.slice.call(document.querySelectorAll('.tab')),
   perfil: document.getElementById('perfil'),
   tabela: document.getElementById('tabela'),
+  ranking: document.getElementById('ranking'),
   aoVivo: document.getElementById('ao-vivo'),
   temporada: document.getElementById('temporada'),
   jogos: document.getElementById('jogos'),
@@ -19,6 +20,7 @@ const els = {
   mainStats: document.getElementById('mainStats'),
   teammatesList: document.getElementById('teammatesList'),
   standingsTable: document.getElementById('standingsTable'),
+  playerRankingList: document.getElementById('playerRankingList'),
   liveGameBox: document.getElementById('liveGameBox'),
   liveTimelineBox: document.getElementById('liveTimelineBox'),
   upcomingGamesBox: document.getElementById('upcomingGamesBox'),
@@ -76,9 +78,10 @@ function startHomePolling() {
   }, 8000);
 }
 function showTab(tab) {
-  if (!els.perfil || !els.tabela || !els.jogos || !els.aoVivo || !els.temporada) return;
+  if (!els.perfil || !els.tabela || !els.ranking || !els.jogos || !els.aoVivo || !els.temporada) return;
   els.perfil.classList.add('hidden');
   els.tabela.classList.add('hidden');
+  els.ranking.classList.add('hidden');
   els.aoVivo.classList.add('hidden');
   els.temporada.classList.add('hidden');
   els.jogos.classList.add('hidden');
@@ -87,6 +90,9 @@ function showTab(tab) {
   if (tab === 'tabela') {
     els.tabela.classList.remove('hidden');
     setActiveTab('tabela');
+  } else if (tab === 'ranking') {
+    els.ranking.classList.remove('hidden');
+    setActiveTab('ranking');
   } else if (tab === 'ao-vivo') {
     els.aoVivo.classList.remove('hidden');
     setActiveTab('ao-vivo');
@@ -128,6 +134,7 @@ async function loadHome() {
     });
     renderTeammates([]);
     renderStandings([]);
+    renderPlayerRanking([]);
     renderLiveAndRecentGames(null, [], []);
     return;
   }
@@ -148,6 +155,7 @@ async function loadHome() {
 
   renderTeammates(Array.isArray(data.teammates) ? data.teammates : []);
   renderStandings(Array.isArray(data.standings) ? data.standings : []);
+  renderPlayerRanking(Array.isArray(data.playerRanking) ? data.playerRanking : []);
   renderLiveAndRecentGames(
     data.liveGame || null,
     Array.isArray(data.recentGames) ? data.recentGames : [],
@@ -216,6 +224,38 @@ function renderStandings(list) {
       '<span>GP ' + Number(t.goalsPro || 0) + '</span>' +
       '<span>GC ' + Number(t.goalsContra || 0) + '</span>' +
       '<span>SG ' + Number(t.goalDiff || 0) + '</span>' +
+      '</div>' +
+      '</div>';
+  }).join('');
+}
+
+function renderPlayerRanking(list) {
+  if (!els.playerRankingList) return;
+  if (!list || !list.length) {
+    els.playerRankingList.innerHTML = '<div class="empty-state">Nenhum jogador para ranking.</div>';
+    return;
+  }
+
+  els.playerRankingList.innerHTML = list.map(function (p, idx) {
+    var photo = p.photoDataUrl || avatarFallback(p.name, 34);
+    return '<div class="player-item">' +
+      '<div class="player-left">' +
+      '<div class="rank-badge">' + (idx + 1) + '</div>' +
+      '<div class="player-avatar-wrap">' +
+      '<img class="player-avatar" src="' + esc(photo) + '" alt="' + esc(p.name) + '">' +
+      (p.isCaptain ? '<span class="captain-badge small">C</span>' : '') +
+      '</div>' +
+      '<div>' +
+      '<div class="player-name">' + esc(p.name) + '</div>' +
+      '<div class="rank-team">' + esc(p.teamName || 'Sem time') + '</div>' +
+      '</div>' +
+      '</div>' +
+      '<div class="player-stats">' +
+      '<span>Pts ' + Number(p.rankingPoints || 0) + '</span>' +
+      '<span>G ' + Number(p.goals || 0) + '</span>' +
+      '<span>A ' + Number(p.assists || 0) + '</span>' +
+      '<span>CA ' + Number(p.yellowCards || 0) + '</span>' +
+      '<span>CV ' + Number(p.redCards || 0) + '</span>' +
       '</div>' +
       '</div>';
   }).join('');
@@ -373,10 +413,10 @@ async function api(url, options) {
 
 function esc(v) {
   return String(v == null ? '' : v)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 

@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Usuario | Resenha FC</title>
-<link rel="stylesheet" href="/player-home.css?v=12">
+<link rel="stylesheet" href="/player-home.css?v=13">
 </head>
 <body>
 <div class="app">
@@ -21,6 +21,7 @@
   <div class="tabs">
     <div class="tab active" data-tab="perfil">Perfil</div>
     <div class="tab" data-tab="tabela">Tabela</div>
+    <div class="tab" data-tab="ranking">Ranking</div>
     <div class="tab" data-tab="ao-vivo">Ao Vivo</div>
     <div class="tab" data-tab="temporada">Temporada Verão 2026</div>
     <div class="tab" data-tab="jogos">Jogos</div>
@@ -48,6 +49,11 @@
     <div class="table" id="standingsTable"></div>
   </div>
 
+  <div id="ranking" class="hidden">
+    <div class="section-title">Ranking de jogadores</div>
+    <div id="playerRankingList" class="team-list"></div>
+  </div>
+
   <div id="ao-vivo" class="hidden">
     <div class="section-title">Jogo ao vivo</div>
     <div id="liveGameBox" class="table"></div>
@@ -66,6 +72,6 @@
   </div>
 </div>
 
-<script src="/player-home.js?v=13" defer></script>
+<script src="/player-home.js?v=14" defer></script>
 </body>
 </html>
