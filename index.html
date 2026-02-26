@@ -80,6 +80,19 @@
     </section>
 
     <section id="tab-jogos" class="tab-panel" hidden>
+      <div class="panel-grid" style="margin-bottom:12px;">
+        <section class="card">
+          <h2>Início da resenha (contagem do app do jogador)</h2>
+          <form id="eventSettingsForm" class="form-grid">
+            <label class="full">Data e hora de início
+              <input id="eventStartAt" type="datetime-local">
+            </label>
+            <button class="primary full" type="submit">Salvar horário da resenha</button>
+          </form>
+          <p class="muted" id="eventSettingsMessage">Defina o horário para a contagem regressiva mostrada após o login do jogador.</p>
+        </section>
+      </div>
+
       <div class="panel-grid">
         <section class="card">
           <h2>Cadastrar jogo / placar</h2>

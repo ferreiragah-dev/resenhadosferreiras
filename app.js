@@ -28,6 +28,9 @@ const els = {
   matchGoalsB: document.getElementById('matchGoalsB'),
   matchStage: document.getElementById('matchStage'),
   matchDate: document.getElementById('matchDate'),
+  eventSettingsForm: document.getElementById('eventSettingsForm'),
+  eventStartAt: document.getElementById('eventStartAt'),
+  eventSettingsMessage: document.getElementById('eventSettingsMessage'),
   matchesList: document.getElementById('matchesList'),
   goalPlayerSelect: document.getElementById('goalPlayerSelect'),
   addGoalBtn: document.getElementById('addGoalBtn'),
@@ -48,7 +51,7 @@ registerServiceWorker();
 bootstrapRemote();
 
 function defaultState() {
-  return { teams: [], players: [], matches: [], bracket: [] };
+  return { teams: [], players: [], matches: [], bracket: [], settings: { eventStartAt: '' } };
 }
 
 function loadState() {
@@ -60,7 +63,8 @@ function loadState() {
       teams: Array.isArray(parsed.teams) ? parsed.teams : [],
       players: Array.isArray(parsed.players) ? parsed.players : [],
       matches: Array.isArray(parsed.matches) ? parsed.matches : [],
-      bracket: Array.isArray(parsed.bracket) ? parsed.bracket : []
+      bracket: Array.isArray(parsed.bracket) ? parsed.bracket : [],
+      settings: { eventStartAt: String(parsed?.settings?.eventStartAt || '') }
     };
   } catch {
     return defaultState();
@@ -113,6 +117,18 @@ function bindEvents() {
   });
 
   els.playerSearch.addEventListener('input', renderPlayers);
+
+  els.eventSettingsForm?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    state.settings = state.settings || { eventStartAt: '' };
+    state.settings.eventStartAt = String(els.eventStartAt?.value || '');
+    if (els.eventSettingsMessage) {
+      els.eventSettingsMessage.textContent = state.settings.eventStartAt
+        ? 'Horário salvo para a contagem regressiva do app do jogador.'
+        : 'Horário removido. O jogador verá sem contagem configurada.';
+    }
+    persistAndRender();
+  });
 
   els.addGoalBtn.addEventListener('click', () => {
     const playerId = els.goalPlayerSelect.value;
@@ -167,7 +183,7 @@ function bindEvents() {
     if (!confirm('Apagar todos os dados do campeonato?')) return;
     localStorage.removeItem(STORAGE_KEY);
     const fresh = defaultState();
-    state.teams = fresh.teams; state.players = fresh.players; state.matches = fresh.matches; state.bracket = fresh.bracket;
+    state.teams = fresh.teams; state.players = fresh.players; state.matches = fresh.matches; state.bracket = fresh.bracket; state.settings = fresh.settings;
     pendingGoalEvents = [];
     renderGoalEvents();
     persistAndRender();
@@ -184,6 +200,7 @@ function switchTab(tabName) {
 }
 
 function renderAll() {
+  renderEventSettings();
   renderTeamOptions();
   renderUserOptions();
   renderPlayerGoalOptions();
@@ -192,6 +209,13 @@ function renderAll() {
   renderMatches();
   renderBracket();
   renderRankings();
+}
+
+function renderEventSettings() {
+  state.settings = state.settings || { eventStartAt: '' };
+  if (els.eventStartAt) {
+    els.eventStartAt.value = String(state.settings.eventStartAt || '');
+  }
 }
 
 function renderTeamOptions() {
@@ -518,6 +542,7 @@ async function hydrateStateFromServer() {
     state.players = Array.isArray(t.players) ? t.players : [];
     state.matches = Array.isArray(t.matches) ? t.matches : [];
     state.bracket = Array.isArray(t.bracket) ? t.bracket : [];
+    state.settings = { eventStartAt: String(t?.settings?.eventStartAt || '') };
     saveState();
     renderAll();
   } catch {
