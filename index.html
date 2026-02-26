@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f5132">
+  <title>Resenha dos Ferreira - Campeonato</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <p class="eyebrow">Resenha dos Ferreira</p>
+      <h1>Campeonato de Futebol</h1>
+    </div>
+    <button id="resetDataBtn" class="ghost danger" type="button">Limpar dados</button>
+  </header>
+
+  <main class="app-shell">
+    <nav class="tabs" aria-label="Seções do app">
+      <button class="tab is-active" data-tab="jogadores" type="button">Jogadores</button>
+      <button class="tab" data-tab="times" type="button">Times</button>
+      <button class="tab" data-tab="jogos" type="button">Jogos</button>
+      <button class="tab" data-tab="chaveamento" type="button">Chaveamento</button>
+      <button class="tab" data-tab="ranking" type="button">Ranking</button>
+    </nav>
+
+    <section id="tab-jogadores" class="tab-panel is-active">
+      <div class="panel-grid">
+        <section class="card">
+          <h2>Cadastro de jogadores</h2>
+          <form id="playerForm" class="form-grid">
+            <label>Nome<input id="playerName" name="name" type="text" required placeholder="Ex: Gabriel"></label>
+            <label>Número<input id="playerNumber" name="number" type="number" min="0" max="99" placeholder="10"></label>
+            <label>Posição
+              <select id="playerPosition" name="position">
+                <option value="Atacante">Atacante</option><option value="Meia">Meia</option><option value="Volante">Volante</option>
+                <option value="Zagueiro">Zagueiro</option><option value="Lateral">Lateral</option><option value="Goleiro">Goleiro</option>
+              </select>
+            </label>
+            <label>Time<select id="playerTeamId" name="teamId"><option value="">Sem time</option></select></label>
+            <label class="full">Foto (opcional)<input id="playerPhoto" name="photo" type="file" accept="image/*"></label>
+            <button class="primary full" type="submit">Salvar jogador</button>
+          </form>
+        </section>
+
+        <section class="card">
+          <div class="card-header">
+            <h2>Elenco</h2>
+            <input id="playerSearch" type="search" placeholder="Buscar jogador">
+          </div>
+          <div id="playersList" class="players-grid"></div>
+        </section>
+      </div>
+    </section>
+
+    <section id="tab-times" class="tab-panel" hidden>
+      <div class="panel-grid">
+        <section class="card">
+          <h2>Cadastro de times</h2>
+          <form id="teamForm" class="form-grid">
+            <label>Nome do time<input id="teamName" name="name" type="text" required placeholder="Ex: Os Ferreira FC"></label>
+            <label>Cor principal<input id="teamColor" name="color" type="color" value="#0f766e"></label>
+            <button class="primary full" type="submit">Salvar time</button>
+          </form>
+        </section>
+        <section class="card">
+          <h2>Times cadastrados</h2>
+          <div id="teamsList" class="teams-list"></div>
+        </section>
+      </div>
+    </section>
+
+    <section id="tab-jogos" class="tab-panel" hidden>
+      <div class="panel-grid">
+        <section class="card">
+          <h2>Cadastrar jogo / placar</h2>
+          <form id="matchForm" class="form-grid">
+            <label>Time A<select id="matchTeamA" name="teamAId" required></select></label>
+            <label>Gols A<input id="matchGoalsA" name="goalsA" type="number" min="0" value="0" required></label>
+            <label>Time B<select id="matchTeamB" name="teamBId" required></select></label>
+            <label>Gols B<input id="matchGoalsB" name="goalsB" type="number" min="0" value="0" required></label>
+            <label>Fase
+              <select id="matchStage" name="stage">
+                <option value="Grupo">Grupo</option><option value="Quartas">Quartas</option><option value="Semifinal">Semifinal</option><option value="Final">Final</option>
+              </select>
+            </label>
+            <label>Data<input id="matchDate" name="date" type="date"></label>
+            <div class="full stats-builder">
+              <h3>Gols por jogador (opcional)</h3>
+              <div class="goal-inputs">
+                <label>Jogador<select id="goalPlayerSelect"></select></label>
+                <button id="addGoalBtn" type="button" class="ghost">Adicionar gol</button>
+              </div>
+              <div id="goalEvents" class="goal-events"></div>
+            </div>
+            <button class="primary full" type="submit">Salvar jogo</button>
+          </form>
+        </section>
+        <section class="card">
+          <h2>Placar dos jogos</h2>
+          <div id="matchesList" class="matches-list"></div>
+        </section>
+      </div>
+    </section>
+
+    <section id="tab-chaveamento" class="tab-panel" hidden>
+      <section class="card">
+        <div class="card-header">
+          <h2>Chaveamento</h2>
+          <button id="generateBracketBtn" class="ghost" type="button">Gerar a partir dos times</button>
+        </div>
+        <p class="muted">O botão cria um chaveamento simples (quartas, semifinal e final) com base nos times cadastrados.</p>
+        <div id="bracketBoard" class="bracket-board"></div>
+      </section>
+    </section>
+
+    <section id="tab-ranking" class="tab-panel" hidden>
+      <div class="panel-grid">
+        <section class="card"><h2>Ranking de jogadores</h2><div id="playerRanking" class="ranking-table"></div></section>
+        <section class="card"><h2>Tabela dos times</h2><div id="teamRanking" class="ranking-table"></div></section>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="penaltyDialog">
+    <form method="dialog" class="penalty-dialog-form">
+      <h3 id="penaltyDialogTitle">Penalidade</h3>
+      <p class="muted">Escolha a penalidade para o jogador.</p>
+      <menu>
+        <button value="cancel" class="ghost" type="submit">Cancelar</button>
+        <button value="yellow" class="yellow" type="submit">Cartão amarelo</button>
+        <button value="red" class="danger" type="submit">Cartão vermelho</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <script src="app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#0f5132"/>
+  <circle cx="256" cy="248" r="160" fill="#f5f3ea"/>
+  <path d="M256 116l52 35 61-8 14 61 49 35-35 52 8 61-61 14-35 49-52-35-52 35-35-49-61-14 8-61-35-52 49-35 14-61 61 8z" fill="#0f5132"/>
+  <text x="256" y="464" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="56" fill="#f5f3ea" font-weight="700">Resenha</text>
+</svg>
