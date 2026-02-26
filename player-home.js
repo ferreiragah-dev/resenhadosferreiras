@@ -286,8 +286,18 @@ function renderUpcomingGames(list) {
     return;
   }
 
+  var phasePriority = {
+    'FASE DE GRUPO (2x7 minutos)': 1,
+    'SEMIFINAIS (2x7 minutos)': 2,
+    'FINAL (2x7 minutos)': 3
+  };
+
   var rows = list.slice().sort(function (a, b) {
-    var phaseCmp = String(a.phase || '').localeCompare(String(b.phase || ''), 'pt-BR');
+    var phaseA = String(a.phase || '');
+    var phaseB = String(b.phase || '');
+    var orderA = Object.prototype.hasOwnProperty.call(phasePriority, phaseA) ? phasePriority[phaseA] : 99;
+    var orderB = Object.prototype.hasOwnProperty.call(phasePriority, phaseB) ? phasePriority[phaseB] : 99;
+    var phaseCmp = orderA - orderB || phaseA.localeCompare(phaseB, 'pt-BR');
     if (phaseCmp) return phaseCmp;
     return String(a.time || '').localeCompare(String(b.time || ''));
   });
