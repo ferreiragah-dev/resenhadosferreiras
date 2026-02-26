@@ -64,7 +64,8 @@ function bindEvents() {
             name: els.registerName.value,
             email: els.registerEmail.value,
             password: els.registerPassword.value,
-            teamId: els.registerTeamSelect ? els.registerTeamSelect.value : ''
+            teamId: els.registerTeamSelect ? els.registerTeamSelect.value : '',
+            teamName: getSelectedTeamName()
           })
         });
         localStorage.setItem(TOKEN_KEY, data.token);
@@ -103,8 +104,8 @@ function switchAuthView(view) {
 async function populateRegisterTeams() {
   if (!els.registerTeamSelect) return;
   try {
-    const data = await api('/api/state');
-    const teams = data && data.tournament && Array.isArray(data.tournament.teams) ? data.tournament.teams : [];
+    const data = await api('/api/public/teams');
+    const teams = data && Array.isArray(data.teams) ? data.teams : [];
     els.registerTeamSelect.innerHTML = '<option value="">Selecione</option>' +
       teams.sort(function (a, b) { return String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR'); })
         .map(function (t) { return '<option value="' + esc(t.id) + '">' + esc(t.name) + '</option>'; })
@@ -125,6 +126,13 @@ async function api(url, options) {
 
 function setMessage(text) {
   if (els.authMessage) els.authMessage.textContent = text || '';
+}
+
+function getSelectedTeamName() {
+  if (!els.registerTeamSelect) return '';
+  var option = els.registerTeamSelect.options[els.registerTeamSelect.selectedIndex];
+  if (!option) return '';
+  return String(option.text || '').trim() === 'Selecione' ? '' : String(option.text || '').trim();
 }
 
 function esc(v) {

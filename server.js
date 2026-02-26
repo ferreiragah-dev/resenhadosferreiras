@@ -97,6 +97,7 @@ app.post('/api/auth/register', async (req, res) => {
     const email = String(req.body?.email || '').trim().toLowerCase();
     const password = String(req.body?.password || '');
     const requestedTeamId = String(req.body?.teamId || '').trim();
+    const requestedTeamName = String(req.body?.teamName || '').trim();
 
     if (!name || !email || !password) return res.status(400).json({ error: 'Nome, email e senha sao obrigatorios' });
     if (password.length < 4) return res.status(400).json({ error: 'Senha deve ter pelo menos 4 caracteres' });
@@ -119,8 +120,16 @@ app.post('/api/auth/register', async (req, res) => {
 
     // Cria automaticamente o jogador no elenco (sem time) para aparecer no PWA admin.
     const tournament = await readTournamentState();
-    const teamExists = (tournament.teams || []).some((t) => t && t.id === requestedTeamId);
-    const normalizedTeamId = teamExists ? requestedTeamId : '';
+    const teams = tournament.teams || [];
+    let normalizedTeamId = '';
+    if (requestedTeamId) {
+      const byId = teams.find((t) => t && String(t.id) === requestedTeamId);
+      if (byId) normalizedTeamId = byId.id;
+    }
+    if (!normalizedTeamId && requestedTeamName) {
+      const byName = teams.find((t) => t && String(t.name || '').trim().toLowerCase() === requestedTeamName.toLowerCase());
+      if (byName) normalizedTeamId = byName.id;
+    }
     const sameNamePlayer = (tournament.players || []).find((p) => p && String(p.name || '').trim().toLowerCase() === user.name.toLowerCase());
     const linkedPlayer = (tournament.players || []).find((p) => p && p.userId === user.id);
 
@@ -185,6 +194,14 @@ app.get('/api/auth/me', authRequired, async (req, res) => {
 app.get('/api/users', adminRequired, async (_req, res) => {
   const result = await pool.query('SELECT id, name, email, created_at FROM users ORDER BY name ASC');
   res.json({ users: result.rows.map(publicUser) });
+});
+
+app.get('/api/public/teams', async (_req, res) => {
+  const tournament = await readTournamentState();
+  const teams = (tournament.teams || [])
+    .map((t) => ({ id: t.id, name: t.name, color: t.color || '#0f766e' }))
+    .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR'));
+  res.json({ teams });
 });
 
 app.get('/api/state', adminRequired, async (_req, res) => {
