@@ -201,6 +201,7 @@ app.get('/api/users', adminRequired, async (_req, res) => {
 });
 
 app.get('/api/public/teams', async (_req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   const tournament = await readTournamentState();
   const teams = (tournament.teams || [])
     .map((t) => ({ id: t.id, name: t.name, color: t.color || '#0f766e' }))
@@ -209,6 +210,7 @@ app.get('/api/public/teams', async (_req, res) => {
 });
 
 app.get('/api/public/roster', async (_req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   const tournament = await readTournamentState();
   const teams = (tournament.teams || []).map((t) => ({ id: t.id, name: t.name, color: t.color || '#0f766e' }));
   const players = (tournament.players || []).map((p) => ({

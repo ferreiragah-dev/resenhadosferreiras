@@ -131,12 +131,12 @@ async function populateRegisterTeams() {
 
 async function loadPublicTeams() {
   try {
-    const data = await api('/api/public/teams?ts=' + Date.now());
+    const data = await api('/api/public/teams');
     const teams = data && Array.isArray(data.teams) ? data.teams : [];
     cachePublicTeams(teams);
     return teams;
   } catch (_err) {
-    const roster = await api('/api/public/roster?ts=' + Date.now());
+    const roster = await api('/api/public/roster');
     const rosterTeams = roster && Array.isArray(roster.teams) ? roster.teams : [];
     cachePublicTeams(rosterTeams);
     return rosterTeams;
@@ -168,7 +168,7 @@ async function api(url, options) {
   const headers = Object.assign({}, opts.headers || {});
   const method = String(opts.method || 'GET').toUpperCase();
   if (method !== 'GET' && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
-  const res = await fetch(url, Object.assign({}, opts, { headers: headers }));
+  const res = await fetch(url, Object.assign({ cache: 'no-store', credentials: 'same-origin' }, opts, { headers: headers }));
   const data = await res.json().catch(function () { return {}; });
   if (!res.ok) throw new Error(data.error || 'Erro na requisicao');
   return data;
