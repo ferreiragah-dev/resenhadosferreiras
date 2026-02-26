@@ -32,7 +32,7 @@ app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 function defaultTournament() {
-  return { teams: [], players: [], matches: [], bracket: [], liveGame: null, recentGames: [], settings: { eventStartAt: '' } };
+  return { teams: [], players: [], matches: [], gameSchedule: [], bracket: [], liveGame: null, recentGames: [], settings: { eventStartAt: '' } };
 }
 
 function normalizeTournament(input) {
@@ -42,6 +42,7 @@ function normalizeTournament(input) {
     teams: Array.isArray(t.teams) ? t.teams : base.teams,
     players: Array.isArray(t.players) ? t.players.map((p) => ({ ...p, userId: p?.userId || '' })) : base.players,
     matches: Array.isArray(t.matches) ? t.matches : base.matches,
+    gameSchedule: Array.isArray(t.gameSchedule) ? t.gameSchedule : base.gameSchedule,
     bracket: Array.isArray(t.bracket) ? t.bracket : base.bracket,
     liveGame: t.liveGame && typeof t.liveGame === 'object' ? t.liveGame : null,
     recentGames: Array.isArray(t.recentGames) ? t.recentGames : [],

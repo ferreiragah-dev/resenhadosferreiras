@@ -41,6 +41,14 @@ const els = {
   eventStartAt: document.getElementById('eventStartAt'),
   eventSettingsMessage: document.getElementById('eventSettingsMessage'),
   matchesList: document.getElementById('matchesList'),
+  scheduleForm: document.getElementById('scheduleForm'),
+  schedulePhase: document.getElementById('schedulePhase'),
+  scheduleTime: document.getElementById('scheduleTime'),
+  scheduleTeamALabel: document.getElementById('scheduleTeamALabel'),
+  scheduleTeamBLabel: document.getElementById('scheduleTeamBLabel'),
+  scheduleGroupLabel: document.getElementById('scheduleGroupLabel'),
+  scheduleList: document.getElementById('scheduleList'),
+  sortScheduleBtn: document.getElementById('sortScheduleBtn'),
   goalPlayerSelect: document.getElementById('goalPlayerSelect'),
   addGoalBtn: document.getElementById('addGoalBtn'),
   goalEvents: document.getElementById('goalEvents'),
@@ -62,7 +70,7 @@ bootstrapAdminGate();
 startRemotePolling();
 
 function defaultState() {
-  return { teams: [], players: [], matches: [], bracket: [], settings: { eventStartAt: '' } };
+  return { teams: [], players: [], matches: [], gameSchedule: [], bracket: [], settings: { eventStartAt: '' } };
 }
 
 function loadState() {
@@ -74,6 +82,7 @@ function loadState() {
       teams: Array.isArray(parsed.teams) ? parsed.teams : [],
       players: Array.isArray(parsed.players) ? parsed.players : [],
       matches: Array.isArray(parsed.matches) ? parsed.matches : [],
+      gameSchedule: Array.isArray(parsed.gameSchedule) ? parsed.gameSchedule : [],
       bracket: Array.isArray(parsed.bracket) ? parsed.bracket : [],
       settings: { eventStartAt: String(parsed?.settings?.eventStartAt || '') }
     };
@@ -199,6 +208,36 @@ function bindEvents() {
     persistAndRender();
   });
 
+  els.scheduleForm?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const phase = String(els.schedulePhase?.value || '').trim();
+    const time = String(els.scheduleTime?.value || '').trim();
+    const teamALabel = String(els.scheduleTeamALabel?.value || '').trim();
+    const teamBLabel = String(els.scheduleTeamBLabel?.value || '').trim();
+    const groupLabel = String(els.scheduleGroupLabel?.value || '').trim();
+    if (!phase || !time || !teamALabel || !teamBLabel) return;
+    state.gameSchedule.push({
+      id: uid(),
+      phase,
+      time,
+      teamALabel,
+      teamBLabel,
+      groupLabel,
+      createdAt: Date.now()
+    });
+    els.scheduleForm.reset();
+    persistAndRender();
+  });
+
+  els.sortScheduleBtn?.addEventListener('click', () => {
+    state.gameSchedule = [...(state.gameSchedule || [])].sort((a, b) => {
+      const phaseCmp = String(a.phase || '').localeCompare(String(b.phase || ''), 'pt-BR');
+      if (phaseCmp) return phaseCmp;
+      return String(a.time || '').localeCompare(String(b.time || ''));
+    });
+    persistAndRender();
+  });
+
   els.generateBracketBtn.addEventListener('click', generateBracketFromTeams);
 
   els.penaltyDialog.addEventListener('close', () => {
@@ -216,7 +255,7 @@ function bindEvents() {
     if (!confirm('Apagar todos os dados do campeonato?')) return;
     localStorage.removeItem(STORAGE_KEY);
     const fresh = defaultState();
-    state.teams = fresh.teams; state.players = fresh.players; state.matches = fresh.matches; state.bracket = fresh.bracket; state.settings = fresh.settings;
+    state.teams = fresh.teams; state.players = fresh.players; state.matches = fresh.matches; state.gameSchedule = fresh.gameSchedule; state.bracket = fresh.bracket; state.settings = fresh.settings;
     pendingGoalEvents = [];
     renderGoalEvents();
     persistAndRender();
@@ -263,6 +302,7 @@ function renderAll() {
   renderTeams();
   renderPlayers();
   renderMatches();
+  renderSchedule();
   renderBracket();
   renderRankings();
 }
@@ -513,6 +553,70 @@ function renderMatches() {
   els.matchesList.querySelectorAll('[data-match-delete]').forEach((btn) => btn.addEventListener('click', () => deleteMatch(btn.dataset.matchDelete)));
 }
 
+function renderSchedule() {
+  if (!els.scheduleList) return;
+  const rows = Array.isArray(state.gameSchedule) ? [...state.gameSchedule] : [];
+  if (!rows.length) {
+    els.scheduleList.innerHTML = '<p class="muted">Nenhum item na agenda. Cadastre a fase, horário e confronto.</p>';
+    return;
+  }
+
+  rows.sort((a, b) => {
+    const phaseCmp = String(a.phase || '').localeCompare(String(b.phase || ''), 'pt-BR');
+    if (phaseCmp) return phaseCmp;
+    return String(a.time || '').localeCompare(String(b.time || ''));
+  });
+
+  let lastPhase = '';
+  els.scheduleList.innerHTML = rows.map((row) => {
+    const showPhase = String(row.phase || '') !== lastPhase;
+    lastPhase = String(row.phase || '');
+    return `
+      ${showPhase ? `<div class="schedule-phase">${esc(row.phase || 'Fase')}</div>` : ''}
+      <article class="schedule-card">
+        <div class="schedule-grid">
+          <label>Horário<input type="time" value="${esc(row.time || '')}" data-schedule-input="${esc(row.id)}|time"></label>
+          <label>Grupo/Chave<input type="text" value="${esc(row.groupLabel || '')}" placeholder="Grupo A" data-schedule-input="${esc(row.id)}|groupLabel"></label>
+          <label>Confronto A<input type="text" value="${esc(row.teamALabel || '')}" data-schedule-input="${esc(row.id)}|teamALabel"></label>
+          <label>Confronto B<input type="text" value="${esc(row.teamBLabel || '')}" data-schedule-input="${esc(row.id)}|teamBLabel"></label>
+          <label class="full">Fase<input type="text" value="${esc(row.phase || '')}" data-schedule-input="${esc(row.id)}|phase"></label>
+        </div>
+        <div class="mini-actions">
+          <button class="ghost" type="button" data-schedule-save="${esc(row.id)}">Salvar</button>
+          <button class="danger" type="button" data-schedule-delete="${esc(row.id)}">Excluir</button>
+        </div>
+      </article>`;
+  }).join('');
+
+  els.scheduleList.querySelectorAll('[data-schedule-save]').forEach((btn) => btn.addEventListener('click', () => saveScheduleRow(btn.dataset.scheduleSave)));
+  els.scheduleList.querySelectorAll('[data-schedule-delete]').forEach((btn) => btn.addEventListener('click', () => deleteScheduleRow(btn.dataset.scheduleDelete)));
+}
+
+function saveScheduleRow(id) {
+  const row = (state.gameSchedule || []).find((x) => x.id === id);
+  if (!row) return;
+  document.querySelectorAll(`[data-schedule-input^="${cssEscape(id)}|"]`).forEach((input) => {
+    const parts = String(input.dataset.scheduleInput || '').split('|');
+    if (parts.length !== 2) return;
+    const field = parts[1];
+    if (!['phase', 'time', 'teamALabel', 'teamBLabel', 'groupLabel'].includes(field)) return;
+    row[field] = String(input.value || '').trim();
+  });
+  if (!row.phase || !row.time || !row.teamALabel || !row.teamBLabel) {
+    alert('Fase, horário e confrontos são obrigatórios.');
+    return;
+  }
+  persistAndRender();
+}
+
+function deleteScheduleRow(id) {
+  const row = (state.gameSchedule || []).find((x) => x.id === id);
+  if (!row) return;
+  if (!confirm(`Excluir agenda ${row.time} - ${row.teamALabel} x ${row.teamBLabel}?`)) return;
+  state.gameSchedule = (state.gameSchedule || []).filter((x) => x.id !== id);
+  persistAndRender();
+}
+
 function renderBracket() {
   const fromMatches = buildBracketFromMatches();
   const bracket = fromMatches.length ? fromMatches : state.bracket;
@@ -742,6 +846,7 @@ async function hydrateStateFromServer() {
     state.teams = Array.isArray(t.teams) ? t.teams : [];
     state.players = Array.isArray(t.players) ? t.players : [];
     state.matches = Array.isArray(t.matches) ? t.matches : [];
+    state.gameSchedule = Array.isArray(t.gameSchedule) ? t.gameSchedule : [];
     state.bracket = Array.isArray(t.bracket) ? t.bracket : [];
     state.settings = { eventStartAt: String(t?.settings?.eventStartAt || '') };
     saveState();

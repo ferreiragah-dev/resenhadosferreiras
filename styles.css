@@ -106,8 +106,37 @@ button { border: none; border-radius: 10px; padding: 10px 12px; cursor: pointer;
 }
 .mini-actions { display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
 .mini-actions button { flex: 1 1 calc(50% - 3px); padding: 8px; font-size: .85rem; }
-.teams-list, .matches-list, .goal-events { display: grid; gap: 8px; }
+.teams-list, .matches-list, .goal-events, .schedule-list { display: grid; gap: 8px; }
 .team-card, .match-card { border: 1px solid var(--line); border-radius: 12px; padding: 10px; background: #fff; }
+.schedule-card { border: 1px solid var(--line); border-radius: 12px; padding: 10px; background: #fff; }
+.schedule-phase {
+  margin-top: 2px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #f3f5ef;
+  border: 1px solid #e3e7d9;
+  color: #20422d;
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: .82rem;
+  letter-spacing: .03em;
+}
+.schedule-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 8px;
+}
+.schedule-grid label {
+  display: grid;
+  gap: 4px;
+  font-size: .82rem;
+  color: var(--muted);
+  font-weight: 700;
+}
+.schedule-grid input {
+  padding: 8px 9px;
+  font-size: .88rem;
+}
 .team-card-top, .match-row { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
 .team-pill { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; }
 .team-dot { width: 12px; height: 12px; border-radius: 999px; border: 1px solid rgba(0,0,0,.2); }
@@ -154,5 +183,6 @@ menu { margin: 14px 0 0; padding: 0; display: flex; justify-content: flex-end; g
   .tabs { grid-template-columns: repeat(2, minmax(0,1fr)); }
   .form-grid { grid-template-columns: 1fr; }
   .goal-inputs { grid-template-columns: 1fr; }
+  .schedule-grid { grid-template-columns: 1fr; }
   .card-header { flex-direction: column; align-items: stretch; }
 }

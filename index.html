@@ -110,6 +110,37 @@
         </section>
       </div>
 
+      <div class="panel-grid" style="margin-bottom:12px;">
+        <section class="card">
+          <h2>Grade de jogos (agenda)</h2>
+          <form id="scheduleForm" class="form-grid">
+            <label>Fase
+              <input id="schedulePhase" type="text" placeholder="Ex: Fase de Grupo (2x7 minutos)" required>
+            </label>
+            <label>Horário
+              <input id="scheduleTime" type="time" required>
+            </label>
+            <label>Confronto A
+              <input id="scheduleTeamALabel" type="text" placeholder="Ex: Time A / 1º Grupo A" required>
+            </label>
+            <label>Confronto B
+              <input id="scheduleTeamBLabel" type="text" placeholder="Ex: Time B / 2º Grupo B" required>
+            </label>
+            <label class="full">Grupo / chave (opcional)
+              <input id="scheduleGroupLabel" type="text" placeholder="Ex: Grupo A / Semifinal / Final">
+            </label>
+            <button class="primary full" type="submit">Adicionar à grade</button>
+          </form>
+        </section>
+        <section class="card">
+          <div class="card-header">
+            <h2>Agenda cadastrada</h2>
+            <button id="sortScheduleBtn" class="ghost" type="button">Ordenar horários</button>
+          </div>
+          <div id="scheduleList" class="schedule-list"></div>
+        </section>
+      </div>
+
       <div class="panel-grid">
         <section class="card">
           <h2>Cadastrar jogo / placar</h2>
