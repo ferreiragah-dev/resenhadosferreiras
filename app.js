@@ -9,6 +9,8 @@ let pendingGoalEvents = [];
 let registeredUsers = [];
 let syncTimer = null;
 let remotePollTimer = null;
+let lastLocalChangeAt = 0;
+let lastSyncOkAt = 0;
 
 const els = {
   tabs: [...document.querySelectorAll('.tab')],
@@ -106,6 +108,7 @@ function saveState() {
 }
 
 function persistAndRender() {
+  lastLocalChangeAt = Date.now();
   saveState();
   renderAll();
   queueServerSync();
@@ -631,6 +634,11 @@ async function saveTeamBasicFromCard(teamId) {
   team.color = patch.color;
   team.logoDataUrl = patch.logoDataUrl;
   persistAndRender();
+  try {
+    await syncStateToServer();
+  } catch {
+    // Mantem estado local e evita rollback visual.
+  }
 }
 
 function removeTeamLogo(teamId) {
@@ -1179,7 +1187,12 @@ function fileToDataURL(file) {
 }
 
 async function bootstrapRemote() {
-  await Promise.allSettled([fetchUsersForLinking(), hydrateStateFromServer()]);
+  const shouldHydrate = isStateEmpty(state);
+  if (shouldHydrate) {
+    await Promise.allSettled([fetchUsersForLinking(), hydrateStateFromServer()]);
+  } else {
+    await Promise.allSettled([fetchUsersForLinking()]);
+  }
 }
 
 function startRemotePolling() {
@@ -1189,7 +1202,10 @@ function startRemotePolling() {
     const activeTag = document.activeElement && document.activeElement.tagName ? document.activeElement.tagName : '';
     if (activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT') return;
     fetchUsersForLinking().catch(() => {});
-    hydrateStateFromServer().catch(() => {});
+    // Só hidrata remoto quando não há mudanças locais pendentes de sync.
+    if (lastSyncOkAt >= lastLocalChangeAt) {
+      hydrateStateFromServer().catch(() => {});
+    }
   }, 10000);
 }
 
@@ -1234,7 +1250,21 @@ async function syncStateToServer() {
     method: 'PUT',
     body: JSON.stringify({ tournament: state })
   });
+  lastSyncOkAt = Date.now();
   await fetchUsersForLinking();
+}
+
+function isStateEmpty(tournament) {
+  const t = tournament || {};
+  const teams = Array.isArray(t.teams) ? t.teams.length : 0;
+  const players = Array.isArray(t.players) ? t.players.length : 0;
+  const matches = Array.isArray(t.matches) ? t.matches.length : 0;
+  const schedule = Array.isArray(t.gameSchedule) ? t.gameSchedule.length : 0;
+  const bracket = Array.isArray(t.bracket) ? t.bracket.length : 0;
+  const recent = Array.isArray(t.recentGames) ? t.recentGames.length : 0;
+  const hasLive = !!(t.liveGame && typeof t.liveGame === 'object');
+  const hasSettings = !!String(t?.settings?.eventStartAt || '').trim();
+  return teams === 0 && players === 0 && matches === 0 && schedule === 0 && bracket === 0 && recent === 0 && !hasLive && !hasSettings;
 }
 
 async function apiJson(url, options = {}) {
