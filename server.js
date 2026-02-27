@@ -20,6 +20,7 @@ const VAPID_PRIVATE_KEY = sanitizeEnvValue(process.env.VAPID_PRIVATE_KEY);
 const VAPID_SUBJECT = sanitizeEnvValue(process.env.VAPID_SUBJECT || 'mailto:admin@resenhadosferreiras.com');
 const dataDir = path.join(__dirname, 'data');
 const legacyStorePath = path.join(dataDir, 'store.json');
+const livePushDedup = new Map();
 
 if (!DATABASE_URL) {
   console.error('DATABASE_URL nao configurada. Defina a conexao Postgres no EasyPanel.');
@@ -1074,14 +1075,21 @@ async function notifyLiveGameRealtime({ previous, current }) {
     : { lastScoreA: prevScoreA, lastScoreB: prevScoreB, notifiedEventIds: [] };
   const notified = new Set(Array.isArray(state.notifiedEventIds) ? state.notifiedEventIds.map((id) => String(id || '')) : []);
 
-  if (nextScoreA > prevScoreA || nextScoreB > prevScoreB) {
-    await sendPushNotification({
-      title: 'Gol na partida',
-      body: `${teamA} ${nextScoreA} x ${nextScoreB} ${teamB}`,
-      url: '/player/home'
-    }).catch(() => {});
-    state.lastScoreA = nextScoreA;
-    state.lastScoreB = nextScoreB;
+  const lastNotifiedScoreA = Number(state.lastScoreA || 0);
+  const lastNotifiedScoreB = Number(state.lastScoreB || 0);
+  const scoreChanged = nextScoreA > lastNotifiedScoreA || nextScoreB > lastNotifiedScoreB;
+  if (scoreChanged) {
+    const scoreKey = `score:${String(current.id || '')}:${nextScoreA}x${nextScoreB}`;
+    if (!isRecentlyNotified(scoreKey, 25000)) {
+      await sendPushNotification({
+        title: 'Gol na partida',
+        body: `${teamA} ${nextScoreA} x ${nextScoreB} ${teamB}`,
+        url: '/player/home'
+      }).catch(() => {});
+      markNotified(scoreKey);
+    }
+    state.lastScoreA = Math.max(lastNotifiedScoreA, nextScoreA);
+    state.lastScoreB = Math.max(lastNotifiedScoreB, nextScoreB);
   }
 
   const events = Array.isArray(current.events) ? current.events : [];
@@ -1101,16 +1109,45 @@ async function notifyLiveGameRealtime({ previous, current }) {
     const isYellow = type === 'CA';
     const title = isYellow ? 'Cartao amarelo' : 'Cartao vermelho';
     const body = `${title} ${team}: ${playerName}`;
-    await sendPushNotification({
-      title,
-      body,
-      url: '/player/home'
-    }).catch(() => {});
+    const eventKey = `evt:${String(current.id || '')}:${String(evt.id || '')}`;
+    if (!isRecentlyNotified(eventKey, 60000)) {
+      await sendPushNotification({
+        title,
+        body,
+        url: '/player/home'
+      }).catch(() => {});
+      markNotified(eventKey);
+    }
     notified.add(String(evt.id || ''));
   }
 
   state.notifiedEventIds = Array.from(notified).slice(-300);
   current.notificationState = state;
+}
+
+function isRecentlyNotified(key, ttlMs) {
+  cleanupLivePushDedup();
+  const ts = Number(livePushDedup.get(String(key)) || 0);
+  if (!ts) return false;
+  return (Date.now() - ts) < Number(ttlMs || 0);
+}
+
+function markNotified(key) {
+  livePushDedup.set(String(key), Date.now());
+  cleanupLivePushDedup();
+}
+
+function cleanupLivePushDedup() {
+  const now = Date.now();
+  if (livePushDedup.size > 2500) {
+    for (const [k, ts] of livePushDedup.entries()) {
+      if (now - Number(ts || 0) > 5 * 60 * 1000) livePushDedup.delete(k);
+    }
+    return;
+  }
+  for (const [k, ts] of livePushDedup.entries()) {
+    if (now - Number(ts || 0) > 2 * 60 * 1000) livePushDedup.delete(k);
+  }
 }
 
 function uid() {
