@@ -430,7 +430,12 @@ app.post('/api/public/live-game/start', async (req, res) => {
       remaining: Number(body.remaining || 600),
       running: true,
       startedAt: Number(body.startedAt || Date.now()),
-      updatedAt: Date.now()
+      updatedAt: Date.now(),
+      notificationState: {
+        lastScoreA: Number(body.scoreA || 0),
+        lastScoreB: Number(body.scoreB || 0),
+        notifiedEventIds: []
+      }
     };
     tournament.liveGame = liveGame;
     await writeTournamentState(tournament);
@@ -451,6 +456,10 @@ app.post('/api/public/live-game/update', async (req, res) => {
       return res.status(409).json({ error: 'Jogo ao vivo diferente do atual' });
     }
 
+    const prevScoreA = Number(current.scoreA ?? 0);
+    const prevScoreB = Number(current.scoreB ?? 0);
+    const prevEvents = Array.isArray(current.events) ? current.events : [];
+
     current.scoreA = Number(body.scoreA ?? current.scoreA ?? 0);
     current.scoreB = Number(body.scoreB ?? current.scoreB ?? 0);
     if (typeof body.teamALogoDataUrl !== 'undefined') current.teamALogoDataUrl = String(body.teamALogoDataUrl || '');
@@ -460,6 +469,15 @@ app.post('/api/public/live-game/update', async (req, res) => {
     current.duration = Number(body.duration ?? current.duration ?? 600);
     if (typeof body.running !== 'undefined') current.running = Boolean(body.running);
     current.updatedAt = Date.now();
+
+    await notifyLiveGameRealtime({
+      previous: {
+        scoreA: prevScoreA,
+        scoreB: prevScoreB,
+        events: prevEvents
+      },
+      current: current
+    });
 
     tournament.liveGame = current;
     await writeTournamentState(tournament);
@@ -1038,6 +1056,61 @@ async function sendPushWithTimeout(subscription, payload, timeoutMs) {
       setTimeout(() => reject(new Error(`Push timeout após ${timeout}ms`)), timeout);
     })
   ]);
+}
+
+async function notifyLiveGameRealtime({ previous, current }) {
+  if (!isPushConfigured()) return;
+  if (!current || typeof current !== 'object') return;
+  const prev = previous && typeof previous === 'object' ? previous : {};
+  const prevScoreA = Number(prev.scoreA || 0);
+  const prevScoreB = Number(prev.scoreB || 0);
+  const nextScoreA = Number(current.scoreA || 0);
+  const nextScoreB = Number(current.scoreB || 0);
+  const teamA = String(current.teamAName || 'Time A');
+  const teamB = String(current.teamBName || 'Time B');
+
+  const state = current.notificationState && typeof current.notificationState === 'object'
+    ? current.notificationState
+    : { lastScoreA: prevScoreA, lastScoreB: prevScoreB, notifiedEventIds: [] };
+  const notified = new Set(Array.isArray(state.notifiedEventIds) ? state.notifiedEventIds.map((id) => String(id || '')) : []);
+
+  if (nextScoreA > prevScoreA || nextScoreB > prevScoreB) {
+    await sendPushNotification({
+      title: 'Gol na partida',
+      body: `${teamA} ${nextScoreA} x ${nextScoreB} ${teamB}`,
+      url: '/player/home'
+    }).catch(() => {});
+    state.lastScoreA = nextScoreA;
+    state.lastScoreB = nextScoreB;
+  }
+
+  const events = Array.isArray(current.events) ? current.events : [];
+  const freshCardEvents = events.filter((evt) => {
+    const id = String(evt?.id || '');
+    const type = String(evt?.type || '').toUpperCase();
+    if (!id || (type !== 'CA' && type !== 'CV')) return false;
+    if (notified.has(id)) return false;
+    return true;
+  }).slice(0, 10);
+
+  for (const evt of freshCardEvents) {
+    const type = String(evt?.type || '').toUpperCase();
+    const side = String(evt?.side || '').toUpperCase();
+    const team = side === 'B' ? teamB : teamA;
+    const playerName = String(evt?.playerName || 'Jogador');
+    const isYellow = type === 'CA';
+    const title = isYellow ? 'Cartao amarelo' : 'Cartao vermelho';
+    const body = `${title} ${team}: ${playerName}`;
+    await sendPushNotification({
+      title,
+      body,
+      url: '/player/home'
+    }).catch(() => {});
+    notified.add(String(evt.id || ''));
+  }
+
+  state.notifiedEventIds = Array.from(notified).slice(-300);
+  current.notificationState = state;
 }
 
 function uid() {
