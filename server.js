@@ -1000,7 +1000,7 @@ async function sendPushNotification(payload, userId = null) {
       const subscription = row.subscription && typeof row.subscription === 'object'
         ? row.subscription
         : JSON.parse(String(row.subscription || '{}'));
-      await webpush.sendNotification(subscription, JSON.stringify(payload));
+      await sendPushWithTimeout(subscription, JSON.stringify(payload), 8000);
       sent += 1;
     } catch (err) {
       const status = Number(err?.statusCode || 0);
@@ -1018,6 +1018,16 @@ async function sendPushNotification(payload, userId = null) {
   }
 
   return { total, sent, removed, failed, failures: failures.slice(0, 10) };
+}
+
+async function sendPushWithTimeout(subscription, payload, timeoutMs) {
+  const timeout = Number(timeoutMs || 8000);
+  return Promise.race([
+    webpush.sendNotification(subscription, payload),
+    new Promise((_, reject) => {
+      setTimeout(() => reject(new Error(`Push timeout após ${timeout}ms`)), timeout);
+    })
+  ]);
 }
 
 function uid() {

@@ -197,7 +197,8 @@ function bindEvents() {
     try {
       const data = await apiJson('/api/push/test', {
         method: 'POST',
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
+        timeoutMs: 15000
       });
       if (els.pushTestMessage) {
         const total = Number(data?.total || 0);
@@ -1369,13 +1370,24 @@ async function syncStateToServer() {
 
 
 async function apiJson(url, options = {}) {
-  const response = await fetch(url, {
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
-    ...options
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error || `Erro ${response.status}`);
-  return data;
+  const timeoutMs = Number(options.timeoutMs || 0);
+  const controller = timeoutMs > 0 && typeof AbortController !== 'undefined' ? new AbortController() : null;
+  let timeoutId = null;
+  if (controller) {
+    timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  }
+  try {
+    const response = await fetch(url, {
+      headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+      signal: controller ? controller.signal : options.signal,
+      ...options
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || `Erro ${response.status}`);
+    return data;
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
 }
 
 function registerServiceWorker() {
