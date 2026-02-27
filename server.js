@@ -40,6 +40,8 @@ if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
   } catch (err) {
     console.warn('Falha ao configurar VAPID:', err.message);
   }
+} else {
+  console.warn('Push desativado: configure VAPID_PUBLIC_KEY e VAPID_PRIVATE_KEY no ambiente.');
 }
 
 app.use(express.json({ limit: '20mb' }));
@@ -219,13 +221,19 @@ app.get('/api/auth/me', authRequired, async (req, res) => {
 });
 
 app.get('/api/push/public-key', authRequired, async (_req, res) => {
-  if (!isPushConfigured()) return res.json({ enabled: false });
+  if (!isPushConfigured()) {
+    return res.json({
+      enabled: false,
+      error: pushConfigErrorMessage(),
+      missing: getMissingPushConfig()
+    });
+  }
   res.json({ enabled: true, publicKey: VAPID_PUBLIC_KEY });
 });
 
 app.post('/api/push/subscribe', authRequired, async (req, res) => {
   try {
-    if (!isPushConfigured()) return res.status(400).json({ error: 'Push nao configurado no servidor' });
+    if (!isPushConfigured()) return res.status(400).json({ error: pushConfigErrorMessage(), missing: getMissingPushConfig() });
     const sub = req.body?.subscription && typeof req.body.subscription === 'object' ? req.body.subscription : null;
     const endpoint = String(sub?.endpoint || '').trim();
     if (!sub || !endpoint) return res.status(400).json({ error: 'Subscription invalida' });
@@ -255,15 +263,40 @@ app.post('/api/push/unsubscribe', authRequired, async (req, res) => {
 
 app.post('/api/push/test', adminRequired, async (req, res) => {
   try {
-    if (!isPushConfigured()) return res.status(400).json({ error: 'Push nao configurado no servidor' });
+    if (!isPushConfigured()) return res.status(400).json({ error: pushConfigErrorMessage(), missing: getMissingPushConfig() });
     const title = String(req.body?.title || 'Resenha dos Ferreira');
     const body = String(req.body?.body || 'Teste de notificacao enviado pelo admin.');
     const url = String(req.body?.url || '/player/home');
     const userId = String(req.body?.userId || '').trim();
     const result = await sendPushNotification({ title, body, url }, userId || null);
-    res.json({ ok: true, sent: result.sent, removed: result.removed });
+    res.json({ ok: true, sent: result.sent, removed: result.removed, total: result.total, failed: result.failed, failures: result.failures });
   } catch {
     res.status(500).json({ error: 'Falha ao disparar notificacao push' });
+  }
+});
+
+app.get('/api/push/stats', adminRequired, async (_req, res) => {
+  try {
+    const totalRes = await pool.query('SELECT COUNT(*)::int AS c FROM push_subscriptions');
+    const byUserRes = await pool.query(`
+      SELECT u.id, u.name, u.email, COUNT(ps.endpoint)::int AS subscriptions
+      FROM users u
+      LEFT JOIN push_subscriptions ps ON ps.user_id = u.id
+      GROUP BY u.id, u.name, u.email
+      ORDER BY subscriptions DESC, u.name ASC
+    `);
+    res.json({
+      ok: true,
+      total: Number(totalRes.rows?.[0]?.c || 0),
+      users: Array.isArray(byUserRes.rows) ? byUserRes.rows.map((r) => ({
+        id: String(r.id || ''),
+        name: String(r.name || ''),
+        email: String(r.email || ''),
+        subscriptions: Number(r.subscriptions || 0)
+      })) : []
+    });
+  } catch {
+    res.status(500).json({ error: 'Falha ao carregar estatisticas de push' });
   }
 });
 
@@ -933,6 +966,20 @@ function isPushConfigured() {
   return Boolean(VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY);
 }
 
+function getMissingPushConfig() {
+  const missing = [];
+  if (!VAPID_PUBLIC_KEY) missing.push('VAPID_PUBLIC_KEY');
+  if (!VAPID_PRIVATE_KEY) missing.push('VAPID_PRIVATE_KEY');
+  return missing;
+}
+
+function pushConfigErrorMessage() {
+  const missing = getMissingPushConfig();
+  return missing.length
+    ? `Push nao configurado no servidor. Faltando: ${missing.join(', ')}`
+    : 'Push nao configurado no servidor';
+}
+
 async function sendPushNotification(payload, userId = null) {
   const values = [];
   let sql = 'SELECT endpoint, user_id, subscription FROM push_subscriptions';
@@ -942,8 +989,11 @@ async function sendPushNotification(payload, userId = null) {
   }
   const result = await pool.query(sql, values);
   const rows = Array.isArray(result.rows) ? result.rows : [];
+  const total = rows.length;
   let sent = 0;
   let removed = 0;
+  let failed = 0;
+  const failures = [];
 
   for (const row of rows) {
     try {
@@ -954,6 +1004,12 @@ async function sendPushNotification(payload, userId = null) {
       sent += 1;
     } catch (err) {
       const status = Number(err?.statusCode || 0);
+      failed += 1;
+      failures.push({
+        endpoint: String(row.endpoint || ''),
+        status: status || 0,
+        message: String(err?.message || 'erro no envio')
+      });
       if (status === 404 || status === 410) {
         await pool.query('DELETE FROM push_subscriptions WHERE endpoint = $1', [String(row.endpoint || '')]);
         removed += 1;
@@ -961,7 +1017,7 @@ async function sendPushNotification(payload, userId = null) {
     }
   }
 
-  return { sent, removed };
+  return { total, sent, removed, failed, failures: failures.slice(0, 10) };
 }
 
 function uid() {

@@ -821,6 +821,10 @@ async function setupPushForCurrentUser(interactive) {
 
   const registration = await navigator.serviceWorker.ready;
   let subscription = await registration.pushManager.getSubscription();
+  if (interactive && subscription) {
+    try { await subscription.unsubscribe(); } catch (_err) {}
+    subscription = null;
+  }
   if (!subscription) {
     subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,

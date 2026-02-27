@@ -200,9 +200,11 @@ function bindEvents() {
         body: JSON.stringify(payload)
       });
       if (els.pushTestMessage) {
+        const total = Number(data?.total || 0);
         const sent = Number(data?.sent || 0);
         const removed = Number(data?.removed || 0);
-        els.pushTestMessage.textContent = `Notificação enviada. Entregues: ${sent}. Inscrições removidas: ${removed}.`;
+        const failed = Number(data?.failed || 0);
+        els.pushTestMessage.textContent = `Notificação enviada. Inscrições: ${total}. Entregues: ${sent}. Falhas: ${failed}. Removidas: ${removed}.`;
         els.pushTestMessage.style.color = '#147a48';
       }
     } catch (err) {
