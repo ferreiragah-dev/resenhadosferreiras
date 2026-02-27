@@ -213,7 +213,7 @@ async function prefetchHomeCache(token) {
       headers: { Authorization: 'Bearer ' + token },
       signal: controller ? controller.signal : undefined
     });
-    if (data && typeof data === 'object') {
+    if (data && typeof data === 'object' && data.linked) {
       localStorage.setItem(HOME_CACHE_KEY, JSON.stringify(data));
     }
   } catch (_err) {

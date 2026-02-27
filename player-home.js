@@ -158,9 +158,17 @@ function setActiveTab(tab) {
 async function loadHome() {
   const token = localStorage.getItem(TOKEN_KEY);
   const data = await api('/api/player/home', { headers: { Authorization: 'Bearer ' + token } });
-  latestHomeData = data || null;
-  writeHomeCache(data);
-  hydrateHomeFromData(data);
+  var next = data && typeof data === 'object' ? data : null;
+  if (!next) return;
+
+  // Evita "flash" de estado pendente quando ja existe estado vinculado valido.
+  if (!next.linked && latestHomeData && latestHomeData.linked) {
+    return;
+  }
+
+  latestHomeData = next;
+  writeHomeCache(next);
+  hydrateHomeFromData(next);
 }
 
 function isAuthError(err) {
@@ -220,6 +228,7 @@ function hydrateHomeFromData(data) {
 function writeHomeCache(data) {
   try {
     if (!data || typeof data !== 'object') return;
+    if (!data.linked) return;
     localStorage.setItem(HOME_CACHE_KEY, JSON.stringify(data));
   } catch (_err) {}
 }
@@ -229,7 +238,9 @@ function readHomeCache() {
     var raw = localStorage.getItem(HOME_CACHE_KEY);
     if (!raw) return null;
     var parsed = JSON.parse(raw);
-    return parsed && typeof parsed === 'object' ? parsed : null;
+    if (!parsed || typeof parsed !== 'object') return null;
+    if (!parsed.linked) return null;
+    return parsed;
   } catch (_err) {
     return null;
   }
