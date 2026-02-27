@@ -198,7 +198,7 @@ function bindEvents() {
       const data = await apiJson('/api/push/test', {
         method: 'POST',
         body: JSON.stringify(payload),
-        timeoutMs: 15000
+        timeoutMs: 45000
       });
       if (els.pushTestMessage) {
         const total = Number(data?.total || 0);
@@ -1385,7 +1385,7 @@ async function apiJson(url, options = {}) {
   const controller = timeoutMs > 0 && typeof AbortController !== 'undefined' ? new AbortController() : null;
   let timeoutId = null;
   if (controller) {
-    timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    timeoutId = setTimeout(() => controller.abort('timeout'), timeoutMs);
   }
   try {
     const response = await fetch(url, {
@@ -1396,6 +1396,11 @@ async function apiJson(url, options = {}) {
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || `Erro ${response.status}`);
     return data;
+  } catch (err) {
+    if (err && (err.name === 'AbortError' || String(err.message || '').toLowerCase().includes('signal is aborted'))) {
+      throw new Error(`Tempo limite excedido (${timeoutMs}ms).`);
+    }
+    throw err;
   } finally {
     if (timeoutId) clearTimeout(timeoutId);
   }

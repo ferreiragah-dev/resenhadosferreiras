@@ -1003,7 +1003,7 @@ async function sendPushNotification(payload, userId = null) {
   let failed = 0;
   const failures = [];
 
-  for (const row of rows) {
+  await Promise.all(rows.map(async (row) => {
     try {
       const subscription = row.subscription && typeof row.subscription === 'object'
         ? row.subscription
@@ -1025,7 +1025,7 @@ async function sendPushNotification(payload, userId = null) {
         removed += 1;
       }
     }
-  }
+  }));
 
   return { total, sent, removed, failed, failures: failures.slice(0, 10) };
 }
