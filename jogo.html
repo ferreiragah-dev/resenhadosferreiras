@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8" />
@@ -6,12 +6,12 @@
 <meta name="theme-color" content="#000000">
 <title>Nova Partida</title>
 <link rel="manifest" href="/manifest-jogo.webmanifest">
-<link rel="stylesheet" href="/jogo.css?v=1">
+<link rel="stylesheet" href="/jogo.css?v=2">
 </head>
 <body>
 
 <div class="container">
-  <div class="title">⚽ Iniciar Nova partida</div>
+  <div class="title">⚽ Iniciar Nova Partida</div>
 
   <div class="select-group">
     <label>Time 1</label>
@@ -30,8 +30,13 @@
   </div>
 
   <button class="play-btn" id="playBtn">▶ Play</button>
+
+  <div class="schedule-wrap">
+    <div class="schedule-title">Jogos da Agenda</div>
+    <div id="scheduleList" class="schedule-list"></div>
+  </div>
 </div>
 
-<script src="/jogo.js?v=1" defer></script>
+<script src="/jogo.js?v=2" defer></script>
 </body>
 </html>

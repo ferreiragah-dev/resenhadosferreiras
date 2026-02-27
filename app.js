@@ -637,12 +637,14 @@ function renderSchedule() {
           <label class="full">Fase<input type="text" value="${esc(row.phase || '')}" data-schedule-input="${esc(row.id)}|phase"></label>
         </div>
         <div class="mini-actions">
+          <button class="primary" type="button" data-schedule-start="${esc(row.id)}">Iniciar jogo</button>
           <button class="ghost" type="button" data-schedule-save="${esc(row.id)}">Salvar</button>
           <button class="danger" type="button" data-schedule-delete="${esc(row.id)}">Excluir</button>
         </div>
       </article>`;
   }).join('');
 
+  els.scheduleList.querySelectorAll('[data-schedule-start]').forEach((btn) => btn.addEventListener('click', () => startScheduledGame(btn.dataset.scheduleStart)));
   els.scheduleList.querySelectorAll('[data-schedule-save]').forEach((btn) => btn.addEventListener('click', () => saveScheduleRow(btn.dataset.scheduleSave)));
   els.scheduleList.querySelectorAll('[data-schedule-delete]').forEach((btn) => btn.addEventListener('click', () => deleteScheduleRow(btn.dataset.scheduleDelete)));
 }
@@ -670,6 +672,35 @@ function deleteScheduleRow(id) {
   if (!confirm(`Excluir agenda ${row.time} - ${row.teamALabel} x ${row.teamBLabel}?`)) return;
   state.gameSchedule = (state.gameSchedule || []).filter((x) => x.id !== id);
   persistAndRender();
+}
+
+function startScheduledGame(id) {
+  const row = (state.gameSchedule || []).find((x) => x.id === id);
+  if (!row) return;
+
+  const teamA = resolveTeamByLabel(row.teamALabel);
+  const teamB = resolveTeamByLabel(row.teamBLabel);
+
+  if (!teamA || !teamB) {
+    alert('Nao foi possivel iniciar: um ou ambos os confrontos nao correspondem a times cadastrados.');
+    return;
+  }
+  if (teamA.id === teamB.id) {
+    alert('Confronto invalido: os times devem ser diferentes.');
+    return;
+  }
+
+  const url = '/jogo/ao-vivo?teamA=' + encodeURIComponent(teamA.id) +
+    '&teamB=' + encodeURIComponent(teamB.id) +
+    '&teamAName=' + encodeURIComponent(teamA.name) +
+    '&teamBName=' + encodeURIComponent(teamB.name);
+  window.location.href = url;
+}
+
+function resolveTeamByLabel(label) {
+  const normalized = String(label || '').trim().toLowerCase();
+  if (!normalized) return null;
+  return state.teams.find((t) => String(t.name || '').trim().toLowerCase() === normalized) || null;
 }
 
 function loadDefaultScheduleTemplate() {

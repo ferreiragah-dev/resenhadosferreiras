@@ -225,6 +225,40 @@ app.get('/api/public/roster', async (_req, res) => {
   res.json({ teams, players });
 });
 
+app.get('/api/public/schedule', async (_req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  const tournament = await readTournamentState();
+  const teams = (tournament.teams || []).map((t) => ({
+    id: String(t.id || ''),
+    name: String(t.name || ''),
+    norm: String(t.name || '').trim().toLowerCase()
+  }));
+  const byNorm = new Map(teams.map((t) => [t.norm, t]));
+
+  const schedule = (tournament.gameSchedule || []).map((g) => {
+    const aLabel = String(g.teamALabel || '').trim();
+    const bLabel = String(g.teamBLabel || '').trim();
+    const a = byNorm.get(aLabel.toLowerCase()) || null;
+    const b = byNorm.get(bLabel.toLowerCase()) || null;
+    const canStart = Boolean(a && b && a.id && b.id && a.id !== b.id);
+    return {
+      id: String(g.id || ''),
+      phase: String(g.phase || ''),
+      time: String(g.time || ''),
+      groupLabel: String(g.groupLabel || ''),
+      teamALabel: aLabel,
+      teamBLabel: bLabel,
+      canStart,
+      teamAId: canStart ? a.id : '',
+      teamBId: canStart ? b.id : '',
+      teamAName: canStart ? a.name : aLabel,
+      teamBName: canStart ? b.name : bLabel
+    };
+  });
+
+  res.json({ schedule });
+});
+
 app.post('/api/public/player-action', async (req, res) => {
   try {
     const playerId = String(req.body?.playerId || '').trim();

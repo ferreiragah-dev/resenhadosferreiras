@@ -5,8 +5,8 @@ body{
   font-family:Arial, sans-serif;
   display:flex;
   justify-content:center;
-  align-items:center;
   min-height:100vh;
+  padding:20px 0;
 }
 
 .container{
@@ -70,4 +70,84 @@ select{
 
 .play-btn:active{
   transform:scale(0.98);
+}
+
+.schedule-wrap{
+  margin-top:18px;
+  border:1px solid rgba(34,197,94,.25);
+  border-radius:12px;
+  padding:10px;
+  background:rgba(2,6,23,.35);
+}
+
+.schedule-title{
+  font-size:.78rem;
+  text-transform:uppercase;
+  letter-spacing:.4px;
+  color:#86efac;
+  opacity:.9;
+  margin-bottom:8px;
+}
+
+.schedule-list{
+  display:grid;
+  gap:8px;
+}
+
+.schedule-phase{
+  border:1px solid rgba(34,197,94,.3);
+  border-radius:8px;
+  padding:6px 8px;
+  font-size:.72rem;
+  font-weight:800;
+  color:#86efac;
+  text-transform:uppercase;
+  background:rgba(2,6,23,.55);
+}
+
+.schedule-item{
+  border:1px solid rgba(34,197,94,.2);
+  border-radius:10px;
+  padding:8px;
+  background:rgba(0,0,0,.3);
+}
+
+.schedule-row{
+  display:flex;
+  justify-content:space-between;
+  gap:8px;
+  align-items:center;
+  font-size:.75rem;
+}
+
+.schedule-row strong{
+  color:#22c55e;
+}
+
+.schedule-vs{
+  margin-top:5px;
+  font-size:.85rem;
+  font-weight:700;
+  color:#d1fae5;
+}
+
+.schedule-meta{
+  margin-top:5px;
+  font-size:.68rem;
+  opacity:.75;
+}
+
+.schedule-start-btn{
+  margin-top:7px;
+  width:100%;
+  border:none;
+  border-radius:8px;
+  padding:9px;
+  background:#22c55e;
+  color:#000;
+  font-weight:800;
+}
+
+.schedule-start-btn[disabled]{
+  opacity:.55;
 }
