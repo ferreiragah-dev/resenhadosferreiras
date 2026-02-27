@@ -426,7 +426,6 @@
   overflow:hidden;
   display:inline-grid;
   place-items:center;
-  background:#03180b;
 }
 
 .team-logo-neon img{
@@ -633,7 +632,6 @@
   overflow:hidden;
   display:inline-grid;
   place-items:center;
-  background:#03180b;
   flex:0 0 auto;
 }
 
