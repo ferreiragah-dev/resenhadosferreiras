@@ -1009,11 +1009,15 @@ function pushConfigErrorMessage() {
 
 async function sendPushNotification(payload, userId = null) {
   const values = [];
-  let sql = 'SELECT endpoint, user_id, subscription FROM push_subscriptions';
+  let sql = `
+    SELECT DISTINCT ON (user_id) endpoint, user_id, subscription, updated_at
+    FROM push_subscriptions
+  `;
   if (userId) {
     values.push(userId);
     sql += ' WHERE user_id = $1';
   }
+  sql += ' ORDER BY user_id, updated_at DESC';
   const result = await pool.query(sql, values);
   const rows = Array.isArray(result.rows) ? result.rows : [];
   const total = rows.length;
@@ -1081,12 +1085,13 @@ async function notifyLiveGameRealtime({ previous, current }) {
   if (scoreChanged) {
     const scoreKey = `score:${String(current.id || '')}:${nextScoreA}x${nextScoreB}`;
     if (!isRecentlyNotified(scoreKey, 25000)) {
+      // Marca antes de enviar para evitar duplicidade em updates concorrentes.
+      markNotified(scoreKey);
       await sendPushNotification({
         title: 'Gol na partida',
         body: `${teamA} ${nextScoreA} x ${nextScoreB} ${teamB}`,
         url: '/player/home'
       }).catch(() => {});
-      markNotified(scoreKey);
     }
     state.lastScoreA = Math.max(lastNotifiedScoreA, nextScoreA);
     state.lastScoreB = Math.max(lastNotifiedScoreB, nextScoreB);
@@ -1111,12 +1116,13 @@ async function notifyLiveGameRealtime({ previous, current }) {
     const body = `${title} ${team}: ${playerName}`;
     const eventKey = `evt:${String(current.id || '')}:${String(evt.id || '')}`;
     if (!isRecentlyNotified(eventKey, 60000)) {
+      // Marca antes de enviar para evitar duplicidade em updates concorrentes.
+      markNotified(eventKey);
       await sendPushNotification({
         title,
         body,
         url: '/player/home'
       }).catch(() => {});
-      markNotified(eventKey);
     }
     notified.add(String(evt.id || ''));
   }
