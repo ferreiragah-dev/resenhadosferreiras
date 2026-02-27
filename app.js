@@ -43,6 +43,12 @@ const els = {
   eventSettingsForm: document.getElementById('eventSettingsForm'),
   eventStartAt: document.getElementById('eventStartAt'),
   eventSettingsMessage: document.getElementById('eventSettingsMessage'),
+  pushTestForm: document.getElementById('pushTestForm'),
+  pushTitle: document.getElementById('pushTitle'),
+  pushBody: document.getElementById('pushBody'),
+  pushUrl: document.getElementById('pushUrl'),
+  pushUserId: document.getElementById('pushUserId'),
+  pushTestMessage: document.getElementById('pushTestMessage'),
   matchesList: document.getElementById('matchesList'),
   scheduleForm: document.getElementById('scheduleForm'),
   schedulePhase: document.getElementById('schedulePhase'),
@@ -173,6 +179,38 @@ function bindEvents() {
         : 'Horário removido. O jogador verá sem contagem configurada.';
     }
     persistAndRender();
+  });
+
+  els.pushTestForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (els.pushTestMessage) {
+      els.pushTestMessage.textContent = 'Enviando notificação...';
+      els.pushTestMessage.style.color = '';
+    }
+    const payload = {
+      title: String(els.pushTitle?.value || 'Resenha dos Ferreira').trim() || 'Resenha dos Ferreira',
+      body: String(els.pushBody?.value || 'Nova atualização da resenha.').trim() || 'Nova atualização da resenha.',
+      url: String(els.pushUrl?.value || '/player/home').trim() || '/player/home'
+    };
+    const userId = String(els.pushUserId?.value || '').trim();
+    if (userId) payload.userId = userId;
+    try {
+      const data = await apiJson('/api/push/test', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      if (els.pushTestMessage) {
+        const sent = Number(data?.sent || 0);
+        const removed = Number(data?.removed || 0);
+        els.pushTestMessage.textContent = `Notificação enviada. Entregues: ${sent}. Inscrições removidas: ${removed}.`;
+        els.pushTestMessage.style.color = '#147a48';
+      }
+    } catch (err) {
+      if (els.pushTestMessage) {
+        els.pushTestMessage.textContent = `Falha ao enviar push: ${err.message || 'erro desconhecido'}`;
+        els.pushTestMessage.style.color = '#b42318';
+      }
+    }
   });
 
   els.addGoalBtn.addEventListener('click', () => {
@@ -401,14 +439,21 @@ function renderTeamOptions() {
 }
 
 function renderUserOptions() {
-  if (!els.playerUserId) return;
-  const keep = els.playerUserId.value;
+  if (!els.playerUserId && !els.pushUserId) return;
+  const keep = els.playerUserId ? els.playerUserId.value : '';
+  const keepPush = els.pushUserId ? els.pushUserId.value : '';
   const options = [...registeredUsers]
     .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR'))
     .map((u) => `<option value="${esc(u.id)}">${esc(u.name)} (${esc(u.email)})</option>`)
     .join('');
-  els.playerUserId.innerHTML = `<option value="">Sem vínculo (jogador ainda não se cadastrou)</option>${options}`;
-  if (keep) els.playerUserId.value = keep;
+  if (els.playerUserId) {
+    els.playerUserId.innerHTML = `<option value="">Sem vínculo (jogador ainda não se cadastrou)</option>${options}`;
+    if (keep) els.playerUserId.value = keep;
+  }
+  if (els.pushUserId) {
+    els.pushUserId.innerHTML = `<option value="">Todos os jogadores com notificação ativa</option>${options}`;
+    if (keepPush) els.pushUserId.value = keepPush;
+  }
 }
 
 function renderPlayerGoalOptions() {

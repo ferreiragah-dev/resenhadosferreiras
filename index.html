@@ -111,6 +111,27 @@
           </form>
           <p class="muted" id="eventSettingsMessage">Defina o horário para a contagem regressiva mostrada após o login do jogador.</p>
         </section>
+        <section class="card">
+          <h2>Notificação push (celular)</h2>
+          <form id="pushTestForm" class="form-grid">
+            <label>Título
+              <input id="pushTitle" type="text" value="Resenha dos Ferreira" required>
+            </label>
+            <label>Destino
+              <input id="pushUrl" type="text" value="/player/home" required>
+            </label>
+            <label class="full">Mensagem
+              <input id="pushBody" type="text" value="Nova atualização da resenha." required>
+            </label>
+            <label class="full">Enviar para
+              <select id="pushUserId">
+                <option value="">Todos os jogadores com notificação ativa</option>
+              </select>
+            </label>
+            <button class="primary full" type="submit">Disparar notificação</button>
+          </form>
+          <p class="muted" id="pushTestMessage">Use para testar ou avisar jogadores pelo app.</p>
+        </section>
       </div>
 
       <div class="panel-grid" style="margin-bottom:12px;">
