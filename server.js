@@ -15,9 +15,9 @@ const PORT = Number(process.env.PORT || 3000);
 const JWT_SECRET = process.env.JWT_SECRET || 'troque-essa-chave-no-easypanel';
 const DATABASE_URL = process.env.DATABASE_URL;
 const FORCE_HTTPS = String(process.env.FORCE_HTTPS || '').trim() === '1';
-const VAPID_PUBLIC_KEY = String(process.env.VAPID_PUBLIC_KEY || '').trim();
-const VAPID_PRIVATE_KEY = String(process.env.VAPID_PRIVATE_KEY || '').trim();
-const VAPID_SUBJECT = String(process.env.VAPID_SUBJECT || 'mailto:admin@resenhadosferreiras.com').trim();
+const VAPID_PUBLIC_KEY = sanitizeEnvValue(process.env.VAPID_PUBLIC_KEY);
+const VAPID_PRIVATE_KEY = sanitizeEnvValue(process.env.VAPID_PRIVATE_KEY);
+const VAPID_SUBJECT = sanitizeEnvValue(process.env.VAPID_SUBJECT || 'mailto:admin@resenhadosferreiras.com');
 const dataDir = path.join(__dirname, 'data');
 const legacyStorePath = path.join(dataDir, 'store.json');
 
@@ -37,6 +37,7 @@ app.set('trust proxy', 1);
 if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
   try {
     webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+    console.log(`Push VAPID configurado. subject=${VAPID_SUBJECT} pub=${VAPID_PUBLIC_KEY.slice(0, 12)}...`);
   } catch (err) {
     console.warn('Falha ao configurar VAPID:', err.message);
   }
@@ -960,6 +961,13 @@ function parseSslMode(url) {
   } catch {
     return false;
   }
+}
+
+function sanitizeEnvValue(value) {
+  return String(value || '')
+    .trim()
+    .replace(/^['"]+|['"]+$/g, '')
+    .replace(/[\r\n\t ]+/g, '');
 }
 
 function isPushConfigured() {
