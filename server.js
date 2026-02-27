@@ -460,6 +460,7 @@ app.put('/api/state', adminRequired, async (req, res) => {
 });
 
 app.get('/api/player/home', authRequired, async (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   const userRes = await pool.query('SELECT * FROM users WHERE id = $1', [req.auth.sub]);
   const user = userRes.rows[0];
   if (!user) return res.status(404).json({ error: 'Usuario nao encontrado' });
@@ -600,7 +601,6 @@ app.get('/api/player/home', authRequired, async (req, res) => {
         id: p.id,
         name: p.name || 'Jogador',
         teamName: rankingTeam ? rankingTeam.name : 'Sem time',
-        photoDataUrl: p.photoDataUrl || '',
         goals,
         assists,
         yellowCards,

@@ -1,9 +1,12 @@
 ﻿const TOKEN_KEY = 'resenha-player-token';
-const HOME_CACHE_KEY = 'resenha-player-home-cache-v1';
+const HOME_CACHE_KEY = 'resenha-player-home-cache-v2';
+const HOME_CACHE_SESSION_KEY = 'resenha-player-home-cache-session-v2';
 var homePoll = null;
 var homePollMs = 0;
 var currentTab = 'perfil';
 var latestHomeData = null;
+var homeRequestSeq = 0;
+var homeAbortController = null;
 
 const els = {
   tabs: Array.prototype.slice.call(document.querySelectorAll('.tab')),
@@ -157,7 +160,17 @@ function setActiveTab(tab) {
 
 async function loadHome() {
   const token = localStorage.getItem(TOKEN_KEY);
-  const data = await api('/api/player/home', { headers: { Authorization: 'Bearer ' + token } });
+  const reqSeq = ++homeRequestSeq;
+  if (homeAbortController) {
+    try { homeAbortController.abort(); } catch (_err) {}
+  }
+  homeAbortController = typeof AbortController === 'function' ? new AbortController() : null;
+  const data = await api('/api/player/home', {
+    headers: { Authorization: 'Bearer ' + token },
+    signal: homeAbortController ? homeAbortController.signal : undefined,
+    timeoutMs: 4500
+  });
+  if (reqSeq !== homeRequestSeq) return;
   var next = data && typeof data === 'object' ? data : null;
   if (!next) return;
 
@@ -229,13 +242,17 @@ function writeHomeCache(data) {
   try {
     if (!data || typeof data !== 'object') return;
     if (!data.linked) return;
-    localStorage.setItem(HOME_CACHE_KEY, JSON.stringify(data));
+    var compact = compactHomeDataForCache(data);
+    var raw = JSON.stringify(compact);
+    sessionStorage.setItem(HOME_CACHE_SESSION_KEY, raw);
+    localStorage.setItem(HOME_CACHE_KEY, raw);
   } catch (_err) {}
 }
 
 function readHomeCache() {
+  var raw = '';
   try {
-    var raw = localStorage.getItem(HOME_CACHE_KEY);
+    raw = sessionStorage.getItem(HOME_CACHE_SESSION_KEY) || localStorage.getItem(HOME_CACHE_KEY) || '';
     if (!raw) return null;
     var parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object') return null;
@@ -244,6 +261,52 @@ function readHomeCache() {
   } catch (_err) {
     return null;
   }
+}
+
+function compactHomeDataForCache(data) {
+  var d = data || {};
+  return {
+    linked: true,
+    user: d.user || null,
+    settings: d.settings || null,
+    player: d.player || null,
+    team: d.team || null,
+    teamStats: d.teamStats || null,
+    teammates: Array.isArray(d.teammates) ? d.teammates.slice(0, 30).map(function (p) {
+      return {
+        id: p.id,
+        name: p.name,
+        yellowCards: p.yellowCards || 0,
+        redCards: p.redCards || 0,
+        goals: p.goals || 0,
+        assists: p.assists || 0,
+        goalsPro: p.goalsPro || 0,
+        goalsContra: p.goalsContra || 0,
+        isCaptain: Boolean(p.isCaptain),
+        isTopScorer: Boolean(p.isTopScorer),
+        photoDataUrl: p.photoDataUrl || '',
+        isMe: Boolean(p.isMe)
+      };
+    }) : [],
+    standings: Array.isArray(d.standings) ? d.standings.slice(0, 30) : [],
+    playerRanking: Array.isArray(d.playerRanking) ? d.playerRanking.slice(0, 120).map(function (p) {
+      return {
+        id: p.id,
+        name: p.name,
+        teamName: p.teamName,
+        goals: p.goals || 0,
+        assists: p.assists || 0,
+        yellowCards: p.yellowCards || 0,
+        redCards: p.redCards || 0,
+        rankingPoints: p.rankingPoints || 0,
+        isCaptain: Boolean(p.isCaptain),
+        isTopScorer: Boolean(p.isTopScorer)
+      };
+    }) : [],
+    gameSchedule: Array.isArray(d.gameSchedule) ? d.gameSchedule.slice(0, 80) : [],
+    liveGame: d.liveGame || null,
+    recentGames: Array.isArray(d.recentGames) ? d.recentGames.slice(0, 20) : []
+  };
 }
 
 function renderProfile(profile) {
@@ -597,7 +660,19 @@ function avatarFallback(name, size) {
 async function api(url, options) {
   const opts = options || {};
   const headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
-  const res = await fetch(url, Object.assign({}, opts, { headers: headers }));
+  var controller = typeof AbortController === 'function' ? new AbortController() : null;
+  var timeoutMs = Number(opts.timeoutMs || 0);
+  var timeoutId = null;
+  if (!opts.signal && controller && timeoutMs > 0) {
+    timeoutId = setTimeout(function () { controller.abort(); }, timeoutMs);
+  }
+  const res = await fetch(url, Object.assign({}, opts, {
+    headers: headers,
+    cache: 'no-store',
+    credentials: 'same-origin',
+    signal: opts.signal || (controller ? controller.signal : undefined)
+  }));
+  if (timeoutId) clearTimeout(timeoutId);
   const data = await res.json().catch(function () { return {}; });
   if (!res.ok) throw new Error(data.error || 'Erro na requisicao');
   return data;

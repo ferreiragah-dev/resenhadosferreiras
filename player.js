@@ -1,6 +1,6 @@
 ﻿const TOKEN_KEY = 'resenha-player-token';
 const PUBLIC_TEAMS_CACHE_KEY = 'resenha-public-teams-cache';
-const HOME_CACHE_KEY = 'resenha-player-home-cache-v1';
+const HOME_CACHE_KEY = 'resenha-player-home-cache-v2';
 
 const els = {
   authScreen: document.getElementById('authScreen'),
@@ -214,7 +214,9 @@ async function prefetchHomeCache(token) {
       signal: controller ? controller.signal : undefined
     });
     if (data && typeof data === 'object' && data.linked) {
-      localStorage.setItem(HOME_CACHE_KEY, JSON.stringify(data));
+      var raw = JSON.stringify(data);
+      sessionStorage.setItem('resenha-player-home-cache-session-v2', raw);
+      localStorage.setItem(HOME_CACHE_KEY, raw);
     }
   } catch (_err) {
     // Prefetch is best effort; navigation should continue.
