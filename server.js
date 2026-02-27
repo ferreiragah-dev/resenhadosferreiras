@@ -1078,14 +1078,39 @@ async function notifyLiveGameRealtime({ previous, current }) {
     ? current.notificationState
     : { lastScoreA: prevScoreA, lastScoreB: prevScoreB, notifiedEventIds: [] };
   const notified = new Set(Array.isArray(state.notifiedEventIds) ? state.notifiedEventIds.map((id) => String(id || '')) : []);
+  const events = Array.isArray(current.events) ? current.events : [];
+  const freshGoalEvents = events.filter((evt) => {
+    const id = String(evt?.id || '');
+    const type = String(evt?.type || '').toUpperCase();
+    if (!id || (type !== 'GP' && type !== 'GC')) return false;
+    if (notified.has(id)) return false;
+    return true;
+  }).slice(0, 10);
+
+  for (const evt of freshGoalEvents) {
+    const type = String(evt?.type || '').toUpperCase();
+    const playerName = String(evt?.playerName || 'Jogador');
+    const isOwnGoal = type === 'GC';
+    const goalLabel = isOwnGoal ? `(C) ${playerName}` : playerName;
+    const eventKey = `evt:${String(current.id || '')}:${String(evt.id || '')}`;
+    if (!isRecentlyNotified(eventKey, 60000)) {
+      markNotified(eventKey);
+      await sendPushNotification({
+        title: 'Gol na partida',
+        body: `${teamA} ${nextScoreA} x ${nextScoreB} ${teamB}\nGol: ${goalLabel}`,
+        url: '/player/home'
+      }).catch(() => {});
+    }
+    notified.add(String(evt.id || ''));
+  }
 
   const lastNotifiedScoreA = Number(state.lastScoreA || 0);
   const lastNotifiedScoreB = Number(state.lastScoreB || 0);
   const scoreChanged = nextScoreA > lastNotifiedScoreA || nextScoreB > lastNotifiedScoreB;
-  if (scoreChanged) {
+  // Fallback para placar alterado sem evento de gol (ex.: gol manual +/-).
+  if (scoreChanged && !freshGoalEvents.length) {
     const scoreKey = `score:${String(current.id || '')}:${nextScoreA}x${nextScoreB}`;
     if (!isRecentlyNotified(scoreKey, 25000)) {
-      // Marca antes de enviar para evitar duplicidade em updates concorrentes.
       markNotified(scoreKey);
       await sendPushNotification({
         title: 'Gol na partida',
@@ -1093,11 +1118,9 @@ async function notifyLiveGameRealtime({ previous, current }) {
         url: '/player/home'
       }).catch(() => {});
     }
-    state.lastScoreA = Math.max(lastNotifiedScoreA, nextScoreA);
-    state.lastScoreB = Math.max(lastNotifiedScoreB, nextScoreB);
   }
-
-  const events = Array.isArray(current.events) ? current.events : [];
+  state.lastScoreA = Math.max(lastNotifiedScoreA, nextScoreA);
+  state.lastScoreB = Math.max(lastNotifiedScoreB, nextScoreB);
   const freshCardEvents = events.filter((evt) => {
     const id = String(evt?.id || '');
     const type = String(evt?.type || '').toUpperCase();
