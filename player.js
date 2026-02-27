@@ -1,6 +1,8 @@
-﻿const TOKEN_KEY = 'resenha-player-token';
+const TOKEN_KEY = 'resenha-player-token';
 const PUBLIC_TEAMS_CACHE_KEY = 'resenha-public-teams-cache';
 const HOME_CACHE_KEY = 'resenha-player-home-cache-v2';
+const JUDGE_EMAIL = 'juiz@gmail.com';
+const JUDGE_PASSWORD = 'juiz1234@';
 
 const els = {
   authScreen: document.getElementById('authScreen'),
@@ -63,6 +65,11 @@ function bindEvents() {
           body: JSON.stringify({ email: email, password: password })
         });
         localStorage.setItem(TOKEN_KEY, data.token);
+        if (email.toLowerCase() === JUDGE_EMAIL && password === JUDGE_PASSWORD) {
+          setMessage('Login do juiz realizado. Redirecionando para jogos...', 'success');
+          window.location.href = '/jogo';
+          return;
+        }
         setMessage('Login realizado. Carregando seus dados...', 'success');
         await prefetchHomeCache(data.token);
         window.location.href = '/player/home';
@@ -288,4 +295,5 @@ function esc(v) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
+
 
