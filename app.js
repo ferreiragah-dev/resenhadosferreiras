@@ -205,7 +205,18 @@ function bindEvents() {
         const sent = Number(data?.sent || 0);
         const removed = Number(data?.removed || 0);
         const failed = Number(data?.failed || 0);
-        els.pushTestMessage.textContent = `Notificação enviada. Inscrições: ${total}. Entregues: ${sent}. Falhas: ${failed}. Removidas: ${removed}.`;
+        var details = '';
+        if (failed > 0 && Array.isArray(data?.failures) && data.failures.length) {
+          details = ' | ';
+          details += data.failures.slice(0, 3).map((f) => {
+            const st = Number(f?.status || 0);
+            const msg = String(f?.message || '').trim();
+            const body = String(f?.body || '').trim();
+            const suffix = body ? ` (${body})` : '';
+            return `[${st || '?'}] ${msg}${suffix}`;
+          }).join(' ; ');
+        }
+        els.pushTestMessage.textContent = `Notificação enviada. Inscrições: ${total}. Entregues: ${sent}. Falhas: ${failed}. Removidas: ${removed}.${details}`;
         els.pushTestMessage.style.color = '#147a48';
       }
     } catch (err) {

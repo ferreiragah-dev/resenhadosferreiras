@@ -1005,10 +1005,12 @@ async function sendPushNotification(payload, userId = null) {
     } catch (err) {
       const status = Number(err?.statusCode || 0);
       failed += 1;
+      const rawBody = err && typeof err.body !== 'undefined' ? String(err.body || '') : '';
       failures.push({
         endpoint: String(row.endpoint || ''),
         status: status || 0,
-        message: String(err?.message || 'erro no envio')
+        message: String(err?.message || 'erro no envio'),
+        body: rawBody.slice(0, 220)
       });
       if (status === 404 || status === 410) {
         await pool.query('DELETE FROM push_subscriptions WHERE endpoint = $1', [String(row.endpoint || '')]);
