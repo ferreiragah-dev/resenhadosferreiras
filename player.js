@@ -1,5 +1,6 @@
 ﻿const TOKEN_KEY = 'resenha-player-token';
 const PUBLIC_TEAMS_CACHE_KEY = 'resenha-public-teams-cache';
+const HOME_CACHE_KEY = 'resenha-player-home-cache-v1';
 
 const els = {
   authScreen: document.getElementById('authScreen'),
@@ -62,7 +63,8 @@ function bindEvents() {
           body: JSON.stringify({ email: email, password: password })
         });
         localStorage.setItem(TOKEN_KEY, data.token);
-        setMessage('Login realizado. Redirecionando...', 'success');
+        setMessage('Login realizado. Carregando seus dados...', 'success');
+        await prefetchHomeCache(data.token);
         window.location.href = '/player/home';
       } catch (err) {
         console.error('Erro no login:', err);
@@ -108,7 +110,8 @@ function bindEvents() {
           })
         });
         localStorage.setItem(TOKEN_KEY, data.token);
-        setMessage('Conta criada com sucesso. Redirecionando...', 'success');
+        setMessage('Conta criada. Carregando seus dados...', 'success');
+        await prefetchHomeCache(data.token);
         window.location.href = '/player/home';
       } catch (err) {
         console.error('Erro no cadastro:', err);
@@ -199,6 +202,27 @@ async function loadPublicTeams() {
   }
 }
 
+async function prefetchHomeCache(token) {
+  if (!token) return;
+  var controller = typeof AbortController === 'function' ? new AbortController() : null;
+  var timeoutId = setTimeout(function () {
+    if (controller) controller.abort();
+  }, 1200);
+  try {
+    const data = await api('/api/player/home', {
+      headers: { Authorization: 'Bearer ' + token },
+      signal: controller ? controller.signal : undefined
+    });
+    if (data && typeof data === 'object') {
+      localStorage.setItem(HOME_CACHE_KEY, JSON.stringify(data));
+    }
+  } catch (_err) {
+    // Prefetch is best effort; navigation should continue.
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 function cachePublicTeams(teams) {
   try {
     var normalized = Array.isArray(teams) ? teams.map(function (t) {
@@ -262,3 +286,4 @@ function esc(v) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
+

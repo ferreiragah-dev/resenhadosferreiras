@@ -82,6 +82,8 @@ async function bootstrap() {
     return;
   }
 
+  startHomePolling();
+
   var cached = readHomeCache();
   if (cached) {
     latestHomeData = cached;
@@ -90,11 +92,12 @@ async function bootstrap() {
 
   try {
     await loadHome();
-    startHomePolling();
   } catch (err) {
     console.error('Erro no bootstrap da home do jogador:', err);
-    localStorage.removeItem(TOKEN_KEY);
-    window.location.href = '/player';
+    if (isAuthError(err)) {
+      localStorage.removeItem(TOKEN_KEY);
+      window.location.href = '/player';
+    }
   }
 }
 
@@ -158,6 +161,11 @@ async function loadHome() {
   latestHomeData = data || null;
   writeHomeCache(data);
   hydrateHomeFromData(data);
+}
+
+function isAuthError(err) {
+  var msg = String(err && err.message || '').toLowerCase();
+  return msg.indexOf('nao autenticado') >= 0 || msg.indexOf('token invalido') >= 0 || msg.indexOf('unauthorized') >= 0 || msg.indexOf('forbidden') >= 0;
 }
 
 function hydrateHomeFromData(data) {
