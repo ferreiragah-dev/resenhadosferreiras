@@ -65,7 +65,8 @@ function bindEvents() {
           body: JSON.stringify({ email: email, password: password })
         });
         localStorage.setItem(TOKEN_KEY, data.token);
-        if (email.toLowerCase() === JUDGE_EMAIL && password === JUDGE_PASSWORD) {
+        var loggedEmail = String((data && data.user && data.user.email) || email || '').trim().toLowerCase();
+        if (loggedEmail === JUDGE_EMAIL && password === JUDGE_PASSWORD) {
           setMessage('Login do juiz realizado. Redirecionando para jogos...', 'success');
           window.location.href = '/jogo';
           return;
@@ -150,7 +151,12 @@ async function bootstrap() {
   }
 
   try {
-    await api('/api/auth/me', { headers: { Authorization: 'Bearer ' + token } });
+    const data = await api('/api/auth/me', { headers: { Authorization: 'Bearer ' + token } });
+    var meEmail = String(data && data.user && data.user.email || '').trim().toLowerCase();
+    if (meEmail === JUDGE_EMAIL) {
+      window.location.href = '/jogo';
+      return;
+    }
     window.location.href = '/player/home';
   } catch (_err) {
     localStorage.removeItem(TOKEN_KEY);
