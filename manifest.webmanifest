@@ -1,12 +1,20 @@
 {
+  "id": "/resenha-app",
   "name": "Resenha dos Ferreira - Campeonato",
-  "short_name": "ResenhaCamp",
-  "start_url": "/admin",
+  "short_name": "ResenhaFC",
+  "start_url": "/player",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#f5f3ea",
-  "theme_color": "#0f5132",
+  "background_color": "#000000",
+  "theme_color": "#000000",
   "lang": "pt-BR",
+  "description": "PWA oficial da Resenha dos Ferreira para admin, jogadores e jogos ao vivo.",
+  "categories": ["sports", "productivity"],
+  "shortcuts": [
+    { "name": "Admin", "short_name": "Admin", "url": "/admin", "icons": [{ "src": "icons/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }] },
+    { "name": "Jogador", "short_name": "Jogador", "url": "/player", "icons": [{ "src": "icons/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }] },
+    { "name": "Ao Vivo", "short_name": "Ao Vivo", "url": "/jogo/ao-vivo", "icons": [{ "src": "icons/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }] }
+  ],
   "icons": [
     { "src": "icons/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml", "purpose": "any maskable" },
     { "src": "icons/icon-512.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "any maskable" }

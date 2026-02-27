@@ -1,5 +1,5 @@
-const CACHE_NAME = "resenha-ferreira-campeonato-cache-v71";
-const ASSETS = ["/admin", "/player", "/player/home", "/jogo", "/jogo/ao-vivo", "/index.html", "/player.html", "/player-home.html", "/jogo.html", "/jogo-live.html", "/styles.css", "/player.css", "/player-home.css", "/jogo.css", "/jogo-live.css", "/app.js", "/player.js", "/player-home.js", "/jogo.js", "/jogo-live.js", "/manifest.webmanifest", "/manifest-jogo.webmanifest", "/icons/icon-192.svg", "/icons/icon-512.svg"];
+const CACHE_NAME = "resenha-ferreira-campeonato-cache-v72";
+const ASSETS = ["/admin", "/player", "/player/home", "/jogo", "/jogo/ao-vivo", "/index.html", "/player.html", "/player-home.html", "/jogo.html", "/jogo-live.html", "/styles.css", "/player.css", "/player-home.css", "/jogo.css", "/jogo-live.css", "/app.js", "/player.js", "/player-home.js", "/jogo.js", "/jogo-live.js", "/pwa.js", "/manifest.webmanifest", "/manifest-jogo.webmanifest", "/icons/icon-192.svg", "/icons/icon-512.svg"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)));
@@ -15,7 +15,7 @@ self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
   const url = new URL(event.request.url);
   const isApi = url.pathname.startsWith("/api/");
-  const isAppShellAsset = ["/admin", "/player", "/player/home", "/jogo", "/jogo/ao-vivo", "/index.html", "/player.html", "/player-home.html", "/jogo.html", "/jogo-live.html", "/app.js", "/player.js", "/player-home.js", "/jogo.js", "/jogo-live.js", "/styles.css", "/player.css", "/player-home.css", "/jogo.css", "/jogo-live.css"].includes(url.pathname);
+  const isAppShellAsset = ["/admin", "/player", "/player/home", "/jogo", "/jogo/ao-vivo", "/index.html", "/player.html", "/player-home.html", "/jogo.html", "/jogo-live.html", "/app.js", "/player.js", "/player-home.js", "/jogo.js", "/jogo-live.js", "/pwa.js", "/styles.css", "/player.css", "/player-home.css", "/jogo.css", "/jogo-live.css"].includes(url.pathname);
 
   if (isApi) {
     event.respondWith(fetch(event.request));
@@ -45,5 +45,39 @@ self.addEventListener("fetch", (event) => {
       }
       return response;
     }).catch(() => caches.match("/admin")))
+  );
+});
+
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (_err) {
+    data = { body: event.data ? event.data.text() : "" };
+  }
+  const title = String(data.title || "Resenha dos Ferreira");
+  const body = String(data.body || "Nova atualizacao da resenha.");
+  const url = String(data.url || "/player/home");
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon: "/icons/icon-192.svg",
+      badge: "/icons/icon-192.svg",
+      data: { url }
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const targetUrl = String((event.notification && event.notification.data && event.notification.data.url) || "/player/home");
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      for (const client of list) {
+        if (client.url.includes(targetUrl) && "focus" in client) return client.focus();
+      }
+      if (clients.openWindow) return clients.openWindow(targetUrl);
+      return undefined;
+    })
   );
 });
