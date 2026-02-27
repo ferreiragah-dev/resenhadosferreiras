@@ -36,6 +36,9 @@ Variaveis recomendadas:
 
 - `PORT=3000`
 - `JWT_SECRET=coloque-uma-chave-forte-aqui`
+- `VAPID_PUBLIC_KEY=...`
+- `VAPID_PRIVATE_KEY=...`
+- `VAPID_SUBJECT=mailto:seu-email@dominio.com`
 
 Opcional (proteger APIs admin):
 
@@ -44,6 +47,42 @@ Opcional (proteger APIs admin):
 Observacao:
 
 - Se voce configurar `ADMIN_TOKEN`, o PWA admin atual precisara enviar esse header (`x-admin-token`). Nesta versao, deixe sem `ADMIN_TOKEN` para funcionar direto.
+
+## Push no celular (PWA)
+
+Requisitos:
+
+- Dominio com HTTPS valido
+- PWA instalado no celular
+- Permissao de notificacao concedida
+- Chaves VAPID configuradas no backend
+
+Gerar chaves VAPID:
+
+```bash
+npx web-push generate-vapid-keys
+```
+
+Configurar no EasyPanel:
+
+- `VAPID_PUBLIC_KEY`
+- `VAPID_PRIVATE_KEY`
+- `VAPID_SUBJECT` (ex: `mailto:admin@seudominio.com`)
+
+Endpoints de push:
+
+- `GET /api/push/public-key` (auth do jogador)
+- `POST /api/push/subscribe` (auth do jogador)
+- `POST /api/push/unsubscribe` (auth do jogador)
+- `POST /api/push/test` (admin) body exemplo:
+
+```json
+{
+  "title": "Teste da Resenha",
+  "body": "Notificacao funcionando no celular.",
+  "url": "/player/home"
+}
+```
 
 ## Persistencia
 

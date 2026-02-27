@@ -4,6 +4,7 @@ import path from 'path';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import pg from 'pg';
+import webpush from 'web-push';
 import { fileURLToPath } from 'url';
 
 const { Pool } = pg;
@@ -13,6 +14,9 @@ const app = express();
 const PORT = Number(process.env.PORT || 3000);
 const JWT_SECRET = process.env.JWT_SECRET || 'troque-essa-chave-no-easypanel';
 const DATABASE_URL = process.env.DATABASE_URL;
+const VAPID_PUBLIC_KEY = String(process.env.VAPID_PUBLIC_KEY || '').trim();
+const VAPID_PRIVATE_KEY = String(process.env.VAPID_PRIVATE_KEY || '').trim();
+const VAPID_SUBJECT = String(process.env.VAPID_SUBJECT || 'mailto:admin@resenhadosferreiras.com').trim();
 const dataDir = path.join(__dirname, 'data');
 const legacyStorePath = path.join(dataDir, 'store.json');
 
@@ -27,6 +31,14 @@ const pool = new Pool({
 });
 
 fs.mkdirSync(dataDir, { recursive: true });
+
+if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+  try {
+    webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+  } catch (err) {
+    console.warn('Falha ao configurar VAPID:', err.message);
+  }
+}
 
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -193,6 +205,55 @@ app.get('/api/auth/me', authRequired, async (req, res) => {
   const user = result.rows[0];
   if (!user) return res.status(404).json({ error: 'Usuario nao encontrado' });
   res.json({ user: publicUser(user) });
+});
+
+app.get('/api/push/public-key', authRequired, async (_req, res) => {
+  if (!isPushConfigured()) return res.json({ enabled: false });
+  res.json({ enabled: true, publicKey: VAPID_PUBLIC_KEY });
+});
+
+app.post('/api/push/subscribe', authRequired, async (req, res) => {
+  try {
+    if (!isPushConfigured()) return res.status(400).json({ error: 'Push nao configurado no servidor' });
+    const sub = req.body?.subscription && typeof req.body.subscription === 'object' ? req.body.subscription : null;
+    const endpoint = String(sub?.endpoint || '').trim();
+    if (!sub || !endpoint) return res.status(400).json({ error: 'Subscription invalida' });
+    const now = Date.now();
+    await pool.query(
+      `INSERT INTO push_subscriptions (endpoint, user_id, subscription, created_at, updated_at)
+       VALUES ($1, $2, $3::jsonb, $4, $4)
+       ON CONFLICT (endpoint) DO UPDATE SET user_id = EXCLUDED.user_id, subscription = EXCLUDED.subscription, updated_at = EXCLUDED.updated_at`,
+      [endpoint, req.auth.sub, JSON.stringify(sub), now]
+    );
+    res.json({ ok: true });
+  } catch {
+    res.status(500).json({ error: 'Falha ao salvar subscription' });
+  }
+});
+
+app.post('/api/push/unsubscribe', authRequired, async (req, res) => {
+  try {
+    const endpoint = String(req.body?.endpoint || '').trim();
+    if (!endpoint) return res.status(400).json({ error: 'Endpoint obrigatorio' });
+    await pool.query('DELETE FROM push_subscriptions WHERE endpoint = $1 AND user_id = $2', [endpoint, req.auth.sub]);
+    res.json({ ok: true });
+  } catch {
+    res.status(500).json({ error: 'Falha ao remover subscription' });
+  }
+});
+
+app.post('/api/push/test', adminRequired, async (req, res) => {
+  try {
+    if (!isPushConfigured()) return res.status(400).json({ error: 'Push nao configurado no servidor' });
+    const title = String(req.body?.title || 'Resenha dos Ferreira');
+    const body = String(req.body?.body || 'Teste de notificacao enviado pelo admin.');
+    const url = String(req.body?.url || '/player/home');
+    const userId = String(req.body?.userId || '').trim();
+    const result = await sendPushNotification({ title, body, url }, userId || null);
+    res.json({ ok: true, sent: result.sent, removed: result.removed });
+  } catch {
+    res.status(500).json({ error: 'Falha ao disparar notificacao push' });
+  }
 });
 
 app.get('/api/users', adminRequired, async (_req, res) => {
@@ -792,6 +853,16 @@ async function initDb() {
     );
   `);
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS push_subscriptions (
+      endpoint TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      subscription JSONB NOT NULL,
+      created_at BIGINT NOT NULL,
+      updated_at BIGINT NOT NULL
+    );
+  `);
+
   const existing = await pool.query('SELECT id FROM tournament_state WHERE id = 1');
   if (!existing.rowCount) {
     await pool.query('INSERT INTO tournament_state (id, payload, updated_at) VALUES (1, $1::jsonb, $2)', [JSON.stringify(defaultTournament()), Date.now()]);
@@ -845,6 +916,41 @@ function parseSslMode(url) {
   } catch {
     return false;
   }
+}
+
+function isPushConfigured() {
+  return Boolean(VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY);
+}
+
+async function sendPushNotification(payload, userId = null) {
+  const values = [];
+  let sql = 'SELECT endpoint, user_id, subscription FROM push_subscriptions';
+  if (userId) {
+    values.push(userId);
+    sql += ' WHERE user_id = $1';
+  }
+  const result = await pool.query(sql, values);
+  const rows = Array.isArray(result.rows) ? result.rows : [];
+  let sent = 0;
+  let removed = 0;
+
+  for (const row of rows) {
+    try {
+      const subscription = row.subscription && typeof row.subscription === 'object'
+        ? row.subscription
+        : JSON.parse(String(row.subscription || '{}'));
+      await webpush.sendNotification(subscription, JSON.stringify(payload));
+      sent += 1;
+    } catch (err) {
+      const status = Number(err?.statusCode || 0);
+      if (status === 404 || status === 410) {
+        await pool.query('DELETE FROM push_subscriptions WHERE endpoint = $1', [String(row.endpoint || '')]);
+        removed += 1;
+      }
+    }
+  }
+
+  return { sent, removed };
 }
 
 function uid() {

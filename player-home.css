@@ -115,6 +115,12 @@
   color:#fecaca;
 }
 
+.side-notify-btn{
+  width:100%;
+  text-align:center;
+  margin-bottom:8px;
+}
+
 .sidebar-overlay{
   position:fixed;
   inset:0;

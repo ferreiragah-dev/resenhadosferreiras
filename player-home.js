@@ -15,6 +15,7 @@ const els = {
   sidebarOverlay: document.getElementById('sidebarOverlay'),
   menuOpenBtn: document.getElementById('menuOpenBtn'),
   menuCloseBtn: document.getElementById('menuCloseBtn'),
+  enablePushBtn: document.getElementById('enablePushBtn'),
   perfil: document.getElementById('perfil'),
   tabela: document.getElementById('tabela'),
   ranking: document.getElementById('ranking'),
@@ -97,6 +98,12 @@ function bindEvents() {
       closeSideMenu();
     });
   }
+
+  if (els.enablePushBtn) {
+    els.enablePushBtn.addEventListener('click', function () {
+      setupPushForCurrentUser(true).catch(function () {});
+    });
+  }
 }
 
 async function bootstrap() {
@@ -124,6 +131,8 @@ async function bootstrap() {
       window.location.href = '/player';
     }
   }
+
+  setupPushForCurrentUser(false).catch(function () {});
 }
 
 
@@ -777,6 +786,68 @@ async function api(url, options) {
   const data = await res.json().catch(function () { return {}; });
   if (!res.ok) throw new Error(data.error || 'Erro na requisicao');
   return data;
+}
+
+async function setupPushForCurrentUser(interactive) {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+    updatePushButtonState('Nao suportado');
+    return;
+  }
+  const token = localStorage.getItem(TOKEN_KEY);
+  if (!token) return;
+
+  const keyData = await api('/api/push/public-key', {
+    headers: { Authorization: 'Bearer ' + token },
+    timeoutMs: 3000
+  }).catch(function () { return { enabled: false }; });
+
+  if (!keyData || !keyData.enabled || !keyData.publicKey) {
+    updatePushButtonState('Push indisponivel');
+    return;
+  }
+
+  if (Notification.permission === 'default' && interactive) {
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      updatePushButtonState('Permissao negada');
+      return;
+    }
+  }
+
+  if (Notification.permission !== 'granted') {
+    updatePushButtonState('Ativar notificacoes');
+    return;
+  }
+
+  const registration = await navigator.serviceWorker.ready;
+  let subscription = await registration.pushManager.getSubscription();
+  if (!subscription) {
+    subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: base64ToUint8Array(String(keyData.publicKey || ''))
+    });
+  }
+
+  await api('/api/push/subscribe', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + token },
+    body: JSON.stringify({ subscription: subscription })
+  });
+  updatePushButtonState('Notificacoes ativas');
+}
+
+function updatePushButtonState(label) {
+  if (!els.enablePushBtn) return;
+  els.enablePushBtn.textContent = label;
+}
+
+function base64ToUint8Array(base64String) {
+  var padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  var normalized = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  var raw = atob(normalized);
+  var output = new Uint8Array(raw.length);
+  for (var i = 0; i < raw.length; ++i) output[i] = raw.charCodeAt(i);
+  return output;
 }
 
 function esc(v) {
