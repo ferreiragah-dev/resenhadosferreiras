@@ -301,10 +301,14 @@ function renderLiveGame(game) {
     return;
   }
   var timer = formatSeconds(Number(game.remaining || 0));
-  els.liveGameBox.innerHTML = '<div class="live-game-card">' +
-    '<div class="live-game-title">Partida ao vivo</div>' +
-    '<div class="live-game-score">' + teamLabelHtml(game.teamAName || 'Time A', game.teamALogoDataUrl || '', 'score', 'score') + ' ' + Number(game.scoreA || 0) + ' x ' + Number(game.scoreB || 0) + ' ' + teamLabelHtml(game.teamBName || 'Time B', game.teamBLogoDataUrl || '', 'score', 'score') + '</div>' +
-    '<div class="match-stats"><span>⏱ ' + timer + '</span><span>' + (game.running ? 'Ao vivo' : 'Pausado') + '</span></div>' +
+  els.liveGameBox.innerHTML = '<div class="match-card-neon">' +
+    '<div class="match-header-neon"><div>⏱ ' + timer + '</div><div>' + (game.running ? 'Ao vivo' : 'Pausado') + '</div></div>' +
+    '<div class="match-body-neon">' +
+      '<div class="team-neon">' + teamLogoOnlyHtml(game.teamAName || 'Time A', game.teamALogoDataUrl || '') + '<div class="team-name-neon">' + esc(game.teamAName || 'Time A') + '</div></div>' +
+      '<div class="score-center-neon"><div class="score-neon">' + Number(game.scoreA || 0) + ' x ' + Number(game.scoreB || 0) + '</div><div class="vs-neon">' + (game.running ? 'AO VIVO' : 'PAUSADO') + '</div></div>' +
+      '<div class="team-neon">' + teamLogoOnlyHtml(game.teamBName || 'Time B', game.teamBLogoDataUrl || '') + '<div class="team-name-neon">' + esc(game.teamBName || 'Time B') + '</div></div>' +
+    '</div>' +
+    '<div class="match-footer-neon">Partida em andamento</div>' +
     '</div>';
 }
 
@@ -337,10 +341,14 @@ function renderRecentGames(list) {
   }
   els.recentGamesBox.innerHTML = list.slice(0, 10).map(function (g) {
     var dateLabel = g.endedAt ? new Date(Number(g.endedAt)).toLocaleString('pt-BR') : 'Finalizado';
-    return '<div class="match">' +
-      '<div class="match-header"><span>' + dateLabel + '</span><span>Partida</span></div>' +
-      '<div class="score">' + teamLabelHtml(g.teamAName || 'Time A', g.teamALogoDataUrl || '', 'score', 'score') + ' ' + Number(g.scoreA || 0) + ' x ' + Number(g.scoreB || 0) + ' ' + teamLabelHtml(g.teamBName || 'Time B', g.teamBLogoDataUrl || '', 'score', 'score') + '</div>' +
-      '<div class="match-stats"><span>Duração: ' + formatSeconds(Number(g.duration || 600)) + '</span></div>' +
+    return '<div class="match-card-neon">' +
+      '<div class="match-header-neon"><div>⏱ ' + dateLabel + '</div><div>Encerrado</div></div>' +
+      '<div class="match-body-neon">' +
+        '<div class="team-neon">' + teamLogoOnlyHtml(g.teamAName || 'Time A', g.teamALogoDataUrl || '') + '<div class="team-name-neon">' + esc(g.teamAName || 'Time A') + '</div></div>' +
+        '<div class="score-center-neon"><div class="score-neon">' + Number(g.scoreA || 0) + ' x ' + Number(g.scoreB || 0) + '</div><div class="vs-neon">FINAL</div></div>' +
+        '<div class="team-neon">' + teamLogoOnlyHtml(g.teamBName || 'Time B', g.teamBLogoDataUrl || '') + '<div class="team-name-neon">' + esc(g.teamBName || 'Time B') + '</div></div>' +
+      '</div>' +
+      '<div class="match-footer-neon">Duração: ' + formatSeconds(Number(g.duration || 600)) + '</div>' +
       '</div>';
   }).join('');
 }
@@ -368,18 +376,25 @@ function renderUpcomingGames(list) {
     return String(a.time || '').localeCompare(String(b.time || ''));
   });
 
-  var lastPhase = '';
   els.upcomingGamesBox.innerHTML = rows.map(function (g) {
     var phase = String(g.phase || 'Fase');
-    var showPhase = phase !== lastPhase;
-    lastPhase = phase;
     var groupLabel = String(g.groupLabel || '').trim();
-    return (showPhase ? '<div class="schedule-phase-player">' + esc(phase) + '</div>' : '') +
-      '<div class="match">' +
-      '<div class="match-header"><span>' + esc(g.time || '--:--') + '</span><span>' + esc(groupLabel || 'Agenda') + '</span></div>' +
-      '<div class="score">' + teamLabelHtml(g.teamALabel || 'Time A', g.teamALogoDataUrl || '', 'score', 'score') + ' x ' + teamLabelHtml(g.teamBLabel || 'Time B', g.teamBLogoDataUrl || '', 'score', 'score') + '</div>' +
+    return '<div class="match-card-neon">' +
+      '<div class="match-header-neon"><div>⏱ ' + esc(g.time || '--:--') + '</div><div>' + esc(groupLabel || 'Agenda') + '</div></div>' +
+      '<div class="match-body-neon">' +
+        '<div class="team-neon">' + teamLogoOnlyHtml(g.teamALabel || 'Time A', g.teamALogoDataUrl || '') + '<div class="team-name-neon">' + esc(g.teamALabel || 'Time A') + '</div></div>' +
+        '<div class="score-center-neon"><div class="score-neon">-- x --</div><div class="vs-neon">AGENDADO</div></div>' +
+        '<div class="team-neon">' + teamLogoOnlyHtml(g.teamBLabel || 'Time B', g.teamBLogoDataUrl || '') + '<div class="team-name-neon">' + esc(g.teamBLabel || 'Time B') + '</div></div>' +
+      '</div>' +
+      '<div class="match-footer-neon">' + esc(phase) + ' • Temporada Verão 2026</div>' +
       '</div>';
   }).join('');
+}
+
+function teamLogoOnlyHtml(name, logoDataUrl) {
+  var n = String(name || 'Time');
+  if (logoDataUrl) return '<span class="team-logo-neon"><img src="' + esc(logoDataUrl) + '" alt="' + esc(n) + '"></span>';
+  return '<span class="team-logo-neon team-logo-fallback">' + esc((n.split(/\s+/).slice(0, 2).map(function (p) { return (p[0] || '').toUpperCase(); }).join('')) || 'T') + '</span>';
 }
 
 function teamLabelHtml(name, logoDataUrl, sizeClass, labelClass) {
