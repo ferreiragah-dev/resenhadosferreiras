@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#000000">
 <title>Partida Ao Vivo</title>
 <link rel="manifest" href="/manifest-jogo.webmanifest">
-<link rel="stylesheet" href="/jogo-live.css?v=7">
+<link rel="stylesheet" href="/jogo-live.css?v=8">
 </head>
 <body>
 
@@ -71,6 +71,18 @@
   </div>
 </div>
 
-<script src="/jogo-live.js?v=9" defer></script>
+<div id="endGameModal" class="live-modal hidden" aria-hidden="true">
+  <div class="live-modal-backdrop" id="endGameBackdrop"></div>
+  <div class="live-modal-card" role="dialog" aria-modal="true" aria-labelledby="endGameTitle">
+    <div class="live-modal-title" id="endGameTitle">Encerrar partida</div>
+    <div class="live-modal-sub" id="endGameSubtitle">Tem certeza que deseja encerrar a partida agora?</div>
+    <div class="confirm-actions">
+      <button class="goal-btn secondary" id="cancelEndGameBtn" type="button">Nao</button>
+      <button class="goal-btn" id="confirmEndGameBtn" type="button">Sim, encerrar</button>
+    </div>
+  </div>
+</div>
+
+<script src="/jogo-live.js?v=10" defer></script>
 </body>
 </html>

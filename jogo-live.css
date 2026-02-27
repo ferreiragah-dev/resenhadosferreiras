@@ -45,7 +45,15 @@ body{
 }
 
 .player-row.right{
-  flex-direction:row-reverse;
+  justify-content:flex-end;
+}
+
+.player-row.right .player-info{
+  align-items:flex-end;
+}
+
+.player-row.right .player-name{
+  text-align:right;
 }
 
 .avatar{
@@ -411,6 +419,12 @@ button.secondary{
   margin-top:10px;
   background:#065f46;
   color:#9ae6b4;
+}
+
+.confirm-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
 }
 
 @media (max-width: 760px){

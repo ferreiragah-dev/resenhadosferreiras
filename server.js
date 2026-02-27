@@ -385,6 +385,79 @@ app.post('/api/public/live-game/end', async (req, res) => {
     current.updatedAt = Date.now();
     current.status = 'finished';
 
+    const teamAId = String(current.teamAId || '');
+    const teamBId = String(current.teamBId || '');
+    const scoreA = Number(current.scoreA || 0);
+    const scoreB = Number(current.scoreB || 0);
+    const teamA = (tournament.teams || []).find((t) => String(t.id || '') === teamAId) || null;
+    const teamB = (tournament.teams || []).find((t) => String(t.id || '') === teamBId) || null;
+
+    function ensureStats(team) {
+      if (!team) return null;
+      const s = team.stats && typeof team.stats === 'object' ? team.stats : {};
+      team.stats = {
+        points: Number(s.points || 0),
+        games: Number(s.games || 0),
+        wins: Number(s.wins || 0),
+        draws: Number(s.draws || 0),
+        losses: Number(s.losses || 0),
+        goalsPro: Number(s.goalsPro || 0),
+        goalsContra: Number(s.goalsContra || 0),
+        goalDiff: Number(s.goalDiff || 0)
+      };
+      return team.stats;
+    }
+
+    const statsA = ensureStats(teamA);
+    const statsB = ensureStats(teamB);
+    if (statsA && statsB) {
+      statsA.games += 1;
+      statsB.games += 1;
+      statsA.goalsPro += scoreA;
+      statsA.goalsContra += scoreB;
+      statsB.goalsPro += scoreB;
+      statsB.goalsContra += scoreA;
+
+      if (scoreA > scoreB) {
+        statsA.wins += 1;
+        statsA.points += 3;
+        statsB.losses += 1;
+      } else if (scoreB > scoreA) {
+        statsB.wins += 1;
+        statsB.points += 3;
+        statsA.losses += 1;
+      } else {
+        statsA.draws += 1;
+        statsB.draws += 1;
+        statsA.points += 1;
+        statsB.points += 1;
+      }
+
+      statsA.goalDiff = Number(statsA.goalsPro || 0) - Number(statsA.goalsContra || 0);
+      statsB.goalDiff = Number(statsB.goalsPro || 0) - Number(statsB.goalsContra || 0);
+    }
+
+    const goalEvents = (Array.isArray(current.events) ? current.events : [])
+      .filter((ev) => String(ev?.type || '').toUpperCase() === 'GP')
+      .map((ev) => ({
+        playerId: String(ev.playerId || ''),
+        playerName: String(ev.playerName || '')
+      }));
+
+    const matches = Array.isArray(tournament.matches) ? tournament.matches : [];
+    matches.push({
+      id: uid(),
+      teamAId,
+      teamBId,
+      goalsA: scoreA,
+      goalsB: scoreB,
+      stage: 'Ao vivo',
+      date: new Date(current.endedAt).toISOString(),
+      goalEvents,
+      createdAt: Date.now()
+    });
+    tournament.matches = matches;
+
     const recent = Array.isArray(tournament.recentGames) ? tournament.recentGames : [];
     recent.unshift(current);
     tournament.recentGames = recent.slice(0, 20);

@@ -34,6 +34,7 @@ window.addEventListener('DOMContentLoaded', function () {
 
   bindGoalButtons();
   bindPlayerActionModal();
+  bindEndGameModal();
   loadRoster(teamAId, teamBId);
   updateDisplay();
   updateScore();
@@ -90,8 +91,9 @@ function renderPlayers(targetId, players, right, side) {
     var avatar = p.photoDataUrl
       ? '<img src="' + esc(p.photoDataUrl) + '" alt="' + esc(p.name) + '">' 
       : esc(initials(p.name));
+    var playerLabel = right ? (String(p.name || 'Jogador') + ' (' + initials(p.name) + ')') : String(p.name || 'Jogador');
     var statsHtml = renderLiveStatChips(stats);
-    var info = '<div class="player-info"><div class="player-name">' + esc(p.name) + '</div>' + statsHtml + '</div>';
+    var info = '<div class="player-info"><div class="player-name">' + esc(playerLabel) + '</div>' + statsHtml + '</div>';
     var avatarHtml = '<div class="avatar" data-player-action="' + esc(p.id) + '" data-player-side="' + side + '" data-player-name="' + esc(p.name) + '">' +
       avatar +
       (p.isCaptain ? '<div class="captain-badge">C</div>' : '') +
@@ -99,7 +101,7 @@ function renderPlayers(targetId, players, right, side) {
       '</div>';
 
     return '<div class="player-row' + (right ? ' right' : '') + '">' +
-      (right ? info + avatarHtml : avatarHtml + info) +
+      avatarHtml + info +
       '</div>';
   }).join('');
 }
@@ -157,6 +159,39 @@ function bindPlayerActionModal() {
       if (e && e.key === 'Escape') closePlayerActionModal();
     });
   }
+}
+
+function bindEndGameModal() {
+  var modal = byId('endGameModal');
+  var backdrop = byId('endGameBackdrop');
+  var cancelBtn = byId('cancelEndGameBtn');
+  var confirmBtn = byId('confirmEndGameBtn');
+  if (backdrop) backdrop.addEventListener('click', closeEndGameModal);
+  if (cancelBtn) cancelBtn.addEventListener('click', closeEndGameModal);
+  if (confirmBtn) {
+    confirmBtn.addEventListener('click', function () {
+      finalizeGameAndRedirect(confirmBtn);
+    });
+  }
+  if (modal) {
+    document.addEventListener('keydown', function (e) {
+      if (e && e.key === 'Escape') closeEndGameModal();
+    });
+  }
+}
+
+function openEndGameModal() {
+  var modal = byId('endGameModal');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  modal.setAttribute('aria-hidden', 'false');
+}
+
+function closeEndGameModal() {
+  var modal = byId('endGameModal');
+  if (!modal) return;
+  modal.classList.add('hidden');
+  modal.setAttribute('aria-hidden', 'true');
 }
 
 function openPlayerActionModal(player) {
@@ -360,17 +395,30 @@ async function syncLiveGame(mode) {
 }
 
 function endGame() {
-  var confirmed = confirm('Encerrar partida e enviar para jogos recentes?');
-  if (!confirmed) return;
+  openEndGameModal();
+}
+
+function finalizeGameAndRedirect(confirmBtn) {
+  if (confirmBtn) {
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Salvando...';
+  }
   clearInterval(interval);
   interval = null;
   syncLiveGame('end')
     .then(function () {
-      alert('Partida encerrada e salva em jogos recentes.');
+      closeEndGameModal();
+      window.location.href = '/jogo';
     })
     .catch(function (err) {
       console.error('Falha ao encerrar partida:', err);
       alert('Erro ao encerrar partida.');
+    })
+    .finally(function () {
+      if (confirmBtn) {
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Sim, encerrar';
+      }
     });
 }
 
