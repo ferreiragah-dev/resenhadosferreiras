@@ -207,6 +207,22 @@
     </form>
   </dialog>
 
+  <dialog id="teamChangeDialog">
+    <form method="dialog" class="penalty-dialog-form">
+      <h3 id="teamChangeDialogTitle">Trocar time</h3>
+      <p class="muted">Selecione o novo time do jogador.</p>
+      <label class="full">Time
+        <select id="teamChangeSelect">
+          <option value="">Sem time</option>
+        </select>
+      </label>
+      <menu>
+        <button value="cancel" class="ghost" type="submit">Cancelar</button>
+        <button value="save" class="primary" type="submit">Salvar</button>
+      </menu>
+    </form>
+  </dialog>
+
   <script src="app.js" defer></script>
 </body>
 </html>

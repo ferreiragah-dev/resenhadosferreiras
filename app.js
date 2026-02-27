@@ -4,6 +4,7 @@ const ADMIN_FIXED_USER = "admin";
 const ADMIN_FIXED_PASSWORD = "ferreiras123@";
 const state = loadState();
 let selectedPenaltyPlayerId = null;
+let selectedTeamChangePlayerId = null;
 let pendingGoalEvents = [];
 let registeredUsers = [];
 let syncTimer = null;
@@ -59,6 +60,9 @@ const els = {
   teamRanking: document.getElementById('teamRanking'),
   penaltyDialog: document.getElementById('penaltyDialog'),
   penaltyDialogTitle: document.getElementById('penaltyDialogTitle'),
+  teamChangeDialog: document.getElementById('teamChangeDialog'),
+  teamChangeDialogTitle: document.getElementById('teamChangeDialogTitle'),
+  teamChangeSelect: document.getElementById('teamChangeSelect'),
   resetDataBtn: document.getElementById('resetDataBtn')
 };
 
@@ -254,6 +258,16 @@ function bindEvents() {
     persistAndRender();
   });
 
+  els.teamChangeDialog?.addEventListener('close', () => {
+    const action = els.teamChangeDialog.returnValue;
+    if (!selectedTeamChangePlayerId || action !== 'save') { selectedTeamChangePlayerId = null; return; }
+    const player = state.players.find((p) => p.id === selectedTeamChangePlayerId);
+    if (!player) { selectedTeamChangePlayerId = null; return; }
+    player.teamId = String(els.teamChangeSelect?.value || '');
+    selectedTeamChangePlayerId = null;
+    persistAndRender();
+  });
+
   els.resetDataBtn.addEventListener('click', () => {
     if (!confirm('Apagar todos os dados do campeonato?')) return;
     localStorage.removeItem(STORAGE_KEY);
@@ -365,6 +379,15 @@ function renderPlayers() {
   els.playersList.innerHTML = players.map((p) => renderPlayerCard(p)).join('');
 
   els.playersList.querySelectorAll('[data-player-photo]').forEach((btn) => btn.addEventListener('click', () => openPenaltyDialog(btn.dataset.playerPhoto)));
+  els.playersList.querySelectorAll('[data-player-change-team]').forEach((btn) => {
+    btn.addEventListener('click', () => openTeamChangeDialog(btn.dataset.playerChangeTeam));
+    btn.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        openTeamChangeDialog(btn.dataset.playerChangeTeam);
+      }
+    });
+  });
   els.playersList.querySelectorAll('[data-player-delete]').forEach((btn) => btn.addEventListener('click', () => deletePlayer(btn.dataset.playerDelete)));
   els.playersList.querySelectorAll('[data-player-reset-cards]').forEach((btn) => btn.addEventListener('click', () => resetPlayerCards(btn.dataset.playerResetCards)));
   els.playersList.querySelectorAll('[data-player-add-assist]').forEach((btn) => btn.addEventListener('click', () => addPlayerAssist(btn.dataset.playerAddAssist)));
@@ -403,7 +426,7 @@ function renderPlayerCard(player) {
         </div>
       </button>
       <div class="player-meta">
-        <div class="player-name">${esc(player.name)} ${player.number !== null ? `#${player.number}` : ''}</div>
+        <div class="player-name" role="button" tabindex="0" title="Clique para trocar time" data-player-change-team="${esc(player.id)}">${esc(player.name)} ${player.number !== null ? `#${player.number}` : ''}</div>
         <div class="player-sub">${esc(player.position || '-')} • ${esc(team?.name || 'Sem time')}</div>
         <div class="player-sub">${linkedUser ? `Conta: ${esc(linkedUser.email)}` : 'Conta: sem vínculo'}</div>
         <div class="player-sub">Capitão: ${player.isCaptain ? 'Sim' : 'Não'}</div>
@@ -847,6 +870,34 @@ function openPenaltyDialog(playerId) {
   const ans = prompt(`Penalidade para ${player.name}: 1=amarelo, 2=vermelho`);
   if (ans === '1') { applyPlayerRelatedDelta(player, 'yellowCards', 1); persistAndRender(); }
   if (ans === '2') { applyPlayerRelatedDelta(player, 'redCards', 1); persistAndRender(); }
+}
+
+function openTeamChangeDialog(playerId) {
+  const player = state.players.find((p) => p.id === playerId);
+  if (!player || !els.teamChangeDialog || !els.teamChangeSelect) return;
+  selectedTeamChangePlayerId = playerId;
+  if (els.teamChangeDialogTitle) {
+    els.teamChangeDialogTitle.textContent = `Trocar time - ${player.name}`;
+  }
+  const options = ['<option value="">Sem time</option>']
+    .concat(
+      [...state.teams]
+        .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR'))
+        .map((t) => `<option value="${esc(t.id)}">${esc(t.name)}</option>`)
+    );
+  els.teamChangeSelect.innerHTML = options.join('');
+  els.teamChangeSelect.value = String(player.teamId || '');
+  if (typeof els.teamChangeDialog.showModal === 'function') {
+    els.teamChangeDialog.showModal();
+    return;
+  }
+  const choices = ['Sem time'].concat(state.teams.map((t) => t.name));
+  const ans = prompt(`Novo time para ${player.name}:\n${choices.join(' | ')}`);
+  if (ans === null) { selectedTeamChangePlayerId = null; return; }
+  const chosen = state.teams.find((t) => String(t.name || '').toLowerCase() === String(ans || '').trim().toLowerCase());
+  player.teamId = chosen ? chosen.id : '';
+  selectedTeamChangePlayerId = null;
+  persistAndRender();
 }
 
 function deletePlayer(id) {

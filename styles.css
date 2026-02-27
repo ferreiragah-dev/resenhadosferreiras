@@ -98,6 +98,8 @@ button { border: none; border-radius: 10px; padding: 10px 12px; cursor: pointer;
 .penalty-chip.red { background: #ff8f89; border-color: #d6342a; color: #5f0f0a; }
 .player-meta { padding: 10px; display: grid; gap: 4px; }
 .player-name { font-weight: 700; }
+.player-name[role="button"] { cursor: pointer; }
+.player-name[role="button"]:hover { text-decoration: underline; }
 .player-sub { color: var(--muted); font-size: .88rem; }
 .stat-crud-grid {
   display: grid;
