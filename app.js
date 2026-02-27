@@ -69,6 +69,9 @@ const els = {
   teamChangeDialog: document.getElementById('teamChangeDialog'),
   teamChangeDialogTitle: document.getElementById('teamChangeDialogTitle'),
   teamChangeSelect: document.getElementById('teamChangeSelect'),
+  teamLineupDialog: document.getElementById('teamLineupDialog'),
+  teamLineupTitle: document.getElementById('teamLineupTitle'),
+  teamLineupList: document.getElementById('teamLineupList'),
   resetDataBtn: document.getElementById('resetDataBtn')
 };
 
@@ -261,6 +264,13 @@ function bindEvents() {
   els.loadScheduleTemplateBtn?.addEventListener('click', loadDefaultScheduleTemplate);
 
   els.generateBracketBtn.addEventListener('click', generateBracketFromTeams);
+
+  document.addEventListener('click', (e) => {
+    const target = e.target && e.target.closest ? e.target.closest('[data-team-open]') : null;
+    if (!target) return;
+    e.preventDefault();
+    openTeamLineupDialog(target.dataset.teamOpen || '', target.dataset.teamName || '');
+  });
 
   els.teamsList?.addEventListener('click', async (e) => {
     const target = e.target && e.target.closest ? e.target.closest('button') : null;
@@ -653,11 +663,12 @@ function removeTeamLogo(teamId) {
 
 function teamIdentityHtml(team) {
   if (!team) return '<span>Time</span>';
+  const teamName = esc(team.name || 'Time');
   const logo = String(team.logoDataUrl || '').trim();
   if (logo) {
-    return `<span class="team-logo"><img src="${esc(logo)}" alt="${esc(team.name || 'Time')}"></span><span>${esc(team.name || 'Time')}</span>`;
+    return `<button type="button" class="team-open-btn" data-team-open="${esc(team.id)}" data-team-name="${teamName}"><span class="team-logo"><img src="${esc(logo)}" alt="${teamName}"></span><span>${teamName}</span></button>`;
   }
-  return `<span class="team-dot" style="background:${esc(team.color || '#0f766e')}"></span><span>${esc(team.name || 'Time')}</span>`;
+  return `<button type="button" class="team-open-btn" data-team-open="${esc(team.id)}" data-team-name="${teamName}"><span class="team-dot" style="background:${esc(team.color || '#0f766e')}"></span><span>${teamName}</span></button>`;
 }
 
 function teamStatInput(teamId, field, label, value) {
@@ -1006,13 +1017,70 @@ function renderRankings() {
 
 function teamInlineHtml(team, fallbackName) {
   const name = fallbackName || (team && team.name) || 'Time';
+  const nameEsc = esc(name);
+  const teamId = team && team.id ? String(team.id) : '';
   if (team && team.logoDataUrl) {
-    return `<span class="team-logo tiny"><img src="${esc(team.logoDataUrl)}" alt="${esc(name)}"></span><span>${esc(name)}</span>`;
+    return `<button type="button" class="team-open-btn" data-team-open="${esc(teamId)}" data-team-name="${nameEsc}"><span class="team-logo tiny"><img src="${esc(team.logoDataUrl)}" alt="${nameEsc}"></span><span>${nameEsc}</span></button>`;
   }
   if (team) {
-    return `<span class="team-dot small" style="background:${esc(team.color || '#0f766e')}"></span><span>${esc(name)}</span>`;
+    return `<button type="button" class="team-open-btn" data-team-open="${esc(teamId)}" data-team-name="${nameEsc}"><span class="team-dot small" style="background:${esc(team.color || '#0f766e')}"></span><span>${nameEsc}</span></button>`;
   }
-  return `<span>${esc(name)}</span>`;
+  return `<button type="button" class="team-open-btn" data-team-name="${nameEsc}"><span>${nameEsc}</span></button>`;
+}
+
+function openTeamLineupDialog(teamId, teamName) {
+  let team = null;
+  if (teamId) team = findTeam(String(teamId));
+  if (!team && teamName) {
+    const normalized = String(teamName).trim().toLowerCase();
+    team = state.teams.find((t) => String(t.name || '').trim().toLowerCase() === normalized) || null;
+  }
+
+  const title = team ? String(team.name || 'Time') : (String(teamName || '').trim() || 'Time');
+  const players = team
+    ? state.players
+      .filter((p) => String(p.teamId || '') === String(team.id))
+      .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR'))
+    : [];
+
+  if (els.teamLineupTitle) {
+    els.teamLineupTitle.textContent = `Escalação - ${title}`;
+  }
+
+  if (els.teamLineupList) {
+    if (!players.length) {
+      els.teamLineupList.innerHTML = '<p class="muted">Nenhum jogador vinculado a esse time.</p>';
+    } else {
+      els.teamLineupList.innerHTML = players.map((p) => {
+        const avatar = p.photoDataUrl
+          ? `<span class="lineup-avatar"><img src="${esc(p.photoDataUrl)}" alt="${esc(p.name || 'Jogador')}"></span>`
+          : `<span class="lineup-avatar">${esc(initials(p.name || 'J'))}</span>`;
+        return `<div class="lineup-item">
+          <div class="lineup-left">
+            ${avatar}
+            <div>
+              <div class="lineup-name">${esc(p.name || 'Jogador')} ${p.number !== null && typeof p.number !== 'undefined' ? `#${Number(p.number)}` : ''}</div>
+              <div class="lineup-meta">${esc(p.position || '-')}</div>
+            </div>
+          </div>
+          <div class="lineup-badges">
+            ${p.isCaptain ? '<span>C</span>' : ''}
+            <span>A ${Number(p.assists || 0)}</span>
+            <span>GP ${Number(p.goalsPro || 0)}</span>
+            <span>GC ${Number(p.goalsContra || 0)}</span>
+            <span>CA ${Number(p.yellowCards || 0)}</span>
+            <span>CV ${Number(p.redCards || 0)}</span>
+          </div>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  if (els.teamLineupDialog && typeof els.teamLineupDialog.showModal === 'function') {
+    els.teamLineupDialog.showModal();
+    return;
+  }
+  alert(`Escalação de ${title}: ${players.map((p) => p.name).join(', ') || 'sem jogadores'}`);
 }
 
 function openPenaltyDialog(playerId) {
