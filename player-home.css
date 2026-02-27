@@ -290,6 +290,11 @@
   font-weight:700;
   color:#22c55e;
   text-align:center;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  flex-wrap:nowrap;
   margin-bottom:6px;
 }
 
@@ -297,6 +302,23 @@
   display:inline-flex;
   align-items:center;
   gap:6px;
+}
+
+.team-label.team-label-score{
+  flex-direction:column;
+  gap:2px;
+  min-width:74px;
+}
+
+.team-name-mini{
+  font-size:.62rem;
+  opacity:.82;
+  font-weight:700;
+  line-height:1;
+  max-width:74px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 
 .team-logo{
@@ -317,6 +339,11 @@
 .team-logo.team-logo-tiny{
   width:32px;
   height:32px;
+}
+
+.team-logo.team-logo-score{
+  width:44px;
+  height:44px;
 }
 
 .match-stats{

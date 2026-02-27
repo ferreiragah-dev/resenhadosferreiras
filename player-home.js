@@ -303,7 +303,7 @@ function renderLiveGame(game) {
   var timer = formatSeconds(Number(game.remaining || 0));
   els.liveGameBox.innerHTML = '<div class="live-game-card">' +
     '<div class="live-game-title">Partida ao vivo</div>' +
-    '<div class="live-game-score">' + teamLabelHtml(game.teamAName || 'Time A', game.teamALogoDataUrl || '', 'tiny') + ' ' + Number(game.scoreA || 0) + ' x ' + Number(game.scoreB || 0) + ' ' + teamLabelHtml(game.teamBName || 'Time B', game.teamBLogoDataUrl || '', 'tiny') + '</div>' +
+    '<div class="live-game-score">' + teamLabelHtml(game.teamAName || 'Time A', game.teamALogoDataUrl || '', 'score', 'score') + ' ' + Number(game.scoreA || 0) + ' x ' + Number(game.scoreB || 0) + ' ' + teamLabelHtml(game.teamBName || 'Time B', game.teamBLogoDataUrl || '', 'score', 'score') + '</div>' +
     '<div class="match-stats"><span>⏱ ' + timer + '</span><span>' + (game.running ? 'Ao vivo' : 'Pausado') + '</span></div>' +
     '</div>';
 }
@@ -339,7 +339,7 @@ function renderRecentGames(list) {
     var dateLabel = g.endedAt ? new Date(Number(g.endedAt)).toLocaleString('pt-BR') : 'Finalizado';
     return '<div class="match">' +
       '<div class="match-header"><span>' + dateLabel + '</span><span>Partida</span></div>' +
-      '<div class="score">' + teamLabelHtml(g.teamAName || 'Time A', g.teamALogoDataUrl || '', 'tiny') + ' ' + Number(g.scoreA || 0) + ' x ' + Number(g.scoreB || 0) + ' ' + teamLabelHtml(g.teamBName || 'Time B', g.teamBLogoDataUrl || '', 'tiny') + '</div>' +
+      '<div class="score">' + teamLabelHtml(g.teamAName || 'Time A', g.teamALogoDataUrl || '', 'score', 'score') + ' ' + Number(g.scoreA || 0) + ' x ' + Number(g.scoreB || 0) + ' ' + teamLabelHtml(g.teamBName || 'Time B', g.teamBLogoDataUrl || '', 'score', 'score') + '</div>' +
       '<div class="match-stats"><span>Duração: ' + formatSeconds(Number(g.duration || 600)) + '</span></div>' +
       '</div>';
   }).join('');
@@ -377,16 +377,17 @@ function renderUpcomingGames(list) {
     return (showPhase ? '<div class="schedule-phase-player">' + esc(phase) + '</div>' : '') +
       '<div class="match">' +
       '<div class="match-header"><span>' + esc(g.time || '--:--') + '</span><span>' + esc(groupLabel || 'Agenda') + '</span></div>' +
-      '<div class="score">' + teamLabelHtml(g.teamALabel || 'Time A', g.teamALogoDataUrl || '', 'tiny') + ' x ' + teamLabelHtml(g.teamBLabel || 'Time B', g.teamBLogoDataUrl || '', 'tiny') + '</div>' +
+      '<div class="score">' + teamLabelHtml(g.teamALabel || 'Time A', g.teamALogoDataUrl || '', 'score', 'score') + ' x ' + teamLabelHtml(g.teamBLabel || 'Time B', g.teamBLogoDataUrl || '', 'score', 'score') + '</div>' +
       '</div>';
   }).join('');
 }
 
-function teamLabelHtml(name, logoDataUrl, sizeClass) {
+function teamLabelHtml(name, logoDataUrl, sizeClass, labelClass) {
   var n = esc(name || 'Time');
   var cls = sizeClass ? ' team-logo-' + esc(sizeClass) : '';
-  if (logoDataUrl) return '<span class="team-label"><span class="team-logo' + cls + '"><img src="' + esc(logoDataUrl) + '" alt="' + n + '"></span><span>' + n + '</span></span>';
-  return '<span class="team-label"><span>' + n + '</span></span>';
+  var labelCls = labelClass ? ' team-label-' + esc(labelClass) : '';
+  if (logoDataUrl) return '<span class="team-label' + labelCls + '"><span class="team-logo' + cls + '"><img src="' + esc(logoDataUrl) + '" alt="' + n + '"></span><span class="team-name-mini">' + n + '</span></span>';
+  return '<span class="team-label' + labelCls + '"><span class="team-name-mini">' + n + '</span></span>';
 }
 
 function timelineCard(evt) {
