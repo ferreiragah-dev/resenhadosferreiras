@@ -224,6 +224,8 @@ async function applyPlayerAction(player, stat) {
 
   if (stat === 'GP') {
     if (player.side === 'A') addGoal('A'); else addGoal('B');
+  } else if (stat === 'GC') {
+    if (player.side === 'A') addGoal('B'); else addGoal('A');
   }
 
   renderPlayers('playersA', teamAPlayers, false, 'A');
