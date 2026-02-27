@@ -567,20 +567,20 @@ function renderTeams() {
     const count = state.players.filter((p) => p.teamId === team.id).length;
     const s = getTeamManualStats(team);
     return `
-      <article class="team-card">
+      <article class="team-card" data-team-card="${esc(team.id)}">
         <div class="team-card-top">
           <div class="team-pill">${teamIdentityHtml(team)}</div>
           <button class="danger" type="button" data-team-delete="${esc(team.id)}">Excluir</button>
         </div>
         <div class="team-edit-grid">
           <label>Nome do time
-            <input type="text" value="${esc(team.name)}" data-team-basic-input="${esc(team.id)}|name">
+            <input type="text" value="${esc(team.name)}" data-team-basic-input="${esc(team.id)}|name" data-team-name-input>
           </label>
           <label>Cor
-            <input type="color" value="${esc(team.color || '#0f766e')}" data-team-basic-input="${esc(team.id)}|color">
+            <input type="color" value="${esc(team.color || '#0f766e')}" data-team-basic-input="${esc(team.id)}|color" data-team-color-input>
           </label>
           <label class="full">Logo (opcional)
-            <input type="file" accept="image/*" data-team-logo-input="${esc(team.id)}">
+            <input type="file" accept="image/*" data-team-logo-input="${esc(team.id)}" data-team-logo-input-file>
           </label>
         </div>
         <p class="muted">${count} jogador(es)</p>
@@ -596,6 +596,7 @@ function renderTeams() {
         </div>
         <div class="mini-actions">
           <button class="ghost" type="button" data-team-save="${esc(team.id)}">Salvar time</button>
+          <button class="ghost" type="button" data-team-logo-remove="${esc(team.id)}">Remover logo</button>
           <button class="ghost" type="button" data-team-stats-save="${esc(team.id)}">Salvar tabela</button>
           <button class="ghost" type="button" data-team-stats-reset="${esc(team.id)}">Zerar tabela</button>
         </div>
@@ -603,6 +604,7 @@ function renderTeams() {
   }).join('');
   els.teamsList.querySelectorAll('[data-team-delete]').forEach((btn) => btn.addEventListener('click', () => deleteTeam(btn.dataset.teamDelete)));
   els.teamsList.querySelectorAll('[data-team-save]').forEach((btn) => btn.addEventListener('click', async () => { await saveTeamBasicFromCard(btn.dataset.teamSave); }));
+  els.teamsList.querySelectorAll('[data-team-logo-remove]').forEach((btn) => btn.addEventListener('click', () => removeTeamLogo(btn.dataset.teamLogoRemove)));
   els.teamsList.querySelectorAll('[data-team-stats-save]').forEach((btn) => btn.addEventListener('click', () => saveTeamStatsFromCard(btn.dataset.teamStatsSave)));
   els.teamsList.querySelectorAll('[data-team-stats-reset]').forEach((btn) => btn.addEventListener('click', () => resetTeamStats(btn.dataset.teamStatsReset)));
 }
@@ -610,15 +612,14 @@ function renderTeams() {
 async function saveTeamBasicFromCard(teamId) {
   const team = state.teams.find((t) => t.id === teamId);
   if (!team) return;
+  const card = document.querySelector(`[data-team-card="${cssEscape(teamId)}"]`);
   const patch = { name: team.name, color: team.color || '#0f766e', logoDataUrl: team.logoDataUrl || '' };
-  document.querySelectorAll(`[data-team-basic-input^="${cssEscape(teamId)}|"]`).forEach((input) => {
-    const parts = String(input.dataset.teamBasicInput || '').split('|');
-    if (parts.length !== 2) return;
-    const field = parts[1];
-    if (field === 'name') patch.name = String(input.value || '').trim();
-    if (field === 'color') patch.color = String(input.value || '').trim() || '#0f766e';
-  });
-  const logoInput = document.querySelector(`[data-team-logo-input="${cssEscape(teamId)}"]`);
+  const nameInput = card ? card.querySelector('[data-team-name-input]') : null;
+  const colorInput = card ? card.querySelector('[data-team-color-input]') : null;
+  const logoInput = card ? card.querySelector('[data-team-logo-input-file]') : null;
+
+  if (nameInput) patch.name = String(nameInput.value || '').trim();
+  if (colorInput) patch.color = String(colorInput.value || '').trim() || '#0f766e';
   if (logoInput && logoInput.files && logoInput.files[0]) {
     patch.logoDataUrl = await fileToDataURL(logoInput.files[0]);
   }
@@ -629,6 +630,13 @@ async function saveTeamBasicFromCard(teamId) {
   team.name = patch.name;
   team.color = patch.color;
   team.logoDataUrl = patch.logoDataUrl;
+  persistAndRender();
+}
+
+function removeTeamLogo(teamId) {
+  const team = state.teams.find((t) => t.id === teamId);
+  if (!team) return;
+  team.logoDataUrl = '';
   persistAndRender();
 }
 
