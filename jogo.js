@@ -3,7 +3,6 @@
   var teamB = document.getElementById('teamB');
   var playBtn = document.getElementById('playBtn');
   var scheduleList = document.getElementById('scheduleList');
-  var teamsById = {};
 
   loadTeams();
   loadSchedule();
@@ -16,8 +15,6 @@
     try {
       var data = await api('/api/public/teams');
       var teams = Array.isArray(data.teams) ? data.teams : [];
-      teamsById = {};
-      teams.forEach(function (t) { teamsById[String(t.id)] = t; });
       var options = '<option value="">Selecione</option>' + teams.map(function (t) {
         return '<option value="' + esc(t.id) + '">' + esc(t.name) + '</option>';
       }).join('');
@@ -65,7 +62,7 @@
         var id = btn.getAttribute('data-schedule-start');
         var game = items.find(function (x) { return String(x.id) === String(id); });
         if (!game || !game.canStart) return;
-        startMatch(game.teamAId, game.teamBId, game.teamAName, game.teamBName, game.teamALogoDataUrl || '', game.teamBLogoDataUrl || '');
+        startMatch(game.teamAId, game.teamBId, game.teamAName, game.teamBName);
       });
     });
   }
@@ -85,18 +82,14 @@
       return;
     }
 
-    var aLogo = teamsById[String(aId)] ? String(teamsById[String(aId)].logoDataUrl || '') : '';
-    var bLogo = teamsById[String(bId)] ? String(teamsById[String(bId)].logoDataUrl || '') : '';
-    startMatch(aId, bId, aName, bName, aLogo, bLogo);
+    startMatch(aId, bId, aName, bName);
   }
 
-  function startMatch(aId, bId, aName, bName, aLogo, bLogo) {
+  function startMatch(aId, bId, aName, bName) {
     var url = '/jogo/ao-vivo?teamA=' + encodeURIComponent(aId) +
       '&teamB=' + encodeURIComponent(bId) +
       '&teamAName=' + encodeURIComponent(aName) +
-      '&teamBName=' + encodeURIComponent(bName) +
-      '&teamALogo=' + encodeURIComponent(String(aLogo || '')) +
-      '&teamBLogo=' + encodeURIComponent(String(bLogo || ''));
+      '&teamBName=' + encodeURIComponent(bName);
     window.location.href = url;
   }
 
