@@ -36,6 +36,7 @@ Variaveis recomendadas:
 
 - `PORT=3000`
 - `JWT_SECRET=coloque-uma-chave-forte-aqui`
+- `FORCE_HTTPS=1` (recomendado em producao com proxy HTTPS)
 - `VAPID_PUBLIC_KEY=...`
 - `VAPID_PRIVATE_KEY=...`
 - `VAPID_SUBJECT=mailto:seu-email@dominio.com`
