@@ -409,13 +409,14 @@
   display:flex;
   align-items:center;
   justify-content:space-between;
-  gap:6px;
+  gap:8px;
   margin-top:12px;
+  flex-wrap:nowrap;
 }
 
 .team-neon{
   text-align:center;
-  width:34%;
+  width:35%;
   min-width:0;
 }
 
@@ -468,13 +469,22 @@
 
 .score-center-neon{
   text-align:center;
-  width:32%;
+  width:30%;
+  min-width:96px;
+  flex:0 0 30%;
 }
 
 .score-neon{
-  font-size:1.45rem;
+  font-size:2rem;
   font-weight:900;
   text-shadow:0 0 12px #00ff88;
+  line-height:1;
+  white-space:nowrap;
+  display:block;
+}
+
+.recent-game-card .score-center-neon{
+  min-width:110px;
 }
 
 .vs-neon{
