@@ -2,6 +2,7 @@
 var homePoll = null;
 var homePollMs = 0;
 var currentTab = 'perfil';
+var latestHomeData = null;
 
 const els = {
   tabs: Array.prototype.slice.call(document.querySelectorAll('.tab')),
@@ -27,7 +28,11 @@ const els = {
   liveGameBox: document.getElementById('liveGameBox'),
   liveTimelineBox: document.getElementById('liveTimelineBox'),
   upcomingGamesBox: document.getElementById('upcomingGamesBox'),
-  recentGamesBox: document.getElementById('recentGamesBox')
+  recentGamesBox: document.getElementById('recentGamesBox'),
+  teamLineupDialog: document.getElementById('teamLineupDialog'),
+  teamLineupTitle: document.getElementById('teamLineupTitle'),
+  teamLineupList: document.getElementById('teamLineupList'),
+  closeTeamLineupBtn: document.getElementById('closeTeamLineupBtn')
 };
 
 bindEvents();
@@ -52,6 +57,19 @@ function bindEvents() {
     els.logoutBtn.addEventListener('click', function () {
       localStorage.removeItem(TOKEN_KEY);
       window.location.href = '/player';
+    });
+  }
+
+  document.addEventListener('click', function (e) {
+    var trigger = e.target && e.target.closest ? e.target.closest('[data-team-open-name]') : null;
+    if (!trigger) return;
+    e.preventDefault();
+    openTeamLineupDialog(trigger.getAttribute('data-team-open-id') || '', trigger.getAttribute('data-team-open-name') || '');
+  });
+
+  if (els.closeTeamLineupBtn) {
+    els.closeTeamLineupBtn.addEventListener('click', function () {
+      if (els.teamLineupDialog && typeof els.teamLineupDialog.close === 'function') els.teamLineupDialog.close();
     });
   }
 }
@@ -130,6 +148,7 @@ function setActiveTab(tab) {
 async function loadHome() {
   const token = localStorage.getItem(TOKEN_KEY);
   const data = await api('/api/player/home', { headers: { Authorization: 'Bearer ' + token } });
+  latestHomeData = data || null;
 
   if (!data.linked) {
     if (els.pendingBox) els.pendingBox.classList.remove('hidden');
@@ -320,9 +339,9 @@ function renderLiveGame(game) {
   els.liveGameBox.innerHTML = '<div class="match-card-neon">' +
     '<div class="match-header-neon"><div>⏱ ' + timer + '</div><div>' + (game.running ? 'Ao vivo' : 'Pausado') + '</div></div>' +
     '<div class="match-body-neon">' +
-      '<div class="team-neon">' + teamLogoOnlyHtml(game.teamAName || 'Time A', game.teamALogoDataUrl || '') + '<div class="team-name-neon">' + esc(game.teamAName || 'Time A') + '</div></div>' +
+      teamNeonBlock(game.teamAName || 'Time A', game.teamALogoDataUrl || '', game.teamAId || '') +
       '<div class="score-center-neon"><div class="score-neon">' + Number(game.scoreA || 0) + ' x ' + Number(game.scoreB || 0) + '</div><div class="vs-neon">' + (game.running ? 'AO VIVO' : 'PAUSADO') + '</div></div>' +
-      '<div class="team-neon">' + teamLogoOnlyHtml(game.teamBName || 'Time B', game.teamBLogoDataUrl || '') + '<div class="team-name-neon">' + esc(game.teamBName || 'Time B') + '</div></div>' +
+      teamNeonBlock(game.teamBName || 'Time B', game.teamBLogoDataUrl || '', game.teamBId || '') +
     '</div>' +
     '<div class="match-footer-neon">Partida em andamento</div>' +
     '</div>';
@@ -360,9 +379,9 @@ function renderRecentGames(list) {
     return '<div class="match-card-neon recent-game-card">' +
       '<div class="match-header-neon"><div>⏱ ' + dateLabel + '</div><div>Encerrado</div></div>' +
       '<div class="match-body-neon">' +
-        '<div class="team-neon">' + teamLogoOnlyHtml(g.teamAName || 'Time A', g.teamALogoDataUrl || '') + '<div class="team-name-neon">' + esc(g.teamAName || 'Time A') + '</div></div>' +
+        teamNeonBlock(g.teamAName || 'Time A', g.teamALogoDataUrl || '', g.teamAId || '') +
         '<div class="score-center-neon"><div class="score-neon">' + Number(g.scoreA || 0) + ' x ' + Number(g.scoreB || 0) + '</div><div class="vs-neon">FINAL</div></div>' +
-        '<div class="team-neon">' + teamLogoOnlyHtml(g.teamBName || 'Time B', g.teamBLogoDataUrl || '') + '<div class="team-name-neon">' + esc(g.teamBName || 'Time B') + '</div></div>' +
+        teamNeonBlock(g.teamBName || 'Time B', g.teamBLogoDataUrl || '', g.teamBId || '') +
       '</div>' +
       '<div class="match-footer-neon">Duração: ' + formatSeconds(Number(g.duration || 600)) + '</div>' +
       '</div>';
@@ -398,13 +417,20 @@ function renderUpcomingGames(list) {
     return '<div class="match-card-neon">' +
       '<div class="match-header-neon"><div>⏱ ' + esc(g.time || '--:--') + '</div><div>' + esc(groupLabel || 'Agenda') + '</div></div>' +
       '<div class="match-body-neon">' +
-        '<div class="team-neon">' + teamLogoOnlyHtml(g.teamALabel || 'Time A', g.teamALogoDataUrl || '') + '<div class="team-name-neon">' + esc(g.teamALabel || 'Time A') + '</div></div>' +
+        teamNeonBlock(g.teamALabel || 'Time A', g.teamALogoDataUrl || '', g.teamAId || '') +
         '<div class="score-center-neon"><div class="score-neon">-- x --</div><div class="vs-neon">AGENDADO</div></div>' +
-        '<div class="team-neon">' + teamLogoOnlyHtml(g.teamBLabel || 'Time B', g.teamBLogoDataUrl || '') + '<div class="team-name-neon">' + esc(g.teamBLabel || 'Time B') + '</div></div>' +
+        teamNeonBlock(g.teamBLabel || 'Time B', g.teamBLogoDataUrl || '', g.teamBId || '') +
       '</div>' +
       '<div class="match-footer-neon">' + esc(phase) + ' • Temporada Verão 2026</div>' +
       '</div>';
   }).join('');
+}
+
+function teamNeonBlock(name, logoDataUrl, teamId) {
+  return '<button type="button" class="team-neon team-neon-btn" data-team-open-id="' + esc(teamId || '') + '" data-team-open-name="' + esc(name || 'Time') + '">' +
+    teamLogoOnlyHtml(name || 'Time', logoDataUrl || '') +
+    '<div class="team-name-neon">' + esc(name || 'Time') + '</div>' +
+    '</button>';
 }
 
 function teamLogoOnlyHtml(name, logoDataUrl) {
@@ -419,6 +445,53 @@ function teamLabelHtml(name, logoDataUrl, sizeClass, labelClass) {
   var labelCls = labelClass ? ' team-label-' + esc(labelClass) : '';
   if (logoDataUrl) return '<span class="team-label' + labelCls + '"><span class="team-logo' + cls + '"><img src="' + esc(logoDataUrl) + '" alt="' + n + '"></span><span class="team-name-mini">' + n + '</span></span>';
   return '<span class="team-label' + labelCls + '"><span class="team-name-mini">' + n + '</span></span>';
+}
+
+function openTeamLineupDialog(teamId, teamName) {
+  if (!els.teamLineupDialog || !els.teamLineupList || !els.teamLineupTitle) return;
+  var name = String(teamName || 'Time').trim() || 'Time';
+  var normalized = name.toLowerCase();
+  var ranking = Array.isArray(latestHomeData && latestHomeData.playerRanking) ? latestHomeData.playerRanking : [];
+  var players = ranking.filter(function (p) {
+    return String(p && p.teamName || '').trim().toLowerCase() === normalized;
+  });
+
+  if (!players.length) {
+    var teammates = Array.isArray(latestHomeData && latestHomeData.teammates) ? latestHomeData.teammates : [];
+    var myTeam = String((latestHomeData && latestHomeData.team && latestHomeData.team.name) || '').trim().toLowerCase();
+    if (myTeam && myTeam === normalized) players = teammates;
+  }
+
+  els.teamLineupTitle.textContent = 'Escalacao - ' + name;
+  if (!players.length) {
+    els.teamLineupList.innerHTML = '<div class="empty-state">Nenhum jogador encontrado para esse time.</div>';
+    els.teamLineupDialog.showModal();
+    return;
+  }
+
+  els.teamLineupList.innerHTML = players.map(function (p) {
+    var avatar = p.photoDataUrl
+      ? '<span class="team-lineup-avatar"><img src="' + esc(p.photoDataUrl) + '" alt="' + esc(p.name || 'Jogador') + '"></span>'
+      : '<span class="team-lineup-avatar">' + esc(initials(p.name || 'J')) + '</span>';
+    return '<div class="team-lineup-item">' +
+      '<div class="team-lineup-left">' +
+      avatar +
+      '<div class="team-lineup-name">' + esc(p.name || 'Jogador') + '</div>' +
+      '</div>' +
+      '<div class="team-lineup-stats">' +
+      (p.isCaptain ? '<span>C</span>' : '') +
+      '<span>G ' + safeNum(p.goals) + '</span>' +
+      '<span>A ' + safeNum(p.assists) + '</span>' +
+      '<span>CA ' + safeNum(p.yellowCards) + '</span>' +
+      '<span>CV ' + safeNum(p.redCards) + '</span>' +
+      '</div>' +
+      '</div>';
+  }).join('');
+  els.teamLineupDialog.showModal();
+}
+
+function initials(name) {
+  return String(name || 'J').split(/\s+/).slice(0, 2).map(function (p) { return (p[0] || '').toUpperCase(); }).join('') || 'J';
 }
 
 function timelineCard(evt) {

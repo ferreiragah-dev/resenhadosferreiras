@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Usuario | Resenha FC</title>
-<link rel="stylesheet" href="/player-home.css?v=20">
+<link rel="stylesheet" href="/player-home.css?v=21">
 </head>
 <body>
 <div class="app">
@@ -73,6 +73,16 @@
   </div>
 </div>
 
-<script src="/player-home.js?v=22" defer></script>
+<dialog id="teamLineupDialog" class="team-lineup-dialog">
+  <div class="team-lineup-head">
+    <div id="teamLineupTitle" class="team-lineup-title">Escalacao</div>
+  </div>
+  <div id="teamLineupList" class="team-lineup-list"></div>
+  <div class="team-lineup-actions">
+    <button id="closeTeamLineupBtn" class="top-btn" type="button">Fechar</button>
+  </div>
+</dialog>
+
+<script src="/player-home.js?v=23" defer></script>
 </body>
 </html>
