@@ -1,5 +1,4 @@
-﻿const STORAGE_KEY = "resenha-ferreira-campeonato-v1";
-const ADMIN_SESSION_KEY = "resenha-ferreira-admin-auth";
+﻿const ADMIN_SESSION_KEY = "resenha-ferreira-admin-auth";
 const ADMIN_FIXED_USER = "admin";
 const ADMIN_FIXED_PASSWORD = "ferreiras123@";
 const state = loadState();
@@ -11,8 +10,6 @@ let syncTimer = null;
 let remotePollTimer = null;
 let lastLocalChangeAt = 0;
 let lastSyncOkAt = 0;
-let storageWriteFailed = false;
-let storageWarnShown = false;
 
 const els = {
   tabs: [...document.querySelectorAll('.tab')],
@@ -88,35 +85,11 @@ function defaultState() {
 }
 
 function loadState() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultState();
-    const parsed = JSON.parse(raw);
-    return {
-      teams: Array.isArray(parsed.teams) ? parsed.teams : [],
-      players: Array.isArray(parsed.players) ? parsed.players : [],
-      matches: Array.isArray(parsed.matches) ? parsed.matches : [],
-      gameSchedule: Array.isArray(parsed.gameSchedule) ? parsed.gameSchedule : [],
-      bracket: Array.isArray(parsed.bracket) ? parsed.bracket : [],
-      settings: { eventStartAt: String(parsed?.settings?.eventStartAt || '') }
-    };
-  } catch {
-    return defaultState();
-  }
+  return defaultState();
 }
 
 function saveState() {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    storageWriteFailed = false;
-  } catch (err) {
-    storageWriteFailed = true;
-    if (!storageWarnShown) {
-      storageWarnShown = true;
-      console.error('Falha ao salvar no localStorage. Continuando com sync no servidor.', err);
-      alert('Armazenamento local cheio. Os dados serão salvos no servidor.');
-    }
-  }
+  // Persistencia oficial no banco via /api/state.
 }
 
 function persistAndRender() {
@@ -336,7 +309,6 @@ function bindEvents() {
 
   els.resetDataBtn.addEventListener('click', () => {
     if (!confirm('Apagar todos os dados do campeonato?')) return;
-    localStorage.removeItem(STORAGE_KEY);
     const fresh = defaultState();
     state.teams = fresh.teams; state.players = fresh.players; state.matches = fresh.matches; state.gameSchedule = fresh.gameSchedule; state.bracket = fresh.bracket; state.settings = fresh.settings;
     pendingGoalEvents = [];
@@ -1218,12 +1190,7 @@ function fileToDataURL(file) {
 }
 
 async function bootstrapRemote() {
-  const shouldHydrate = storageWriteFailed || isStateEmpty(state);
-  if (shouldHydrate) {
-    await Promise.allSettled([fetchUsersForLinking(), hydrateStateFromServer()]);
-  } else {
-    await Promise.allSettled([fetchUsersForLinking()]);
-  }
+  await Promise.allSettled([fetchUsersForLinking(), hydrateStateFromServer()]);
 }
 
 function startRemotePolling() {
@@ -1258,10 +1225,10 @@ async function hydrateStateFromServer() {
     state.gameSchedule = Array.isArray(t.gameSchedule) ? t.gameSchedule : [];
     state.bracket = Array.isArray(t.bracket) ? t.bracket : [];
     state.settings = { eventStartAt: String(t?.settings?.eventStartAt || '') };
-    saveState();
+    lastSyncOkAt = Date.now();
     renderAll();
   } catch {
-    // fallback localStorage already loaded
+    // Mantem o estado atual em memoria.
   }
 }
 
@@ -1285,18 +1252,6 @@ async function syncStateToServer() {
   await fetchUsersForLinking();
 }
 
-function isStateEmpty(tournament) {
-  const t = tournament || {};
-  const teams = Array.isArray(t.teams) ? t.teams.length : 0;
-  const players = Array.isArray(t.players) ? t.players.length : 0;
-  const matches = Array.isArray(t.matches) ? t.matches.length : 0;
-  const schedule = Array.isArray(t.gameSchedule) ? t.gameSchedule.length : 0;
-  const bracket = Array.isArray(t.bracket) ? t.bracket.length : 0;
-  const recent = Array.isArray(t.recentGames) ? t.recentGames.length : 0;
-  const hasLive = !!(t.liveGame && typeof t.liveGame === 'object');
-  const hasSettings = !!String(t?.settings?.eventStartAt || '').trim();
-  return teams === 0 && players === 0 && matches === 0 && schedule === 0 && bracket === 0 && recent === 0 && !hasLive && !hasSettings;
-}
 
 async function apiJson(url, options = {}) {
   const response = await fetch(url, {
@@ -1312,6 +1267,12 @@ function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
 }
+
+
+
+
+
+
 
 
 

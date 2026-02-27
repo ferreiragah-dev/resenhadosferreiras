@@ -549,29 +549,59 @@ app.get('/api/player/home', authRequired, async (req, res) => {
         })
     : [];
 
-  function resolveTeamLogo(teamId, teamName) {
+  function resolveTeamMeta(teamId, teamName) {
     if (teamId) {
-      const t = teamsById.get(teamId);
-      if (t && t.logoDataUrl) return String(t.logoDataUrl || '');
+      const byId = teamsById.get(teamId);
+      if (byId) {
+        return {
+          name: String(byId.name || teamName || 'Time'),
+          logoDataUrl: String(byId.logoDataUrl || '')
+        };
+      }
     }
     const byName = (tournament.teams || []).find((t) => String(t.name || '').trim().toLowerCase() === String(teamName || '').trim().toLowerCase());
-    return byName ? String(byName.logoDataUrl || '') : '';
+    if (byName) {
+      return {
+        name: String(byName.name || teamName || 'Time'),
+        logoDataUrl: String(byName.logoDataUrl || '')
+      };
+    }
+    return {
+      name: String(teamName || 'Time'),
+      logoDataUrl: ''
+    };
+  }
+
+  function resolveTeamLogo(teamId, teamName) {
+    return resolveTeamMeta(teamId, teamName).logoDataUrl;
   }
 
   const liveGameRaw = tournament.liveGame || null;
   const liveGame = liveGameRaw
-    ? {
-        ...liveGameRaw,
-        teamALogoDataUrl: String(liveGameRaw.teamALogoDataUrl || resolveTeamLogo(liveGameRaw.teamAId, liveGameRaw.teamAName)),
-        teamBLogoDataUrl: String(liveGameRaw.teamBLogoDataUrl || resolveTeamLogo(liveGameRaw.teamBId, liveGameRaw.teamBName))
-      }
+    ? (() => {
+        const a = resolveTeamMeta(liveGameRaw.teamAId, liveGameRaw.teamAName);
+        const b = resolveTeamMeta(liveGameRaw.teamBId, liveGameRaw.teamBName);
+        return {
+          ...liveGameRaw,
+          teamAName: a.name,
+          teamBName: b.name,
+          teamALogoDataUrl: a.logoDataUrl,
+          teamBLogoDataUrl: b.logoDataUrl
+        };
+      })()
     : null;
 
-  const recentGames = (Array.isArray(tournament.recentGames) ? tournament.recentGames : []).map((g) => ({
-    ...g,
-    teamALogoDataUrl: String(g.teamALogoDataUrl || resolveTeamLogo(g.teamAId, g.teamAName)),
-    teamBLogoDataUrl: String(g.teamBLogoDataUrl || resolveTeamLogo(g.teamBId, g.teamBName))
-  }));
+  const recentGames = (Array.isArray(tournament.recentGames) ? tournament.recentGames : []).map((g) => {
+    const a = resolveTeamMeta(g.teamAId, g.teamAName);
+    const b = resolveTeamMeta(g.teamBId, g.teamBName);
+    return {
+      ...g,
+      teamAName: a.name,
+      teamBName: b.name,
+      teamALogoDataUrl: a.logoDataUrl,
+      teamBLogoDataUrl: b.logoDataUrl
+    };
+  });
 
   const standings = (tournament.teams || []).map((t) => {
     const s = t && t.stats && typeof t.stats === 'object' ? t.stats : {};

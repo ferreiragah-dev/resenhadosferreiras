@@ -58,6 +58,8 @@ async function loadRoster(teamAId, teamBId) {
     var teams = Array.isArray(data.teams) ? data.teams : [];
     var ta = teams.find(function (t) { return String(t.id || '') === String(teamAId || ''); });
     var tb = teams.find(function (t) { return String(t.id || '') === String(teamBId || ''); });
+    if (ta && ta.name) matchMeta.teamAName = String(ta.name || matchMeta.teamAName || 'Time A');
+    if (tb && tb.name) matchMeta.teamBName = String(tb.name || matchMeta.teamBName || 'Time B');
     if (!matchMeta.teamALogoDataUrl && ta && ta.logoDataUrl) matchMeta.teamALogoDataUrl = String(ta.logoDataUrl || '');
     if (!matchMeta.teamBLogoDataUrl && tb && tb.logoDataUrl) matchMeta.teamBLogoDataUrl = String(tb.logoDataUrl || '');
     setTeamHeader('teamAName', matchMeta.teamAName, matchMeta.teamALogoDataUrl);
