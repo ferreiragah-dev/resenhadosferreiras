@@ -235,25 +235,30 @@ app.get('/api/public/schedule', async (_req, res) => {
     norm: String(t.name || '').trim().toLowerCase()
   }));
   const byNorm = new Map(teams.map((t) => [t.norm, t]));
+  const byId = new Map(teams.map((t) => [t.id, t]));
 
   const schedule = (tournament.gameSchedule || []).map((g) => {
     const aLabel = String(g.teamALabel || '').trim();
     const bLabel = String(g.teamBLabel || '').trim();
-    const a = byNorm.get(aLabel.toLowerCase()) || null;
-    const b = byNorm.get(bLabel.toLowerCase()) || null;
+    const aId = String(g.teamAId || '').trim();
+    const bId = String(g.teamBId || '').trim();
+    const a = (aId ? byId.get(aId) : null) || byNorm.get(aLabel.toLowerCase()) || null;
+    const b = (bId ? byId.get(bId) : null) || byNorm.get(bLabel.toLowerCase()) || null;
+    const finalALabel = a ? String(a.name || '') : aLabel;
+    const finalBLabel = b ? String(b.name || '') : bLabel;
     const canStart = Boolean(a && b && a.id && b.id && a.id !== b.id);
     return {
       id: String(g.id || ''),
       phase: String(g.phase || ''),
       time: String(g.time || ''),
       groupLabel: String(g.groupLabel || ''),
-      teamALabel: aLabel,
-      teamBLabel: bLabel,
+      teamALabel: finalALabel,
+      teamBLabel: finalBLabel,
       canStart,
       teamAId: canStart ? a.id : '',
       teamBId: canStart ? b.id : '',
-      teamAName: canStart ? a.name : aLabel,
-      teamBName: canStart ? b.name : bLabel,
+      teamAName: canStart ? a.name : finalALabel,
+      teamBName: canStart ? b.name : finalBLabel,
       teamALogoDataUrl: canStart ? (a.logoDataUrl || '') : '',
       teamBLogoDataUrl: canStart ? (b.logoDataUrl || '') : ''
     };
@@ -620,12 +625,18 @@ app.get('/api/player/home', authRequired, async (req, res) => {
     );
 
   const gameSchedule = (Array.isArray(tournament.gameSchedule) ? tournament.gameSchedule : []).map((g) => {
-    const aLabel = String(g.teamALabel || '');
-    const bLabel = String(g.teamBLabel || '');
+    const aId = String(g.teamAId || '');
+    const bId = String(g.teamBId || '');
+    const teamAById = aId ? teamsById.get(aId) : null;
+    const teamBById = bId ? teamsById.get(bId) : null;
+    const aLabel = String((teamAById && teamAById.name) || g.teamALabel || '');
+    const bLabel = String((teamBById && teamBById.name) || g.teamBLabel || '');
     return {
       ...g,
-      teamALogoDataUrl: resolveTeamLogo('', aLabel),
-      teamBLogoDataUrl: resolveTeamLogo('', bLabel)
+      teamALabel: aLabel,
+      teamBLabel: bLabel,
+      teamALogoDataUrl: resolveTeamLogo(aId, aLabel),
+      teamBLogoDataUrl: resolveTeamLogo(bId, bLabel)
     };
   });
 

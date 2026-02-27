@@ -48,6 +48,10 @@ const els = {
   scheduleTime: document.getElementById('scheduleTime'),
   scheduleTeamALabel: document.getElementById('scheduleTeamALabel'),
   scheduleTeamBLabel: document.getElementById('scheduleTeamBLabel'),
+  scheduleTeamAId: document.getElementById('scheduleTeamAId'),
+  scheduleTeamBId: document.getElementById('scheduleTeamBId'),
+  scheduleTeamASelectWrap: document.getElementById('scheduleTeamASelectWrap'),
+  scheduleTeamBSelectWrap: document.getElementById('scheduleTeamBSelectWrap'),
   scheduleGroupLabel: document.getElementById('scheduleGroupLabel'),
   scheduleList: document.getElementById('scheduleList'),
   loadScheduleTemplateBtn: document.getElementById('loadScheduleTemplateBtn'),
@@ -220,8 +224,23 @@ function bindEvents() {
     e.preventDefault();
     const phase = String(els.schedulePhase?.value || '').trim();
     const time = String(els.scheduleTime?.value || '').trim();
-    const teamALabel = String(els.scheduleTeamALabel?.value || '').trim();
-    const teamBLabel = String(els.scheduleTeamBLabel?.value || '').trim();
+    const isGroup = isGroupPhase(phase);
+    let teamALabel = String(els.scheduleTeamALabel?.value || '').trim();
+    let teamBLabel = String(els.scheduleTeamBLabel?.value || '').trim();
+    let teamAId = '';
+    let teamBId = '';
+    if (isGroup) {
+      teamAId = String(els.scheduleTeamAId?.value || '').trim();
+      teamBId = String(els.scheduleTeamBId?.value || '').trim();
+      if (!teamAId || !teamBId || teamAId === teamBId) {
+        alert('Na fase de grupos, selecione dois times diferentes.');
+        return;
+      }
+      const teamA = findTeam(teamAId);
+      const teamB = findTeam(teamBId);
+      teamALabel = String(teamA?.name || '').trim();
+      teamBLabel = String(teamB?.name || '').trim();
+    }
     const groupLabel = String(els.scheduleGroupLabel?.value || '').trim();
     if (!phase || !time || !teamALabel || !teamBLabel) return;
     state.gameSchedule.push({
@@ -230,12 +249,17 @@ function bindEvents() {
       time,
       teamALabel,
       teamBLabel,
+      teamAId,
+      teamBId,
       groupLabel,
       createdAt: Date.now()
     });
     els.scheduleForm.reset();
+    syncScheduleFormMode();
     persistAndRender();
   });
+
+  els.schedulePhase?.addEventListener('input', syncScheduleFormMode);
 
   els.sortScheduleBtn?.addEventListener('click', () => {
     state.gameSchedule = [...(state.gameSchedule || [])].sort((a, b) => {
@@ -317,6 +341,7 @@ function unlockAdminApp() {
 function renderAll() {
   renderEventSettings();
   renderTeamOptions();
+  syncScheduleFormMode();
   renderUserOptions();
   renderPlayerGoalOptions();
   renderTeams();
@@ -340,12 +365,18 @@ function renderTeamOptions() {
   const keepPlayerTeam = els.playerTeamId.value;
   const keepA = els.matchTeamA.value;
   const keepB = els.matchTeamB.value;
+  const keepScheduleA = String(els.scheduleTeamAId?.value || '');
+  const keepScheduleB = String(els.scheduleTeamBId?.value || '');
   els.playerTeamId.innerHTML = `<option value="">Sem time</option>${options}`;
   els.matchTeamA.innerHTML = `<option value="">Selecione</option>${options}`;
   els.matchTeamB.innerHTML = `<option value="">Selecione</option>${options}`;
+  if (els.scheduleTeamAId) els.scheduleTeamAId.innerHTML = `<option value="">Selecione</option>${options}`;
+  if (els.scheduleTeamBId) els.scheduleTeamBId.innerHTML = `<option value="">Selecione</option>${options}`;
   if (keepPlayerTeam) els.playerTeamId.value = keepPlayerTeam;
   if (keepA) els.matchTeamA.value = keepA;
   if (keepB) els.matchTeamB.value = keepB;
+  if (els.scheduleTeamAId && keepScheduleA) els.scheduleTeamAId.value = keepScheduleA;
+  if (els.scheduleTeamBId && keepScheduleB) els.scheduleTeamBId.value = keepScheduleB;
 }
 
 function renderUserOptions() {
@@ -653,6 +684,44 @@ function renderMatches() {
   els.matchesList.querySelectorAll('[data-match-delete]').forEach((btn) => btn.addEventListener('click', () => deleteMatch(btn.dataset.matchDelete)));
 }
 
+function isGroupPhase(phase) {
+  const text = String(phase || '').trim().toLowerCase();
+  return text.includes('grupo');
+}
+
+function syncScheduleFormMode() {
+  if (!els.schedulePhase || !els.scheduleTeamALabel || !els.scheduleTeamBLabel) return;
+  const useTeamSelect = isGroupPhase(els.schedulePhase.value);
+  if (els.scheduleTeamASelectWrap) els.scheduleTeamASelectWrap.hidden = !useTeamSelect;
+  if (els.scheduleTeamBSelectWrap) els.scheduleTeamBSelectWrap.hidden = !useTeamSelect;
+  const labelWrapA = els.scheduleTeamALabel.closest('label');
+  const labelWrapB = els.scheduleTeamBLabel.closest('label');
+  if (labelWrapA) labelWrapA.hidden = useTeamSelect;
+  if (labelWrapB) labelWrapB.hidden = useTeamSelect;
+  els.scheduleTeamALabel.required = !useTeamSelect;
+  els.scheduleTeamBLabel.required = !useTeamSelect;
+  if (els.scheduleTeamAId) els.scheduleTeamAId.required = useTeamSelect;
+  if (els.scheduleTeamBId) els.scheduleTeamBId.required = useTeamSelect;
+}
+
+function scheduleTeamOptionsHtml(selectedId) {
+  const teams = [...state.teams].sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR'));
+  return `<option value="">Selecione</option>` + teams.map((t) => (
+    `<option value="${esc(t.id)}"${String(selectedId || '') === String(t.id) ? ' selected' : ''}>${esc(t.name)}</option>`
+  )).join('');
+}
+
+function resolveScheduleTeam(row, side) {
+  const idField = side === 'A' ? 'teamAId' : 'teamBId';
+  const labelField = side === 'A' ? 'teamALabel' : 'teamBLabel';
+  const id = String(row?.[idField] || '').trim();
+  if (id) {
+    const byId = findTeam(id);
+    if (byId) return byId;
+  }
+  return resolveTeamByLabel(row?.[labelField] || '');
+}
+
 function renderSchedule() {
   if (!els.scheduleList) return;
   const rows = Array.isArray(state.gameSchedule) ? [...state.gameSchedule] : [];
@@ -669,6 +738,13 @@ function renderSchedule() {
 
   let lastPhase = '';
   els.scheduleList.innerHTML = rows.map((row) => {
+    const groupPhase = isGroupPhase(row.phase);
+    const teamA = resolveScheduleTeam(row, 'A');
+    const teamB = resolveScheduleTeam(row, 'B');
+    const selectedAId = String(teamA?.id || row.teamAId || '');
+    const selectedBId = String(teamB?.id || row.teamBId || '');
+    const teamALabel = String(teamA?.name || row.teamALabel || '');
+    const teamBLabel = String(teamB?.name || row.teamBLabel || '');
     const showPhase = String(row.phase || '') !== lastPhase;
     lastPhase = String(row.phase || '');
     return `
@@ -677,8 +753,22 @@ function renderSchedule() {
         <div class="schedule-grid">
           <label>Horário<input type="time" value="${esc(row.time || '')}" data-schedule-input="${esc(row.id)}|time"></label>
           <label>Grupo/Chave<input type="text" value="${esc(row.groupLabel || '')}" placeholder="Grupo A" data-schedule-input="${esc(row.id)}|groupLabel"></label>
-          <label>Confronto A<input type="text" value="${esc(row.teamALabel || '')}" data-schedule-input="${esc(row.id)}|teamALabel"></label>
-          <label>Confronto B<input type="text" value="${esc(row.teamBLabel || '')}" data-schedule-input="${esc(row.id)}|teamBLabel"></label>
+          ${groupPhase
+            ? `<label>Confronto A
+                <select data-schedule-input="${esc(row.id)}|teamAId">
+                  ${scheduleTeamOptionsHtml(selectedAId)}
+                </select>
+              </label>`
+            : `<label>Confronto A<input type="text" value="${esc(teamALabel)}" data-schedule-input="${esc(row.id)}|teamALabel"></label>`
+          }
+          ${groupPhase
+            ? `<label>Confronto B
+                <select data-schedule-input="${esc(row.id)}|teamBId">
+                  ${scheduleTeamOptionsHtml(selectedBId)}
+                </select>
+              </label>`
+            : `<label>Confronto B<input type="text" value="${esc(teamBLabel)}" data-schedule-input="${esc(row.id)}|teamBLabel"></label>`
+          }
           <label class="full">Fase<input type="text" value="${esc(row.phase || '')}" data-schedule-input="${esc(row.id)}|phase"></label>
         </div>
         <div class="mini-actions">
@@ -701,9 +791,24 @@ function saveScheduleRow(id) {
     const parts = String(input.dataset.scheduleInput || '').split('|');
     if (parts.length !== 2) return;
     const field = parts[1];
-    if (!['phase', 'time', 'teamALabel', 'teamBLabel', 'groupLabel'].includes(field)) return;
+    if (!['phase', 'time', 'teamALabel', 'teamBLabel', 'teamAId', 'teamBId', 'groupLabel'].includes(field)) return;
     row[field] = String(input.value || '').trim();
   });
+
+  if (isGroupPhase(row.phase)) {
+    const teamA = findTeam(String(row.teamAId || ''));
+    const teamB = findTeam(String(row.teamBId || ''));
+    if (!teamA || !teamB || String(teamA.id) === String(teamB.id)) {
+      alert('Na fase de grupos, selecione dois times cadastrados e diferentes.');
+      return;
+    }
+    row.teamALabel = String(teamA.name || '');
+    row.teamBLabel = String(teamB.name || '');
+  } else {
+    row.teamAId = '';
+    row.teamBId = '';
+  }
+
   if (!row.phase || !row.time || !row.teamALabel || !row.teamBLabel) {
     alert('Fase, horário e confrontos são obrigatórios.');
     return;
@@ -723,8 +828,8 @@ function startScheduledGame(id) {
   const row = (state.gameSchedule || []).find((x) => x.id === id);
   if (!row) return;
 
-  const teamA = resolveTeamByLabel(row.teamALabel);
-  const teamB = resolveTeamByLabel(row.teamBLabel);
+  const teamA = resolveScheduleTeam(row, 'A');
+  const teamB = resolveScheduleTeam(row, 'B');
 
   if (!teamA || !teamB) {
     alert('Nao foi possivel iniciar: um ou ambos os confrontos nao correspondem a times cadastrados.');
@@ -738,9 +843,7 @@ function startScheduledGame(id) {
   const url = '/jogo/ao-vivo?teamA=' + encodeURIComponent(teamA.id) +
     '&teamB=' + encodeURIComponent(teamB.id) +
     '&teamAName=' + encodeURIComponent(teamA.name) +
-    '&teamBName=' + encodeURIComponent(teamB.name) +
-    '&teamALogo=' + encodeURIComponent(String(teamA.logoDataUrl || '')) +
-    '&teamBLogo=' + encodeURIComponent(String(teamB.logoDataUrl || ''));
+    '&teamBName=' + encodeURIComponent(teamB.name);
   window.location.href = url;
 }
 
