@@ -572,5 +572,73 @@
 .timeline-tag.ca{ background:#f59e0b; color:#111827; }
 .timeline-tag.cv{ background:#dc2626; color:#fff; }
 
+.table-container-neon{
+  width:100%;
+  overflow-x:auto;
+}
+
+.standings-neon{
+  width:100%;
+  border-collapse:separate;
+  border-spacing:0 10px;
+  min-width:640px;
+}
+
+.standings-neon thead th{
+  text-align:center;
+  font-size:.68rem;
+  opacity:.65;
+  padding-bottom:8px;
+  color:#86efac;
+}
+
+.standings-neon tbody tr{
+  background:rgba(0,255,136,0.03);
+  border:1px solid #00ff88;
+  border-radius:12px;
+}
+
+.standings-neon td{
+  padding:11px 8px;
+  text-align:center;
+  font-size:.78rem;
+}
+
+.standings-neon .rank{
+  font-weight:800;
+  opacity:.85;
+}
+
+.standings-neon tbody tr.leader{
+  box-shadow:0 0 18px rgba(0,255,136,0.2);
+  border:2px solid #00ff88;
+}
+
+.team-cell-neon{
+  text-align:left !important;
+}
+
+.team-cell-wrap{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+}
+
+.team-logo-cell{
+  width:26px;
+  height:26px;
+  border-radius:50%;
+  overflow:hidden;
+  display:inline-grid;
+  place-items:center;
+  background:#03180b;
+}
+
+.team-logo-cell img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
 .hidden{ display:none; }
 .empty-state{ opacity:.7; font-size:.85rem; padding:10px 0; }

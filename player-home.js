@@ -232,21 +232,37 @@ function renderStandings(list) {
     return;
   }
 
-  els.standingsTable.innerHTML = list.map(function (t, idx) {
-    return '<div class="match">' +
-      '<div class="match-header"><span>#' + (idx + 1) + '</span><span>' + teamLabelHtml(t.name || 'Time', t.logoDataUrl || '') + '</span></div>' +
-      '<div class="match-stats">' +
-      '<span>P ' + Number(t.points || 0) + '</span>' +
-      '<span>J ' + Number(t.games || 0) + '</span>' +
-      '<span>V ' + Number(t.wins || 0) + '</span>' +
-      '<span>E ' + Number(t.draws || 0) + '</span>' +
-      '<span>D ' + Number(t.losses || 0) + '</span>' +
-      '<span>GP ' + Number(t.goalsPro || 0) + '</span>' +
-      '<span>GC ' + Number(t.goalsContra || 0) + '</span>' +
-      '<span>SG ' + Number(t.goalDiff || 0) + '</span>' +
-      '</div>' +
-      '</div>';
-  }).join('');
+  els.standingsTable.innerHTML =
+    '<div class="table-container-neon">' +
+      '<table class="standings-neon">' +
+        '<thead><tr>' +
+          '<th>#</th><th>Time</th><th>P</th><th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th>' +
+        '</tr></thead>' +
+        '<tbody>' +
+          list.map(function (t, idx) {
+            var sg = Number(t.goalDiff || 0);
+            return '<tr class="' + (idx === 0 ? 'leader' : '') + '">' +
+              '<td class="rank">' + (idx + 1) + '</td>' +
+              '<td class="team-cell-neon">' + teamCellHtml(t.name || 'Time', t.logoDataUrl || '') + '</td>' +
+              '<td>' + Number(t.points || 0) + '</td>' +
+              '<td>' + Number(t.games || 0) + '</td>' +
+              '<td>' + Number(t.wins || 0) + '</td>' +
+              '<td>' + Number(t.draws || 0) + '</td>' +
+              '<td>' + Number(t.losses || 0) + '</td>' +
+              '<td>' + Number(t.goalsPro || 0) + '</td>' +
+              '<td>' + Number(t.goalsContra || 0) + '</td>' +
+              '<td>' + (sg > 0 ? '+' + sg : String(sg)) + '</td>' +
+            '</tr>';
+          }).join('') +
+        '</tbody>' +
+      '</table>' +
+    '</div>';
+}
+
+function teamCellHtml(name, logoDataUrl) {
+  var n = esc(name || 'Time');
+  if (logoDataUrl) return '<span class="team-cell-wrap"><span class="team-logo-cell"><img src="' + esc(logoDataUrl) + '" alt="' + n + '"></span><span>' + n + '</span></span>';
+  return '<span class="team-cell-wrap"><span>' + n + '</span></span>';
 }
 
 function renderPlayerRanking(list) {
