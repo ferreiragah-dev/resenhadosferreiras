@@ -13,7 +13,7 @@
 
 .top-actions{
   display:flex;
-  justify-content:space-between;
+  justify-content:flex-start;
   align-items:center;
   gap:8px;
   margin-bottom:10px;
@@ -100,6 +100,19 @@
 
 .side-tabs{
   margin-bottom:0;
+}
+
+.side-menu-actions{
+  margin-top:14px;
+  padding-top:12px;
+  border-top:1px solid rgba(34,197,94,.2);
+}
+
+.side-logout-btn{
+  width:100%;
+  text-align:center;
+  border-color:rgba(248,113,113,.4);
+  color:#fecaca;
 }
 
 .sidebar-overlay{
