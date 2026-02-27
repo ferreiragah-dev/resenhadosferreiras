@@ -209,7 +209,7 @@ async function prefetchHomeCache(token) {
     if (controller) controller.abort();
   }, 1200);
   try {
-    const data = await api('/api/player/home', {
+    const data = await api('/api/player/home?section=perfil', {
       headers: { Authorization: 'Bearer ' + token },
       signal: controller ? controller.signal : undefined
     });

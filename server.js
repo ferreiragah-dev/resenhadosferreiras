@@ -461,6 +461,14 @@ app.put('/api/state', adminRequired, async (req, res) => {
 
 app.get('/api/player/home', authRequired, async (req, res) => {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  const section = String(req.query?.section || 'all').trim().toLowerCase();
+  const isAll = !section || section === 'all';
+  const needProfile = isAll || section === 'perfil';
+  const needStandings = isAll || section === 'tabela';
+  const needRanking = isAll || section === 'ranking';
+  const needLive = isAll || section === 'ao-vivo';
+  const needSchedule = isAll || section === 'temporada';
+  const needRecent = isAll || section === 'jogos';
   const userRes = await pool.query('SELECT * FROM users WHERE id = $1', [req.auth.sub]);
   const user = userRes.rows[0];
   if (!user) return res.status(404).json({ error: 'Usuario nao encontrado' });
@@ -482,7 +490,7 @@ app.get('/api/player/home', authRequired, async (req, res) => {
   const team = tournament.teams.find((t) => t.id === player.teamId) || null;
   const topScorerId = getTopScorerId(tournament.players || []);
   const teamsById = new Map((tournament.teams || []).map((t) => [t.id, t]));
-  const teamStats = team
+  const teamStats = needProfile && team
     ? tournament.matches.reduce((acc, m) => {
         if (m.teamAId !== team.id && m.teamBId !== team.id) return acc;
         const isA = m.teamAId === team.id;
@@ -491,7 +499,7 @@ app.get('/api/player/home', authRequired, async (req, res) => {
         return acc;
       }, { goalsFor: 0, goalsAgainst: 0 })
     : { goalsFor: 0, goalsAgainst: 0 };
-  const teammates = team
+  const teammates = needProfile && team
     ? tournament.players
         .filter((p) => p.teamId === team.id)
         .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR'))
@@ -539,7 +547,7 @@ app.get('/api/player/home', authRequired, async (req, res) => {
     return resolveTeamMeta(teamId, teamName).logoDataUrl;
   }
 
-  const liveGameRaw = tournament.liveGame || null;
+  const liveGameRaw = needLive ? (tournament.liveGame || null) : null;
   const liveGame = liveGameRaw
     ? (() => {
         const a = resolveTeamMeta(liveGameRaw.teamAId, liveGameRaw.teamAName);
@@ -554,7 +562,7 @@ app.get('/api/player/home', authRequired, async (req, res) => {
       })()
     : null;
 
-  const recentGames = (Array.isArray(tournament.recentGames) ? tournament.recentGames : []).map((g) => {
+  const recentGames = needRecent ? (Array.isArray(tournament.recentGames) ? tournament.recentGames : []).map((g) => {
     const a = resolveTeamMeta(g.teamAId, g.teamAName);
     const b = resolveTeamMeta(g.teamBId, g.teamBName);
     return {
@@ -564,9 +572,9 @@ app.get('/api/player/home', authRequired, async (req, res) => {
       teamALogoDataUrl: a.logoDataUrl,
       teamBLogoDataUrl: b.logoDataUrl
     };
-  });
+  }) : [];
 
-  const standings = (tournament.teams || []).map((t) => {
+  const standings = needStandings ? (tournament.teams || []).map((t) => {
     const s = t && t.stats && typeof t.stats === 'object' ? t.stats : {};
     return {
       id: t.id,
@@ -587,9 +595,9 @@ app.get('/api/player/home', authRequired, async (req, res) => {
     b.goalDiff - a.goalDiff ||
     b.goalsPro - a.goalsPro ||
     String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR')
-  );
+  ) : [];
 
-  const playerRanking = (tournament.players || [])
+  const playerRanking = needRanking ? (tournament.players || [])
     .map((p) => {
       const goals = Math.max(0, toStatNumber(p.goals));
       const assists = Math.max(0, toStatNumber(p.assists));
@@ -614,9 +622,9 @@ app.get('/api/player/home', authRequired, async (req, res) => {
       b.rankingPoints - a.rankingPoints ||
       b.goals - a.goals ||
       String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR')
-    );
+    ) : [];
 
-  const gameSchedule = (Array.isArray(tournament.gameSchedule) ? tournament.gameSchedule : []).map((g) => {
+  const gameSchedule = needSchedule ? (Array.isArray(tournament.gameSchedule) ? tournament.gameSchedule : []).map((g) => {
     const aId = String(g.teamAId || '');
     const bId = String(g.teamBId || '');
     const teamAById = aId ? teamsById.get(aId) : null;
@@ -630,9 +638,9 @@ app.get('/api/player/home', authRequired, async (req, res) => {
       teamALogoDataUrl: resolveTeamLogo(aId, aLabel),
       teamBLogoDataUrl: resolveTeamLogo(bId, bLabel)
     };
-  });
+  }) : [];
 
-  res.json({
+  const payload = {
     user: publicUser(user),
     linked: true,
     settings: {
@@ -653,15 +661,20 @@ app.get('/api/player/home', authRequired, async (req, res) => {
       isTopScorer: !!topScorerId && String(player.id) === String(topScorerId),
       photoDataUrl: player.photoDataUrl || ''
     },
-    team: team ? { id: team.id, name: team.name, color: team.color || '#0f766e', logoDataUrl: team.logoDataUrl || '' } : null,
-    teamStats,
-    teammates,
-    standings,
-    playerRanking,
-    gameSchedule,
-    liveGame,
-    recentGames
-  });
+    team: team ? { id: team.id, name: team.name, color: team.color || '#0f766e', logoDataUrl: team.logoDataUrl || '' } : null
+  };
+
+  if (needProfile) {
+    payload.teamStats = teamStats;
+    payload.teammates = teammates;
+  }
+  if (needStandings) payload.standings = standings;
+  if (needRanking) payload.playerRanking = playerRanking;
+  if (needSchedule) payload.gameSchedule = gameSchedule;
+  if (needLive) payload.liveGame = liveGame;
+  if (needRecent) payload.recentGames = recentGames;
+
+  res.json(payload);
 });
 
 app.use(express.static(__dirname, { extensions: ['html'] }));

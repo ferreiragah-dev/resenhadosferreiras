@@ -5,6 +5,7 @@ var homePoll = null;
 var homePollMs = 0;
 var currentTab = 'perfil';
 var latestHomeData = null;
+var loadedSections = { perfil: false, tabela: false, ranking: false, 'ao-vivo': false, temporada: false, jogos: false };
 var homeRequestSeq = 0;
 var homeAbortController = null;
 
@@ -51,7 +52,7 @@ function bindEvents() {
 
   if (els.refreshBtn) {
     els.refreshBtn.addEventListener('click', function () {
-      loadHome().catch(function (err) {
+      loadSection(currentTab, true).catch(function (err) {
         console.error('Erro ao atualizar home do jogador:', err);
       });
     });
@@ -90,11 +91,12 @@ async function bootstrap() {
   var cached = readHomeCache();
   if (cached) {
     latestHomeData = cached;
-    hydrateHomeFromData(cached);
+    loadedSections.perfil = true;
+    renderProfileSection(cached);
   }
 
   try {
-    await loadHome();
+    await loadSection('perfil', true);
   } catch (err) {
     console.error('Erro no bootstrap da home do jogador:', err);
     if (isAuthError(err)) {
@@ -115,10 +117,10 @@ function restartHomePollingForCurrentTab() {
   if (homePoll) clearInterval(homePoll);
   homePollMs = nextMs;
   homePoll = setInterval(function () {
-    loadHome().catch(function () {});
+    loadSection(currentTab, true).catch(function () {});
   }, nextMs);
 }
-function showTab(tab) {
+async function showTab(tab) {
   if (!els.perfil || !els.tabela || !els.ranking || !els.jogos || !els.aoVivo || !els.temporada) return;
   els.perfil.classList.add('hidden');
   els.tabela.classList.add('hidden');
@@ -149,6 +151,9 @@ function showTab(tab) {
     els.perfil.classList.remove('hidden');
     setActiveTab('perfil');
   }
+  try {
+    await ensureSectionLoaded(currentTab);
+  } catch (_err) {}
   restartHomePollingForCurrentTab();
 }
 
@@ -158,14 +163,51 @@ function setActiveTab(tab) {
   });
 }
 
-async function loadHome() {
+async function ensureSectionLoaded(section) {
+  var key = normalizeSection(section);
+  if (loadedSections[key]) return;
+  setSectionLoading(key);
+  await loadSection(key, false);
+}
+
+function normalizeSection(section) {
+  var s = String(section || 'perfil').toLowerCase();
+  if (s !== 'perfil' && s !== 'tabela' && s !== 'ranking' && s !== 'ao-vivo' && s !== 'temporada' && s !== 'jogos') return 'perfil';
+  return s;
+}
+
+function setSectionLoading(tab) {
+  if (tab === 'tabela' && els.standingsTable && !els.standingsTable.innerHTML.trim()) {
+    els.standingsTable.innerHTML = '<div class="empty-state">Carregando tabela...</div>';
+    return;
+  }
+  if (tab === 'ranking' && els.playerRankingList && !els.playerRankingList.innerHTML.trim()) {
+    els.playerRankingList.innerHTML = '<div class="empty-state">Carregando ranking...</div>';
+    return;
+  }
+  if (tab === 'ao-vivo') {
+    if (els.liveGameBox && !els.liveGameBox.innerHTML.trim()) els.liveGameBox.innerHTML = '<div class="empty-state">Carregando jogo ao vivo...</div>';
+    if (els.liveTimelineBox && !els.liveTimelineBox.innerHTML.trim()) els.liveTimelineBox.innerHTML = '<div class="empty-state">Carregando timeline...</div>';
+    return;
+  }
+  if (tab === 'temporada' && els.upcomingGamesBox && !els.upcomingGamesBox.innerHTML.trim()) {
+    els.upcomingGamesBox.innerHTML = '<div class="empty-state">Carregando temporada...</div>';
+    return;
+  }
+  if (tab === 'jogos' && els.recentGamesBox && !els.recentGamesBox.innerHTML.trim()) {
+    els.recentGamesBox.innerHTML = '<div class="empty-state">Carregando jogos...</div>';
+  }
+}
+
+async function loadSection(section, force) {
+  var key = normalizeSection(section);
   const token = localStorage.getItem(TOKEN_KEY);
   const reqSeq = ++homeRequestSeq;
   if (homeAbortController) {
     try { homeAbortController.abort(); } catch (_err) {}
   }
   homeAbortController = typeof AbortController === 'function' ? new AbortController() : null;
-  const data = await api('/api/player/home', {
+  const data = await api('/api/player/home?section=' + encodeURIComponent(key), {
     headers: { Authorization: 'Bearer ' + token },
     signal: homeAbortController ? homeAbortController.signal : undefined,
     timeoutMs: 4500
@@ -179,9 +221,16 @@ async function loadHome() {
     return;
   }
 
-  latestHomeData = next;
-  writeHomeCache(next);
-  hydrateHomeFromData(next);
+  latestHomeData = Object.assign({}, latestHomeData || {}, next);
+  if (key === 'perfil') {
+    writeHomeCache(latestHomeData);
+    loadedSections.perfil = true;
+    renderProfileSection(latestHomeData);
+    return;
+  }
+
+  loadedSections[key] = true;
+  renderSectionByTab(key, latestHomeData);
 }
 
 function isAuthError(err) {
@@ -189,7 +238,7 @@ function isAuthError(err) {
   return msg.indexOf('nao autenticado') >= 0 || msg.indexOf('token invalido') >= 0 || msg.indexOf('unauthorized') >= 0 || msg.indexOf('forbidden') >= 0;
 }
 
-function hydrateHomeFromData(data) {
+function renderProfileSection(data) {
   if (!data || typeof data !== 'object') return;
   if (!data.linked) {
     if (els.pendingBox) els.pendingBox.classList.remove('hidden');
@@ -207,9 +256,6 @@ function hydrateHomeFromData(data) {
       isTopScorer: false
     });
     renderTeammates([]);
-    renderStandings([]);
-    renderPlayerRanking([]);
-    renderLiveAndRecentGames(null, [], []);
     return;
   }
 
@@ -229,13 +275,31 @@ function hydrateHomeFromData(data) {
   });
 
   renderTeammates(Array.isArray(data.teammates) ? data.teammates : []);
-  renderStandings(Array.isArray(data.standings) ? data.standings : []);
-  renderPlayerRanking(Array.isArray(data.playerRanking) ? data.playerRanking : []);
-  renderLiveAndRecentGames(
-    data.liveGame || null,
-    Array.isArray(data.recentGames) ? data.recentGames : [],
-    Array.isArray(data.gameSchedule) ? data.gameSchedule : []
-  );
+}
+
+function renderSectionByTab(tab, data) {
+  if (!data || typeof data !== 'object') return;
+  if (!data.linked) return;
+  if (tab === 'tabela') {
+    renderStandings(Array.isArray(data.standings) ? data.standings : []);
+    return;
+  }
+  if (tab === 'ranking') {
+    renderPlayerRanking(Array.isArray(data.playerRanking) ? data.playerRanking : []);
+    return;
+  }
+  if (tab === 'ao-vivo') {
+    renderLiveGame(data.liveGame || null);
+    renderLiveTimeline(data.liveGame && Array.isArray(data.liveGame.events) ? data.liveGame.events : []);
+    return;
+  }
+  if (tab === 'temporada') {
+    renderUpcomingGames(Array.isArray(data.gameSchedule) ? data.gameSchedule : []);
+    return;
+  }
+  if (tab === 'jogos') {
+    renderRecentGames(Array.isArray(data.recentGames) ? data.recentGames : []);
+  }
 }
 
 function writeHomeCache(data) {
