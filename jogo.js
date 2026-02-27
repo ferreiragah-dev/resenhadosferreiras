@@ -3,6 +3,7 @@
   var teamB = document.getElementById('teamB');
   var playBtn = document.getElementById('playBtn');
   var scheduleList = document.getElementById('scheduleList');
+  var teamsById = {};
 
   loadTeams();
   loadSchedule();
@@ -15,6 +16,8 @@
     try {
       var data = await api('/api/public/teams');
       var teams = Array.isArray(data.teams) ? data.teams : [];
+      teamsById = {};
+      teams.forEach(function (t) { teamsById[String(t.id)] = t; });
       var options = '<option value="">Selecione</option>' + teams.map(function (t) {
         return '<option value="' + esc(t.id) + '">' + esc(t.name) + '</option>';
       }).join('');
@@ -51,7 +54,7 @@
       return (showPhase ? '<div class="schedule-phase">' + esc(phase) + '</div>' : '') +
         '<div class="schedule-item">' +
           '<div class="schedule-row"><span><strong>' + esc(g.time || '--:--') + '</strong></span><span>' + esc(g.groupLabel || '') + '</span></div>' +
-          '<div class="schedule-vs">' + esc(g.teamALabel || 'Time A') + ' x ' + esc(g.teamBLabel || 'Time B') + '</div>' +
+          '<div class="schedule-vs">' + teamLabelHtml(g.teamALabel || 'Time A', g.teamALogoDataUrl || '') + ' x ' + teamLabelHtml(g.teamBLabel || 'Time B', g.teamBLogoDataUrl || '') + '</div>' +
           '<div class="schedule-meta">' + (g.canStart ? 'Pronto para iniciar' : 'Aguardando definicao dos times') + '</div>' +
           '<button class="schedule-start-btn" ' + (g.canStart ? '' : 'disabled') + ' data-schedule-start="' + esc(g.id) + '">Iniciar</button>' +
         '</div>';
@@ -62,7 +65,7 @@
         var id = btn.getAttribute('data-schedule-start');
         var game = items.find(function (x) { return String(x.id) === String(id); });
         if (!game || !game.canStart) return;
-        startMatch(game.teamAId, game.teamBId, game.teamAName, game.teamBName);
+        startMatch(game.teamAId, game.teamBId, game.teamAName, game.teamBName, game.teamALogoDataUrl || '', game.teamBLogoDataUrl || '');
       });
     });
   }
@@ -82,14 +85,18 @@
       return;
     }
 
-    startMatch(aId, bId, aName, bName);
+    var aLogo = teamsById[String(aId)] ? String(teamsById[String(aId)].logoDataUrl || '') : '';
+    var bLogo = teamsById[String(bId)] ? String(teamsById[String(bId)].logoDataUrl || '') : '';
+    startMatch(aId, bId, aName, bName, aLogo, bLogo);
   }
 
-  function startMatch(aId, bId, aName, bName) {
+  function startMatch(aId, bId, aName, bName, aLogo, bLogo) {
     var url = '/jogo/ao-vivo?teamA=' + encodeURIComponent(aId) +
       '&teamB=' + encodeURIComponent(bId) +
       '&teamAName=' + encodeURIComponent(aName) +
-      '&teamBName=' + encodeURIComponent(bName);
+      '&teamBName=' + encodeURIComponent(bName) +
+      '&teamALogo=' + encodeURIComponent(String(aLogo || '')) +
+      '&teamBLogo=' + encodeURIComponent(String(bLogo || ''));
     window.location.href = url;
   }
 
@@ -97,6 +104,12 @@
     if (!select) return '';
     var opt = select.options[select.selectedIndex];
     return opt ? opt.text : '';
+  }
+
+  function teamLabelHtml(name, logoDataUrl) {
+    var n = esc(name || 'Time');
+    if (logoDataUrl) return '<span class="team-label"><span class="team-logo"><img src="' + esc(logoDataUrl) + '" alt="' + n + '"></span><span>' + n + '</span></span>';
+    return '<span class="team-label"><span>' + n + '</span></span>';
   }
 
   registerSw();

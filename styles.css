@@ -147,6 +147,32 @@ button { border: none; border-radius: 10px; padding: 10px 12px; cursor: pointer;
 .team-card-top, .match-row { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
 .team-pill { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; }
 .team-dot { width: 12px; height: 12px; border-radius: 999px; border: 1px solid rgba(0,0,0,.2); }
+.team-dot.small { width: 10px; height: 10px; }
+.team-logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid rgba(34,197,94,.45);
+  background: #03180b;
+  overflow: hidden;
+  display: inline-grid;
+  place-items: center;
+}
+.team-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.team-logo.tiny {
+  width: 18px;
+  height: 18px;
+}
+.team-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
 .team-edit-grid {
   display: grid;
   grid-template-columns: 1fr auto;

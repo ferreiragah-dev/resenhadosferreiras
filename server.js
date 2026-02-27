@@ -204,7 +204,7 @@ app.get('/api/public/teams', async (_req, res) => {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   const tournament = await readTournamentState();
   const teams = (tournament.teams || [])
-    .map((t) => ({ id: t.id, name: t.name, color: t.color || '#0f766e' }))
+    .map((t) => ({ id: t.id, name: t.name, color: t.color || '#0f766e', logoDataUrl: t.logoDataUrl || '' }))
     .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR'));
   res.json({ teams });
 });
@@ -213,7 +213,7 @@ app.get('/api/public/roster', async (_req, res) => {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   const tournament = await readTournamentState();
   const topScorerId = getTopScorerId(tournament.players || []);
-  const teams = (tournament.teams || []).map((t) => ({ id: t.id, name: t.name, color: t.color || '#0f766e' }));
+  const teams = (tournament.teams || []).map((t) => ({ id: t.id, name: t.name, color: t.color || '#0f766e', logoDataUrl: t.logoDataUrl || '' }));
   const players = (tournament.players || []).map((p) => ({
     id: p.id,
     name: p.name || 'Jogador',
@@ -231,6 +231,7 @@ app.get('/api/public/schedule', async (_req, res) => {
   const teams = (tournament.teams || []).map((t) => ({
     id: String(t.id || ''),
     name: String(t.name || ''),
+    logoDataUrl: String(t.logoDataUrl || ''),
     norm: String(t.name || '').trim().toLowerCase()
   }));
   const byNorm = new Map(teams.map((t) => [t.norm, t]));
@@ -252,7 +253,9 @@ app.get('/api/public/schedule', async (_req, res) => {
       teamAId: canStart ? a.id : '',
       teamBId: canStart ? b.id : '',
       teamAName: canStart ? a.name : aLabel,
-      teamBName: canStart ? b.name : bLabel
+      teamBName: canStart ? b.name : bLabel,
+      teamALogoDataUrl: canStart ? (a.logoDataUrl || '') : '',
+      teamBLogoDataUrl: canStart ? (b.logoDataUrl || '') : ''
     };
   });
 
@@ -307,6 +310,8 @@ app.post('/api/public/live-game/start', async (req, res) => {
       teamBId: String(body.teamBId || ''),
       teamAName: String(body.teamAName || 'Time A'),
       teamBName: String(body.teamBName || 'Time B'),
+      teamALogoDataUrl: String(body.teamALogoDataUrl || ''),
+      teamBLogoDataUrl: String(body.teamBLogoDataUrl || ''),
       scoreA: Number(body.scoreA || 0),
       scoreB: Number(body.scoreB || 0),
       events: incomingEvents.slice(0, 200).map(normalizeLiveEvent),
@@ -337,6 +342,8 @@ app.post('/api/public/live-game/update', async (req, res) => {
 
     current.scoreA = Number(body.scoreA ?? current.scoreA ?? 0);
     current.scoreB = Number(body.scoreB ?? current.scoreB ?? 0);
+    if (typeof body.teamALogoDataUrl !== 'undefined') current.teamALogoDataUrl = String(body.teamALogoDataUrl || '');
+    if (typeof body.teamBLogoDataUrl !== 'undefined') current.teamBLogoDataUrl = String(body.teamBLogoDataUrl || '');
     if (Array.isArray(body.events)) current.events = body.events.slice(0, 200).map(normalizeLiveEvent);
     current.remaining = Number(body.remaining ?? current.remaining ?? 0);
     current.duration = Number(body.duration ?? current.duration ?? 600);
@@ -364,6 +371,8 @@ app.post('/api/public/live-game/end', async (req, res) => {
 
     current.scoreA = Number(body.scoreA ?? current.scoreA ?? 0);
     current.scoreB = Number(body.scoreB ?? current.scoreB ?? 0);
+    if (typeof body.teamALogoDataUrl !== 'undefined') current.teamALogoDataUrl = String(body.teamALogoDataUrl || '');
+    if (typeof body.teamBLogoDataUrl !== 'undefined') current.teamBLogoDataUrl = String(body.teamBLogoDataUrl || '');
     if (Array.isArray(body.events)) current.events = body.events.slice(0, 200).map(normalizeLiveEvent);
     current.remaining = Number(body.remaining ?? current.remaining ?? 0);
     current.running = false;
@@ -517,8 +526,12 @@ app.get('/api/player/home', authRequired, async (req, res) => {
             id: m.id,
             date: m.date || '',
             stage: m.stage || 'Pelada',
+            teamAId: m.teamAId || '',
+            teamBId: m.teamBId || '',
             teamAName: (teamA && teamA.name) || 'Time A',
             teamBName: (teamB && teamB.name) || 'Time B',
+            teamALogoDataUrl: (teamA && teamA.logoDataUrl) || '',
+            teamBLogoDataUrl: (teamB && teamB.logoDataUrl) || '',
             goalsA: Number(m.goalsA || 0),
             goalsB: Number(m.goalsB || 0),
             playerStats: {
@@ -531,12 +544,37 @@ app.get('/api/player/home', authRequired, async (req, res) => {
         })
     : [];
 
+  function resolveTeamLogo(teamId, teamName) {
+    if (teamId) {
+      const t = teamsById.get(teamId);
+      if (t && t.logoDataUrl) return String(t.logoDataUrl || '');
+    }
+    const byName = (tournament.teams || []).find((t) => String(t.name || '').trim().toLowerCase() === String(teamName || '').trim().toLowerCase());
+    return byName ? String(byName.logoDataUrl || '') : '';
+  }
+
+  const liveGameRaw = tournament.liveGame || null;
+  const liveGame = liveGameRaw
+    ? {
+        ...liveGameRaw,
+        teamALogoDataUrl: String(liveGameRaw.teamALogoDataUrl || resolveTeamLogo(liveGameRaw.teamAId, liveGameRaw.teamAName)),
+        teamBLogoDataUrl: String(liveGameRaw.teamBLogoDataUrl || resolveTeamLogo(liveGameRaw.teamBId, liveGameRaw.teamBName))
+      }
+    : null;
+
+  const recentGames = (Array.isArray(tournament.recentGames) ? tournament.recentGames : []).map((g) => ({
+    ...g,
+    teamALogoDataUrl: String(g.teamALogoDataUrl || resolveTeamLogo(g.teamAId, g.teamAName)),
+    teamBLogoDataUrl: String(g.teamBLogoDataUrl || resolveTeamLogo(g.teamBId, g.teamBName))
+  }));
+
   const standings = (tournament.teams || []).map((t) => {
     const s = t && t.stats && typeof t.stats === 'object' ? t.stats : {};
     return {
       id: t.id,
       name: t.name,
       color: t.color || '#0f766e',
+      logoDataUrl: t.logoDataUrl || '',
       points: Number(s.points || 0),
       games: Number(s.games || 0),
       wins: Number(s.wins || 0),
@@ -581,6 +619,16 @@ app.get('/api/player/home', authRequired, async (req, res) => {
       String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR')
     );
 
+  const gameSchedule = (Array.isArray(tournament.gameSchedule) ? tournament.gameSchedule : []).map((g) => {
+    const aLabel = String(g.teamALabel || '');
+    const bLabel = String(g.teamBLabel || '');
+    return {
+      ...g,
+      teamALogoDataUrl: resolveTeamLogo('', aLabel),
+      teamBLogoDataUrl: resolveTeamLogo('', bLabel)
+    };
+  });
+
   res.json({
     user: publicUser(user),
     linked: true,
@@ -602,15 +650,15 @@ app.get('/api/player/home', authRequired, async (req, res) => {
       isTopScorer: !!topScorerId && String(player.id) === String(topScorerId),
       photoDataUrl: player.photoDataUrl || ''
     },
-    team: team ? { id: team.id, name: team.name, color: team.color || '#0f766e' } : null,
+    team: team ? { id: team.id, name: team.name, color: team.color || '#0f766e', logoDataUrl: team.logoDataUrl || '' } : null,
     teamStats,
     teammates,
     matches,
     standings,
     playerRanking,
-    gameSchedule: Array.isArray(tournament.gameSchedule) ? tournament.gameSchedule : [],
-    liveGame: tournament.liveGame || null,
-    recentGames: Array.isArray(tournament.recentGames) ? tournament.recentGames : []
+    gameSchedule,
+    liveGame,
+    recentGames
   });
 });
 

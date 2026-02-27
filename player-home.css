@@ -293,6 +293,34 @@
   margin-bottom:6px;
 }
 
+.team-label{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+}
+
+.team-logo{
+  width:20px;
+  height:20px;
+  border-radius:50%;
+  border:1px solid rgba(34,197,94,.5);
+  overflow:hidden;
+  background:#03180b;
+  display:inline-grid;
+  place-items:center;
+}
+
+.team-logo img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+.team-logo.team-logo-tiny{
+  width:16px;
+  height:16px;
+}
+
 .match-stats{
   display:flex;
   gap:10px;

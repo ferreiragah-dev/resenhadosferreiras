@@ -30,6 +30,7 @@ const els = {
   teamForm: document.getElementById('teamForm'),
   teamName: document.getElementById('teamName'),
   teamColor: document.getElementById('teamColor'),
+  teamLogo: document.getElementById('teamLogo'),
   teamsList: document.getElementById('teamsList'),
   matchForm: document.getElementById('matchForm'),
   matchTeamA: document.getElementById('matchTeamA'),
@@ -121,14 +122,16 @@ function bindEvents() {
   });
   els.tabs.forEach((btn) => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
 
-  els.teamForm.addEventListener('submit', (e) => {
+  els.teamForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const name = els.teamName.value.trim();
     if (!name) return;
+    const logoDataUrl = els.teamLogo?.files?.[0] ? await fileToDataURL(els.teamLogo.files[0]) : '';
     state.teams.push({
       id: uid(),
       name,
       color: els.teamColor.value || '#0f766e',
+      logoDataUrl,
       stats: defaultTeamStats(),
       createdAt: Date.now()
     });
@@ -535,7 +538,7 @@ function renderTeams() {
     return `
       <article class="team-card">
         <div class="team-card-top">
-          <div class="team-pill"><span class="team-dot" style="background:${esc(team.color)}"></span><span>${esc(team.name)}</span></div>
+          <div class="team-pill">${teamIdentityHtml(team)}</div>
           <button class="danger" type="button" data-team-delete="${esc(team.id)}">Excluir</button>
         </div>
         <div class="team-edit-grid">
@@ -544,6 +547,9 @@ function renderTeams() {
           </label>
           <label>Cor
             <input type="color" value="${esc(team.color || '#0f766e')}" data-team-basic-input="${esc(team.id)}|color">
+          </label>
+          <label class="full">Logo (opcional)
+            <input type="file" accept="image/*" data-team-logo-input="${esc(team.id)}">
           </label>
         </div>
         <p class="muted">${count} jogador(es)</p>
@@ -565,15 +571,15 @@ function renderTeams() {
       </article>`;
   }).join('');
   els.teamsList.querySelectorAll('[data-team-delete]').forEach((btn) => btn.addEventListener('click', () => deleteTeam(btn.dataset.teamDelete)));
-  els.teamsList.querySelectorAll('[data-team-save]').forEach((btn) => btn.addEventListener('click', () => saveTeamBasicFromCard(btn.dataset.teamSave)));
+  els.teamsList.querySelectorAll('[data-team-save]').forEach((btn) => btn.addEventListener('click', async () => { await saveTeamBasicFromCard(btn.dataset.teamSave); }));
   els.teamsList.querySelectorAll('[data-team-stats-save]').forEach((btn) => btn.addEventListener('click', () => saveTeamStatsFromCard(btn.dataset.teamStatsSave)));
   els.teamsList.querySelectorAll('[data-team-stats-reset]').forEach((btn) => btn.addEventListener('click', () => resetTeamStats(btn.dataset.teamStatsReset)));
 }
 
-function saveTeamBasicFromCard(teamId) {
+async function saveTeamBasicFromCard(teamId) {
   const team = state.teams.find((t) => t.id === teamId);
   if (!team) return;
-  const patch = { name: team.name, color: team.color || '#0f766e' };
+  const patch = { name: team.name, color: team.color || '#0f766e', logoDataUrl: team.logoDataUrl || '' };
   document.querySelectorAll(`[data-team-basic-input^="${cssEscape(teamId)}|"]`).forEach((input) => {
     const parts = String(input.dataset.teamBasicInput || '').split('|');
     if (parts.length !== 2) return;
@@ -581,13 +587,27 @@ function saveTeamBasicFromCard(teamId) {
     if (field === 'name') patch.name = String(input.value || '').trim();
     if (field === 'color') patch.color = String(input.value || '').trim() || '#0f766e';
   });
+  const logoInput = document.querySelector(`[data-team-logo-input="${cssEscape(teamId)}"]`);
+  if (logoInput && logoInput.files && logoInput.files[0]) {
+    patch.logoDataUrl = await fileToDataURL(logoInput.files[0]);
+  }
   if (!patch.name) {
     alert('Nome do time é obrigatório.');
     return;
   }
   team.name = patch.name;
   team.color = patch.color;
+  team.logoDataUrl = patch.logoDataUrl;
   persistAndRender();
+}
+
+function teamIdentityHtml(team) {
+  if (!team) return '<span>Time</span>';
+  const logo = String(team.logoDataUrl || '').trim();
+  if (logo) {
+    return `<span class="team-logo"><img src="${esc(logo)}" alt="${esc(team.name || 'Time')}"></span><span>${esc(team.name || 'Time')}</span>`;
+  }
+  return `<span class="team-dot" style="background:${esc(team.color || '#0f766e')}"></span><span>${esc(team.name || 'Time')}</span>`;
 }
 
 function teamStatInput(teamId, field, label, value) {
@@ -617,13 +637,15 @@ function renderMatches() {
     return;
   }
   els.matchesList.innerHTML = matches.map((m) => {
-    const a = findTeam(m.teamAId)?.name || 'Time A';
-    const b = findTeam(m.teamBId)?.name || 'Time B';
+    const aTeam = findTeam(m.teamAId) || null;
+    const bTeam = findTeam(m.teamBId) || null;
+    const a = aTeam?.name || 'Time A';
+    const b = bTeam?.name || 'Time B';
     const goals = (m.goalEvents || []).map((g) => esc(g.playerName)).join(', ');
     return `
       <article class="match-card">
         <div class="match-row"><strong>${esc(m.stage || 'Jogo')}</strong><button class="danger" type="button" data-match-delete="${esc(m.id)}">Excluir</button></div>
-        <div class="match-row"><span>${esc(a)}</span><strong>${Number(m.goalsA)} x ${Number(m.goalsB)}</strong><span>${esc(b)}</span></div>
+        <div class="match-row"><span class="team-inline">${teamInlineHtml(aTeam, a)}</span><strong>${Number(m.goalsA)} x ${Number(m.goalsB)}</strong><span class="team-inline">${teamInlineHtml(bTeam, b)}</span></div>
         <p class="muted">${m.date ? formatDate(m.date) : 'Sem data'}</p>
         ${(m.goalEvents || []).length ? `<p class="muted">Gols: ${goals}</p>` : ''}
       </article>`;
@@ -716,7 +738,9 @@ function startScheduledGame(id) {
   const url = '/jogo/ao-vivo?teamA=' + encodeURIComponent(teamA.id) +
     '&teamB=' + encodeURIComponent(teamB.id) +
     '&teamAName=' + encodeURIComponent(teamA.name) +
-    '&teamBName=' + encodeURIComponent(teamB.name);
+    '&teamBName=' + encodeURIComponent(teamB.name) +
+    '&teamALogo=' + encodeURIComponent(String(teamA.logoDataUrl || '')) +
+    '&teamBLogo=' + encodeURIComponent(String(teamB.logoDataUrl || ''));
   window.location.href = url;
 }
 
@@ -854,8 +878,19 @@ function renderRankings() {
 
   els.teamRanking.innerHTML = `
     <table><thead><tr><th>#</th><th>Time</th><th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th><th>Pts</th></tr></thead><tbody>
-    ${table.map((r, i) => `<tr><td>${i + 1}</td><td><span class="team-pill"><span class="team-dot" style="background:${esc(r.team.color)}"></span>${esc(r.team.name)}</span></td><td>${r.j}</td><td>${r.v}</td><td>${r.e}</td><td>${r.d}</td><td>${r.gp}</td><td>${r.gc}</td><td>${r.sg}</td><td><strong>${r.pts}</strong></td></tr>`).join('')}
+    ${table.map((r, i) => `<tr><td>${i + 1}</td><td><span class="team-pill">${teamIdentityHtml(r.team)}</span></td><td>${r.j}</td><td>${r.v}</td><td>${r.e}</td><td>${r.d}</td><td>${r.gp}</td><td>${r.gc}</td><td>${r.sg}</td><td><strong>${r.pts}</strong></td></tr>`).join('')}
     </tbody></table>`;
+}
+
+function teamInlineHtml(team, fallbackName) {
+  const name = fallbackName || (team && team.name) || 'Time';
+  if (team && team.logoDataUrl) {
+    return `<span class="team-logo tiny"><img src="${esc(team.logoDataUrl)}" alt="${esc(name)}"></span><span>${esc(name)}</span>`;
+  }
+  if (team) {
+    return `<span class="team-dot small" style="background:${esc(team.color || '#0f766e')}"></span><span>${esc(name)}</span>`;
+  }
+  return `<span>${esc(name)}</span>`;
 }
 
 function openPenaltyDialog(playerId) {

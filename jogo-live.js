@@ -10,7 +10,7 @@ var playerLiveStats = {};
 var matchEvents = [];
 var liveGameId = null;
 var matchStarted = false;
-var matchMeta = { teamAId: '', teamBId: '', teamAName: 'Time A', teamBName: 'Time B' };
+var matchMeta = { teamAId: '', teamBId: '', teamAName: 'Time A', teamBName: 'Time B', teamALogoDataUrl: '', teamBLogoDataUrl: '' };
 var lastSyncAt = 0;
 
 window.addEventListener('DOMContentLoaded', function () {
@@ -19,12 +19,14 @@ window.addEventListener('DOMContentLoaded', function () {
   var teamBId = q.get('teamB') || '';
   var teamAName = q.get('teamAName') || 'Time A';
   var teamBName = q.get('teamBName') || 'Time B';
+  var teamALogo = q.get('teamALogo') || '';
+  var teamBLogo = q.get('teamBLogo') || '';
 
   liveGameId = 'live_' + Date.now();
-  matchMeta = { teamAId: teamAId, teamBId: teamBId, teamAName: teamAName, teamBName: teamBName };
+  matchMeta = { teamAId: teamAId, teamBId: teamBId, teamAName: teamAName, teamBName: teamBName, teamALogoDataUrl: teamALogo, teamBLogoDataUrl: teamBLogo };
 
-  setText('teamAName', teamAName);
-  setText('teamBName', teamBName);
+  setTeamHeader('teamAName', teamAName, teamALogo);
+  setTeamHeader('teamBName', teamBName, teamBLogo);
   setText('goalPlusA', 'Gol + ' + teamAName);
   setText('goalMinusA', 'Gol - ' + teamAName);
   setText('goalPlusB', 'Gol + ' + teamBName);
@@ -53,6 +55,13 @@ function bindGoalButtons() {
 async function loadRoster(teamAId, teamBId) {
   try {
     var data = await api('/api/public/roster');
+    var teams = Array.isArray(data.teams) ? data.teams : [];
+    var ta = teams.find(function (t) { return String(t.id || '') === String(teamAId || ''); });
+    var tb = teams.find(function (t) { return String(t.id || '') === String(teamBId || ''); });
+    if (!matchMeta.teamALogoDataUrl && ta && ta.logoDataUrl) matchMeta.teamALogoDataUrl = String(ta.logoDataUrl || '');
+    if (!matchMeta.teamBLogoDataUrl && tb && tb.logoDataUrl) matchMeta.teamBLogoDataUrl = String(tb.logoDataUrl || '');
+    setTeamHeader('teamAName', matchMeta.teamAName, matchMeta.teamALogoDataUrl);
+    setTeamHeader('teamBName', matchMeta.teamBName, matchMeta.teamBLogoDataUrl);
     var players = Array.isArray(data.players) ? data.players : [];
     teamAPlayers = players.filter(function (p) { return String(p.teamId || '') === String(teamAId || ''); });
     teamBPlayers = players.filter(function (p) { return String(p.teamId || '') === String(teamBId || ''); });
@@ -333,6 +342,8 @@ async function syncLiveGame(mode) {
     teamBId: matchMeta.teamBId,
     teamAName: matchMeta.teamAName,
     teamBName: matchMeta.teamBName,
+    teamALogoDataUrl: matchMeta.teamALogoDataUrl || '',
+    teamBLogoDataUrl: matchMeta.teamBLogoDataUrl || '',
     scoreA: scoreA,
     scoreB: scoreB,
     events: matchEvents,
@@ -363,6 +374,16 @@ function endGame() {
 
 function byId(id) { return document.getElementById(id); }
 function setText(id, text) { var el = byId(id); if (el) el.textContent = text; }
+function setTeamHeader(id, name, logoDataUrl) {
+  var el = byId(id);
+  if (!el) return;
+  var n = esc(name || 'Time');
+  if (logoDataUrl) {
+    el.innerHTML = '<span class="team-name-label"><span class="team-logo-head"><img src="' + esc(logoDataUrl) + '" alt="' + n + '"></span><span>' + n + '</span></span>';
+    return;
+  }
+  el.textContent = String(name || 'Time');
+}
 
 async function api(url) {
   var res = await fetch(url);
