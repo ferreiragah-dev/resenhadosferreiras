@@ -511,44 +511,6 @@ app.get('/api/player/home', authRequired, async (req, res) => {
         }))
     : [];
 
-  const matches = team
-    ? (tournament.matches || [])
-        .filter((m) => m.teamAId === team.id || m.teamBId === team.id)
-        .sort((a, b) => {
-          const da = String(a.date || '');
-          const db = String(b.date || '');
-          if (da !== db) return db.localeCompare(da);
-          return Number(b.createdAt || 0) - Number(a.createdAt || 0);
-        })
-        .slice(0, 20)
-        .map((m) => {
-          const teamA = teamsById.get(m.teamAId);
-          const teamB = teamsById.get(m.teamBId);
-          const playerGoals = Array.isArray(m.goalEvents)
-            ? m.goalEvents.filter((g) => g && g.playerId === player.id).length
-            : 0;
-          return {
-            id: m.id,
-            date: m.date || '',
-            stage: m.stage || 'Pelada',
-            teamAId: m.teamAId || '',
-            teamBId: m.teamBId || '',
-            teamAName: (teamA && teamA.name) || 'Time A',
-            teamBName: (teamB && teamB.name) || 'Time B',
-            teamALogoDataUrl: (teamA && teamA.logoDataUrl) || '',
-            teamBLogoDataUrl: (teamB && teamB.logoDataUrl) || '',
-            goalsA: Number(m.goalsA || 0),
-            goalsB: Number(m.goalsB || 0),
-            playerStats: {
-              goals: playerGoals,
-              assists: 0,
-              yellowCards: 0,
-              redCards: 0
-            }
-          };
-        })
-    : [];
-
   function resolveTeamMeta(teamId, teamName) {
     if (teamId) {
       const byId = teamsById.get(teamId);
@@ -694,7 +656,6 @@ app.get('/api/player/home', authRequired, async (req, res) => {
     team: team ? { id: team.id, name: team.name, color: team.color || '#0f766e', logoDataUrl: team.logoDataUrl || '' } : null,
     teamStats,
     teammates,
-    matches,
     standings,
     playerRanking,
     gameSchedule,

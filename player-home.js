@@ -1,4 +1,5 @@
 ﻿const TOKEN_KEY = 'resenha-player-token';
+const HOME_CACHE_KEY = 'resenha-player-home-cache-v1';
 var homePoll = null;
 var homePollMs = 0;
 var currentTab = 'perfil';
@@ -81,6 +82,12 @@ async function bootstrap() {
     return;
   }
 
+  var cached = readHomeCache();
+  if (cached) {
+    latestHomeData = cached;
+    hydrateHomeFromData(cached);
+  }
+
   try {
     await loadHome();
     startHomePolling();
@@ -149,7 +156,12 @@ async function loadHome() {
   const token = localStorage.getItem(TOKEN_KEY);
   const data = await api('/api/player/home', { headers: { Authorization: 'Bearer ' + token } });
   latestHomeData = data || null;
+  writeHomeCache(data);
+  hydrateHomeFromData(data);
+}
 
+function hydrateHomeFromData(data) {
+  if (!data || typeof data !== 'object') return;
   if (!data.linked) {
     if (els.pendingBox) els.pendingBox.classList.remove('hidden');
     if (els.pendingText) els.pendingText.textContent = data.message || 'Aguardando vinculo no painel.';
@@ -195,6 +207,24 @@ async function loadHome() {
     Array.isArray(data.recentGames) ? data.recentGames : [],
     Array.isArray(data.gameSchedule) ? data.gameSchedule : []
   );
+}
+
+function writeHomeCache(data) {
+  try {
+    if (!data || typeof data !== 'object') return;
+    localStorage.setItem(HOME_CACHE_KEY, JSON.stringify(data));
+  } catch (_err) {}
+}
+
+function readHomeCache() {
+  try {
+    var raw = localStorage.getItem(HOME_CACHE_KEY);
+    if (!raw) return null;
+    var parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch (_err) {
+    return null;
+  }
 }
 
 function renderProfile(profile) {
@@ -562,4 +592,5 @@ function esc(v) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
+
 
