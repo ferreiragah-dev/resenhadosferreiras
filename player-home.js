@@ -357,7 +357,7 @@ function renderRecentGames(list) {
   }
   els.recentGamesBox.innerHTML = list.slice(0, 10).map(function (g) {
     var dateLabel = g.endedAt ? new Date(Number(g.endedAt)).toLocaleString('pt-BR') : 'Finalizado';
-    return '<div class="match-card-neon">' +
+    return '<div class="match-card-neon recent-game-card">' +
       '<div class="match-header-neon"><div>⏱ ' + dateLabel + '</div><div>Encerrado</div></div>' +
       '<div class="match-body-neon">' +
         '<div class="team-neon">' + teamLogoOnlyHtml(g.teamAName || 'Time A', g.teamALogoDataUrl || '') + '<div class="team-name-neon">' + esc(g.teamAName || 'Time A') + '</div></div>' +
