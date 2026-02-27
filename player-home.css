@@ -13,9 +13,14 @@
 
 .top-actions{
   display:flex;
-  justify-content:flex-end;
+  justify-content:space-between;
+  align-items:center;
   gap:8px;
   margin-bottom:10px;
+}
+
+.menu-btn{
+  font-weight:700;
 }
 
 .top-btn{
@@ -39,16 +44,15 @@
 
 .tabs{
   display:flex;
-  flex-wrap:wrap;
+  flex-direction:column;
   gap:8px;
-  margin-bottom:12px;
 }
 
 .tab{
-  flex:1 1 calc(33.33% - 6px);
+  width:100%;
   min-width:0;
-  text-align:center;
-  padding:10px 0;
+  text-align:left;
+  padding:10px 12px;
   border:1px solid rgba(34,197,94,.35);
   border-radius:10px;
   font-size:.8rem;
@@ -58,15 +62,51 @@
 }
 
 .tab[data-tab="temporada"]{
-  font-size:.7rem;
-  padding-left:6px;
-  padding-right:6px;
+  font-size:.78rem;
 }
 
 .tab.active{
   background:#22c55e;
   color:#000;
   font-weight:700;
+}
+
+.side-menu{
+  position:fixed;
+  top:0;
+  left:0;
+  bottom:0;
+  width:min(82vw, 290px);
+  padding:14px;
+  background:#020a05;
+  border-right:1px solid rgba(34,197,94,.35);
+  box-shadow:12px 0 28px rgba(0,0,0,.45);
+  z-index:80;
+  transform:translateX(-104%);
+  transition:transform .24s ease;
+}
+
+.side-menu.open{
+  transform:translateX(0);
+}
+
+.side-menu-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:12px;
+  color:#86efac;
+}
+
+.side-tabs{
+  margin-bottom:0;
+}
+
+.sidebar-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.58);
+  z-index:70;
 }
 
 .main-profile{

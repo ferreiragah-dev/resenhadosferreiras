@@ -11,6 +11,10 @@ var homeAbortController = null;
 
 const els = {
   tabs: Array.prototype.slice.call(document.querySelectorAll('.tab')),
+  sideMenu: document.getElementById('sideMenu'),
+  sidebarOverlay: document.getElementById('sidebarOverlay'),
+  menuOpenBtn: document.getElementById('menuOpenBtn'),
+  menuCloseBtn: document.getElementById('menuCloseBtn'),
   perfil: document.getElementById('perfil'),
   tabela: document.getElementById('tabela'),
   ranking: document.getElementById('ranking'),
@@ -75,6 +79,22 @@ function bindEvents() {
   if (els.closeTeamLineupBtn) {
     els.closeTeamLineupBtn.addEventListener('click', function () {
       if (els.teamLineupDialog && typeof els.teamLineupDialog.close === 'function') els.teamLineupDialog.close();
+    });
+  }
+
+  if (els.menuOpenBtn) {
+    els.menuOpenBtn.addEventListener('click', function () {
+      openSideMenu();
+    });
+  }
+  if (els.menuCloseBtn) {
+    els.menuCloseBtn.addEventListener('click', function () {
+      closeSideMenu();
+    });
+  }
+  if (els.sidebarOverlay) {
+    els.sidebarOverlay.addEventListener('click', function () {
+      closeSideMenu();
     });
   }
 }
@@ -154,6 +174,7 @@ async function showTab(tab) {
   try {
     await ensureSectionLoaded(currentTab);
   } catch (_err) {}
+  closeSideMenu();
   restartHomePollingForCurrentTab();
 }
 
@@ -161,6 +182,22 @@ function setActiveTab(tab) {
   els.tabs.forEach(function (t) {
     if (t.getAttribute('data-tab') === tab) t.classList.add('active');
   });
+}
+
+function openSideMenu() {
+  if (els.sideMenu) {
+    els.sideMenu.classList.add('open');
+    els.sideMenu.setAttribute('aria-hidden', 'false');
+  }
+  if (els.sidebarOverlay) els.sidebarOverlay.classList.remove('hidden');
+}
+
+function closeSideMenu() {
+  if (els.sideMenu) {
+    els.sideMenu.classList.remove('open');
+    els.sideMenu.setAttribute('aria-hidden', 'true');
+  }
+  if (els.sidebarOverlay) els.sidebarOverlay.classList.add('hidden');
 }
 
 async function ensureSectionLoaded(section) {

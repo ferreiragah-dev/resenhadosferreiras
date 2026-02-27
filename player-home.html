@@ -4,27 +4,35 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Usuario | Resenha FC</title>
-<link rel="stylesheet" href="/player-home.css?v=22">
+<link rel="stylesheet" href="/player-home.css?v=23">
 </head>
 <body>
 <div class="app">
   <div class="top-actions">
+    <button id="menuOpenBtn" class="top-btn menu-btn" type="button" aria-label="Abrir menu">☰ Menu</button>
     <button id="refreshBtn" class="top-btn" type="button">Atualizar</button>
     <button id="logoutBtn" class="top-btn" type="button">Sair</button>
   </div>
 
+  <div id="sidebarOverlay" class="sidebar-overlay hidden"></div>
+  <aside id="sideMenu" class="side-menu" aria-hidden="true">
+    <div class="side-menu-head">
+      <strong>Navegacao</strong>
+      <button id="menuCloseBtn" class="top-btn" type="button" aria-label="Fechar menu">Fechar</button>
+    </div>
+    <div class="tabs side-tabs">
+      <div class="tab active" data-tab="perfil">Perfil</div>
+      <div class="tab" data-tab="tabela">Tabela</div>
+      <div class="tab" data-tab="ranking">Ranking</div>
+      <div class="tab" data-tab="ao-vivo">Ao Vivo</div>
+      <div class="tab" data-tab="temporada">Temporada Verão 2026</div>
+      <div class="tab" data-tab="jogos">Jogos</div>
+    </div>
+  </aside>
+
   <div id="pendingBox" class="pending-box hidden">
     <strong>Aguardando vinculo no PWA</strong>
     <p id="pendingText"></p>
-  </div>
-
-  <div class="tabs">
-    <div class="tab active" data-tab="perfil">Perfil</div>
-    <div class="tab" data-tab="tabela">Tabela</div>
-    <div class="tab" data-tab="ranking">Ranking</div>
-    <div class="tab" data-tab="ao-vivo">Ao Vivo</div>
-    <div class="tab" data-tab="temporada">Temporada Verão 2026</div>
-    <div class="tab" data-tab="jogos">Jogos</div>
   </div>
 
   <div id="perfil">
@@ -83,6 +91,6 @@
   </div>
 </dialog>
 
-<script src="/player-home.js?v=27" defer></script>
+<script src="/player-home.js?v=28" defer></script>
 </body>
 </html>
