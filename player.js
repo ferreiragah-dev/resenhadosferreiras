@@ -9,6 +9,8 @@ const els = {
   goToLoginLink: document.getElementById('goToLoginLink'),
   loginForm: document.getElementById('loginForm'),
   registerForm: document.getElementById('registerForm'),
+  loginSubmitBtn: document.getElementById('loginSubmitBtn'),
+  registerSubmitBtn: document.getElementById('registerSubmitBtn'),
   authMessage: document.getElementById('authMessage'),
   loginEmail: document.getElementById('loginEmail'),
   loginPassword: document.getElementById('loginPassword'),
@@ -40,17 +42,33 @@ function bindEvents() {
   if (els.loginForm) {
     els.loginForm.addEventListener('submit', async function (e) {
       e.preventDefault();
-      setMessage('');
+      setMessage('', '');
+      var email = String(els.loginEmail.value || '').trim();
+      var password = String(els.loginPassword.value || '');
+      if (!email || !isEmailValid(email)) {
+        setMessage('Informe um email valido.', 'error');
+        els.loginEmail.focus();
+        return;
+      }
+      if (!password) {
+        setMessage('Informe sua senha.', 'error');
+        els.loginPassword.focus();
+        return;
+      }
+      setLoading(els.loginSubmitBtn, true, 'Entrando...');
       try {
         const data = await api('/api/auth/login', {
           method: 'POST',
-          body: JSON.stringify({ email: els.loginEmail.value, password: els.loginPassword.value })
+          body: JSON.stringify({ email: email, password: password })
         });
         localStorage.setItem(TOKEN_KEY, data.token);
+        setMessage('Login realizado. Redirecionando...', 'success');
         window.location.href = '/player/home';
       } catch (err) {
         console.error('Erro no login:', err);
-        setMessage(err.message || 'Falha no login');
+        setMessage(err.message || 'Falha no login', 'error');
+      } finally {
+        setLoading(els.loginSubmitBtn, false, 'Entrar');
       }
     });
   }
@@ -58,26 +76,59 @@ function bindEvents() {
   if (els.registerForm) {
     els.registerForm.addEventListener('submit', async function (e) {
       e.preventDefault();
-      setMessage('');
+      setMessage('', '');
+      var name = String(els.registerName.value || '').trim();
+      var email = String(els.registerEmail.value || '').trim();
+      var password = String(els.registerPassword.value || '');
+      if (name.length < 2) {
+        setMessage('Informe seu nome completo.', 'error');
+        els.registerName.focus();
+        return;
+      }
+      if (!email || !isEmailValid(email)) {
+        setMessage('Informe um email valido.', 'error');
+        els.registerEmail.focus();
+        return;
+      }
+      if (password.length < 4) {
+        setMessage('A senha deve ter ao menos 4 caracteres.', 'error');
+        els.registerPassword.focus();
+        return;
+      }
+      setLoading(els.registerSubmitBtn, true, 'Cadastrando...');
       try {
         const data = await api('/api/auth/register', {
           method: 'POST',
           body: JSON.stringify({
-            name: els.registerName.value,
-            email: els.registerEmail.value,
-            password: els.registerPassword.value,
+            name: name,
+            email: email,
+            password: password,
             teamId: els.registerTeamSelect ? els.registerTeamSelect.value : '',
             teamName: getSelectedTeamName()
           })
         });
         localStorage.setItem(TOKEN_KEY, data.token);
+        setMessage('Conta criada com sucesso. Redirecionando...', 'success');
         window.location.href = '/player/home';
       } catch (err) {
         console.error('Erro no cadastro:', err);
-        setMessage(err.message || 'Falha no cadastro');
+        setMessage(err.message || 'Falha no cadastro', 'error');
+      } finally {
+        setLoading(els.registerSubmitBtn, false, 'Cadastrar');
       }
     });
   }
+
+  Array.prototype.slice.call(document.querySelectorAll('[data-pass-toggle]')).forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var targetId = btn.getAttribute('data-pass-toggle');
+      var input = targetId ? document.getElementById(targetId) : null;
+      if (!input) return;
+      var show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      btn.textContent = show ? 'Ocultar' : 'Mostrar';
+    });
+  });
 }
 
 async function bootstrap() {
@@ -100,7 +151,11 @@ async function bootstrap() {
 function switchAuthView(view) {
   if (els.playerLoginView) els.playerLoginView.hidden = view !== 'login';
   if (els.playerRegisterView) els.playerRegisterView.hidden = view !== 'register';
-  setMessage('');
+  setMessage('', '');
+  setTimeout(function () {
+    if (view === 'register' && els.registerName) els.registerName.focus();
+    if (view === 'login' && els.loginEmail) els.loginEmail.focus();
+  }, 0);
 }
 
 async function populateRegisterTeams() {
@@ -110,6 +165,7 @@ async function populateRegisterTeams() {
     const teams = await loadPublicTeams();
     if (!teams.length) {
       els.registerTeamSelect.innerHTML = '<option value="">Nenhum time cadastrado</option>';
+      setMessage('Nenhum time disponivel agora. Voce pode continuar sem selecionar.', 'info');
       return;
     }
     els.registerTeamSelect.innerHTML = '<option value="">Selecione</option>' +
@@ -174,8 +230,21 @@ async function api(url, options) {
   return data;
 }
 
-function setMessage(text) {
-  if (els.authMessage) els.authMessage.textContent = text || '';
+function setMessage(text, type) {
+  if (!els.authMessage) return;
+  els.authMessage.textContent = text || '';
+  els.authMessage.classList.remove('error', 'success', 'info');
+  if (text && type) els.authMessage.classList.add(type);
+}
+
+function setLoading(button, loading, label) {
+  if (!button) return;
+  button.disabled = !!loading;
+  button.textContent = label;
+}
+
+function isEmailValid(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim());
 }
 
 function getSelectedTeamName() {
