@@ -11,6 +11,8 @@ let syncTimer = null;
 let remotePollTimer = null;
 let lastLocalChangeAt = 0;
 let lastSyncOkAt = 0;
+let storageWriteFailed = false;
+let storageWarnShown = false;
 
 const els = {
   tabs: [...document.querySelectorAll('.tab')],
@@ -104,7 +106,17 @@ function loadState() {
 }
 
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    storageWriteFailed = false;
+  } catch (err) {
+    storageWriteFailed = true;
+    if (!storageWarnShown) {
+      storageWarnShown = true;
+      console.error('Falha ao salvar no localStorage. Continuando com sync no servidor.', err);
+      alert('Armazenamento local cheio. Os dados serão salvos no servidor.');
+    }
+  }
 }
 
 function persistAndRender() {
@@ -276,6 +288,30 @@ function bindEvents() {
   els.loadScheduleTemplateBtn?.addEventListener('click', loadDefaultScheduleTemplate);
 
   els.generateBracketBtn.addEventListener('click', generateBracketFromTeams);
+
+  els.teamsList?.addEventListener('click', async (e) => {
+    const target = e.target && e.target.closest ? e.target.closest('button') : null;
+    if (!target) return;
+    if (target.dataset.teamDelete) {
+      deleteTeam(target.dataset.teamDelete);
+      return;
+    }
+    if (target.dataset.teamSave) {
+      await saveTeamBasicFromCard(target.dataset.teamSave);
+      return;
+    }
+    if (target.dataset.teamLogoRemove) {
+      removeTeamLogo(target.dataset.teamLogoRemove);
+      return;
+    }
+    if (target.dataset.teamStatsSave) {
+      saveTeamStatsFromCard(target.dataset.teamStatsSave);
+      return;
+    }
+    if (target.dataset.teamStatsReset) {
+      resetTeamStats(target.dataset.teamStatsReset);
+    }
+  });
 
   els.penaltyDialog.addEventListener('close', () => {
     const action = els.penaltyDialog.returnValue;
@@ -605,11 +641,6 @@ function renderTeams() {
         </div>
       </article>`;
   }).join('');
-  els.teamsList.querySelectorAll('[data-team-delete]').forEach((btn) => btn.addEventListener('click', () => deleteTeam(btn.dataset.teamDelete)));
-  els.teamsList.querySelectorAll('[data-team-save]').forEach((btn) => btn.addEventListener('click', async () => { await saveTeamBasicFromCard(btn.dataset.teamSave); }));
-  els.teamsList.querySelectorAll('[data-team-logo-remove]').forEach((btn) => btn.addEventListener('click', () => removeTeamLogo(btn.dataset.teamLogoRemove)));
-  els.teamsList.querySelectorAll('[data-team-stats-save]').forEach((btn) => btn.addEventListener('click', () => saveTeamStatsFromCard(btn.dataset.teamStatsSave)));
-  els.teamsList.querySelectorAll('[data-team-stats-reset]').forEach((btn) => btn.addEventListener('click', () => resetTeamStats(btn.dataset.teamStatsReset)));
 }
 
 async function saveTeamBasicFromCard(teamId) {
@@ -1187,7 +1218,7 @@ function fileToDataURL(file) {
 }
 
 async function bootstrapRemote() {
-  const shouldHydrate = isStateEmpty(state);
+  const shouldHydrate = storageWriteFailed || isStateEmpty(state);
   if (shouldHydrate) {
     await Promise.allSettled([fetchUsersForLinking(), hydrateStateFromServer()]);
   } else {
