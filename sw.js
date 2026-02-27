@@ -1,4 +1,4 @@
-const CACHE_NAME = "resenha-ferreira-campeonato-cache-v77";
+const CACHE_NAME = "resenha-ferreira-campeonato-cache-v78";
 const ASSETS = ["/admin", "/player", "/player/home", "/jogo", "/jogo/ao-vivo", "/index.html", "/player.html", "/player-home.html", "/jogo.html", "/jogo-live.html", "/styles.css", "/player.css", "/player-home.css", "/jogo.css", "/jogo-live.css", "/app.js", "/player.js", "/player-home.js", "/jogo.js", "/jogo-live.js", "/pwa.js", "/manifest.webmanifest", "/manifest-jogo.webmanifest", "/icons/icon-192.svg", "/icons/icon-512.svg"];
 
 self.addEventListener("install", (event) => {
@@ -49,6 +49,9 @@ self.addEventListener("fetch", (event) => {
 });
 
 self.addEventListener("push", (event) => {
+  if (!self.Notification || Notification.permission !== "granted") {
+    return;
+  }
   let data = {};
   try {
     data = event.data ? event.data.json() : {};
@@ -64,7 +67,7 @@ self.addEventListener("push", (event) => {
       icon: "/icons/icon-192.svg",
       badge: "/icons/icon-192.svg",
       data: { url }
-    })
+    }).catch(() => {})
   );
 });
 
