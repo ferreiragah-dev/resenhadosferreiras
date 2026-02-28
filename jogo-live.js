@@ -1,8 +1,12 @@
-﻿var duration = 600;
+﻿var HALF_DURATION = 420;
+var duration = HALF_DURATION;
 var remaining = duration;
 var interval = null;
 var scoreA = 0;
 var scoreB = 0;
+var currentPeriod = 0;
+var firstHalfStarted = false;
+var secondHalfStarted = false;
 var currentPlayerAction = null;
 var teamAPlayers = [];
 var teamBPlayers = [];
@@ -37,6 +41,8 @@ window.addEventListener('DOMContentLoaded', function () {
   bindEndGameModal();
   loadRoster(teamAId, teamBId);
   updateDisplay();
+  updatePeriodStatus();
+  updatePeriodButtons();
   updateScore();
   renderTimeline();
   registerSw();
@@ -250,6 +256,7 @@ function createMatchEvent(player, stat) {
     playerId: String(player.id || ''),
     playerName: String(player.name || 'Jogador'),
     teamName: player.side === 'B' ? matchMeta.teamBName : matchMeta.teamAName,
+    period: currentPeriod,
     elapsed: elapsed,
     minute: Math.max(1, Math.ceil(elapsed / 60)),
     createdAt: Date.now()
@@ -283,12 +290,14 @@ function timelineCardHtml(evt) {
 }
 
 function formatEventMinute(evt) {
+  var period = Number(evt && evt.period || 0);
+  var prefix = period === 1 ? '1T ' : (period === 2 ? '2T ' : '');
   var minute = Number(evt && evt.minute || 0);
-  if (minute > 0) return String(minute) + "'";
+  if (minute > 0) return prefix + String(minute) + "'";
   var elapsed = Number(evt && evt.elapsed || 0);
   var mm = Math.floor(elapsed / 60);
   var ss = elapsed % 60;
-  return String(mm).padStart(2, '0') + ':' + String(ss).padStart(2, '0');
+  return prefix + String(mm).padStart(2, '0') + ':' + String(ss).padStart(2, '0');
 }
 
 function eventLabel(type) {
@@ -307,12 +316,41 @@ function updateDisplay() {
   if (el) el.textContent = String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
 }
 
-function startTimer() {
+function startFirstHalf() {
+  if (secondHalfStarted) return;
+  firstHalfStarted = true;
+  currentPeriod = 1;
+  duration = HALF_DURATION;
+  remaining = HALF_DURATION;
+  updateDisplay();
+  startCurrentPeriod();
+}
+
+function startSecondHalf() {
+  if (!firstHalfStarted) {
+    alert('Inicie o primeiro tempo antes do segundo tempo.');
+    return;
+  }
+  if (secondHalfStarted) return;
+  secondHalfStarted = true;
+  currentPeriod = 2;
+  duration = HALF_DURATION;
+  remaining = HALF_DURATION;
+  updateDisplay();
+  startCurrentPeriod();
+}
+
+function startCurrentPeriod() {
   if (interval) return;
+  if (currentPeriod !== 1 && currentPeriod !== 2) return;
   if (!matchStarted) {
     matchStarted = true;
     syncLiveGame('start').catch(function (err) { console.error('Falha ao iniciar jogo ao vivo:', err); });
+  } else {
+    syncLiveGame('update').catch(function () {});
   }
+  updatePeriodStatus();
+  updatePeriodButtons();
   interval = setInterval(function () {
     if (remaining > 0) {
       remaining -= 1;
@@ -321,8 +359,11 @@ function startTimer() {
     } else {
       clearInterval(interval);
       interval = null;
+      updatePeriodStatus();
+      updatePeriodButtons();
       syncLiveGame('update').catch(function () {});
-      alert('Fim de jogo!');
+      if (currentPeriod === 1) alert('Fim do primeiro tempo!');
+      else if (currentPeriod === 2) alert('Fim do segundo tempo!');
     }
   }, 1000);
 }
@@ -330,18 +371,26 @@ function startTimer() {
 function pauseTimer() {
   clearInterval(interval);
   interval = null;
+  updatePeriodStatus();
+  updatePeriodButtons();
   syncLiveGame('update').catch(function () {});
 }
 
 function resetGame() {
   clearInterval(interval);
   interval = null;
-  remaining = duration;
+  duration = HALF_DURATION;
+  remaining = HALF_DURATION;
+  currentPeriod = 0;
+  firstHalfStarted = false;
+  secondHalfStarted = false;
   scoreA = 0;
   scoreB = 0;
   playerLiveStats = {};
   matchEvents = [];
   updateDisplay();
+  updatePeriodStatus();
+  updatePeriodButtons();
   updateScore();
   renderPlayers('playersA', teamAPlayers, false, 'A');
   renderPlayers('playersB', teamBPlayers, true, 'B');
@@ -388,6 +437,10 @@ async function syncLiveGame(mode) {
     events: matchEvents,
     duration: duration,
     remaining: remaining,
+    period: currentPeriod,
+    firstHalfStarted: firstHalfStarted,
+    secondHalfStarted: secondHalfStarted,
+    periodStatus: getPeriodStatusText(),
     running: !!interval,
     startedAt: Date.now()
   };
@@ -398,6 +451,26 @@ async function syncLiveGame(mode) {
 
 function endGame() {
   openEndGameModal();
+}
+
+function getPeriodStatusText() {
+  if (currentPeriod === 0) return 'Aguardando primeiro tempo';
+  if (currentPeriod === 1) return interval ? 'Primeiro tempo em andamento' : 'Primeiro tempo encerrado';
+  if (currentPeriod === 2) return interval ? 'Segundo tempo em andamento' : 'Segundo tempo encerrado';
+  return 'Partida';
+}
+
+function updatePeriodStatus() {
+  var el = byId('periodStatus');
+  if (!el) return;
+  el.textContent = getPeriodStatusText();
+}
+
+function updatePeriodButtons() {
+  var firstBtn = byId('startFirstHalfBtn');
+  var secondBtn = byId('startSecondHalfBtn');
+  if (firstBtn) firstBtn.disabled = firstHalfStarted;
+  if (secondBtn) secondBtn.disabled = !firstHalfStarted || (currentPeriod === 1 && !!interval) || secondHalfStarted;
 }
 
 function finalizeGameAndRedirect(confirmBtn) {
@@ -477,7 +550,12 @@ function registerSw() {
   });
 }
 
-window.startTimer = startTimer;
+window.startFirstHalf = startFirstHalf;
+window.startSecondHalf = startSecondHalf;
+window.startTimer = startFirstHalf;
 window.pauseTimer = pauseTimer;
 window.resetGame = resetGame;
 window.endGame = endGame;
+
+
+

@@ -10,7 +10,7 @@
 <title>Partida Ao Vivo</title>
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/icons/icon-192.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/jogo-live.css?v=8">
+<link rel="stylesheet" href="/jogo-live.css?v=9">
 </head>
 <body>
 
@@ -27,10 +27,12 @@
         <div class="team-name" id="teamBName">Time B</div>
       </div>
 
-      <div class="timer" id="timer">10:00</div>
+      <div class="timer" id="timer">07:00</div>
+      <div class="period-status" id="periodStatus">Aguardando primeiro tempo</div>
 
       <div class="controls">
-        <button onclick="startTimer()">Play</button>
+        <button id="startFirstHalfBtn" onclick="startFirstHalf()">Iniciar primeiro tempo</button>
+        <button id="startSecondHalfBtn" class="secondary" onclick="startSecondHalf()">Iniciar segundo tempo</button>
         <button class="secondary" onclick="pauseTimer()">Pausar</button>
         <button class="secondary" onclick="resetGame()">Reset</button>
         <button class="secondary" onclick="endGame()">Encerrar</button>
@@ -88,6 +90,6 @@
 </div>
 
 <script src="/pwa.js?v=1" defer></script>
-<script src="/jogo-live.js?v=12" defer></script>
+<script src="/jogo-live.js?v=13" defer></script>
 </body>
 </html>
