@@ -78,6 +78,7 @@ const els = {
   teamLineupDialog: document.getElementById('teamLineupDialog'),
   teamLineupTitle: document.getElementById('teamLineupTitle'),
   teamLineupList: document.getElementById('teamLineupList'),
+  resetStatsBtn: document.getElementById('resetStatsBtn'),
   resetDataBtn: document.getElementById('resetDataBtn')
 };
 
@@ -377,6 +378,11 @@ function bindEvents() {
     pendingGoalEvents = [];
     renderGoalEvents();
     persistAndRender();
+  });
+
+  els.resetStatsBtn?.addEventListener('click', () => {
+    if (!confirm('Zerar estatísticas de jogadores e times, limpar tabela e apagar jogos recentes?')) return;
+    resetStatsAndGames();
   });
 }
 
@@ -1298,6 +1304,30 @@ function deleteMatch(id) {
   state.matches = state.matches.filter((m) => m.id !== id);
   removeRecentGameByMatch(match);
   rebuildTeamStatsFromMatches();
+  persistAndRender();
+}
+
+function resetStatsAndGames() {
+  state.players = (state.players || []).map((p) => ({
+    ...p,
+    yellowCards: 0,
+    redCards: 0,
+    goals: 0,
+    assists: 0,
+    goalsPro: 0,
+    goalsContra: 0
+  }));
+
+  state.teams = (state.teams || []).map((t) => ({
+    ...t,
+    stats: defaultTeamStats()
+  }));
+
+  state.matches = [];
+  state.recentGames = [];
+  state.liveGame = null;
+  pendingGoalEvents = [];
+  renderGoalEvents();
   persistAndRender();
 }
 
