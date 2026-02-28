@@ -90,7 +90,7 @@ bootstrapAdminGate();
 startRemotePolling();
 
 function defaultState() {
-  return { teams: [], players: [], matches: [], gameSchedule: [], bracket: [], settings: { eventStartAt: '' } };
+  return { teams: [], players: [], matches: [], gameSchedule: [], bracket: [], recentGames: [], settings: { eventStartAt: '' } };
 }
 
 function loadState() {
@@ -256,6 +256,7 @@ function bindEvents() {
       if (p) p.goals = (p.goals || 0) + 1;
     });
     pendingGoalEvents = [];
+    rebuildTeamStatsFromMatches();
     els.matchForm.reset();
     els.matchGoalsA.value = '0';
     els.matchGoalsB.value = '0';
@@ -372,7 +373,7 @@ function bindEvents() {
   els.resetDataBtn.addEventListener('click', () => {
     if (!confirm('Apagar todos os dados do campeonato?')) return;
     const fresh = defaultState();
-    state.teams = fresh.teams; state.players = fresh.players; state.matches = fresh.matches; state.gameSchedule = fresh.gameSchedule; state.bracket = fresh.bracket; state.settings = fresh.settings;
+    state.teams = fresh.teams; state.players = fresh.players; state.matches = fresh.matches; state.gameSchedule = fresh.gameSchedule; state.bracket = fresh.bracket; state.recentGames = fresh.recentGames; state.settings = fresh.settings;
     pendingGoalEvents = [];
     renderGoalEvents();
     persistAndRender();
@@ -1295,7 +1296,85 @@ function deleteMatch(id) {
     if (p) p.goals = Math.max(0, (p.goals || 0) - 1);
   });
   state.matches = state.matches.filter((m) => m.id !== id);
+  removeRecentGameByMatch(match);
+  rebuildTeamStatsFromMatches();
   persistAndRender();
+}
+
+function rebuildTeamStatsFromMatches() {
+  const statsByTeam = new Map();
+  state.teams.forEach((team) => {
+    statsByTeam.set(team.id, defaultTeamStats());
+  });
+
+  (state.matches || []).forEach((m) => {
+    const teamAId = String(m.teamAId || '');
+    const teamBId = String(m.teamBId || '');
+    if (!teamAId || !teamBId) return;
+    const statsA = statsByTeam.get(teamAId);
+    const statsB = statsByTeam.get(teamBId);
+    if (!statsA || !statsB) return;
+
+    const goalsA = Number(m.goalsA || 0);
+    const goalsB = Number(m.goalsB || 0);
+
+    statsA.games += 1;
+    statsB.games += 1;
+    statsA.goalsPro += goalsA;
+    statsA.goalsContra += goalsB;
+    statsB.goalsPro += goalsB;
+    statsB.goalsContra += goalsA;
+
+    if (goalsA > goalsB) {
+      statsA.wins += 1;
+      statsA.points += 3;
+      statsB.losses += 1;
+    } else if (goalsB > goalsA) {
+      statsB.wins += 1;
+      statsB.points += 3;
+      statsA.losses += 1;
+    } else {
+      statsA.draws += 1;
+      statsB.draws += 1;
+      statsA.points += 1;
+      statsB.points += 1;
+    }
+  });
+
+  state.teams = state.teams.map((team) => {
+    const stats = statsByTeam.get(team.id) || defaultTeamStats();
+    stats.goalDiff = Number(stats.goalsPro || 0) - Number(stats.goalsContra || 0);
+    return { ...team, stats };
+  });
+}
+
+function removeRecentGameByMatch(match) {
+  if (!match || !Array.isArray(state.recentGames) || !state.recentGames.length) return;
+  const matchId = String(match.id || '');
+  let index = state.recentGames.findIndex((g) => {
+    const linked = String(g?.linkedMatchId || g?.matchId || '');
+    return linked && linked === matchId;
+  });
+
+  if (index < 0) {
+    const aTeam = findTeam(match.teamAId);
+    const bTeam = findTeam(match.teamBId);
+    const aName = String(aTeam?.name || '').trim().toLowerCase();
+    const bName = String(bTeam?.name || '').trim().toLowerCase();
+    index = state.recentGames.findIndex((g) => {
+      const sameIds = String(g?.teamAId || '') === String(match.teamAId || '') &&
+        String(g?.teamBId || '') === String(match.teamBId || '');
+      const sameNames = String(g?.teamAName || '').trim().toLowerCase() === aName &&
+        String(g?.teamBName || '').trim().toLowerCase() === bName;
+      const sameScore = Number(g?.scoreA || 0) === Number(match.goalsA || 0) &&
+        Number(g?.scoreB || 0) === Number(match.goalsB || 0);
+      return sameScore && (sameIds || sameNames);
+    });
+  }
+
+  if (index >= 0) {
+    state.recentGames.splice(index, 1);
+  }
 }
 
 function findTeam(teamId) { return state.teams.find((t) => t.id === teamId); }
@@ -1351,6 +1430,7 @@ async function hydrateStateFromServer() {
     state.matches = Array.isArray(t.matches) ? t.matches : [];
     state.gameSchedule = Array.isArray(t.gameSchedule) ? t.gameSchedule : [];
     state.bracket = Array.isArray(t.bracket) ? t.bracket : [];
+    state.recentGames = Array.isArray(t.recentGames) ? t.recentGames : [];
     state.settings = { eventStartAt: String(t?.settings?.eventStartAt || '') };
     lastSyncOkAt = Date.now();
     renderAll();

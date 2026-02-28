@@ -569,9 +569,11 @@ app.post('/api/public/live-game/end', async (req, res) => {
         playerName: String(ev.playerName || '')
       }));
 
+    const matchId = uid();
     const matches = Array.isArray(tournament.matches) ? tournament.matches : [];
     matches.push({
-      id: uid(),
+      id: matchId,
+      liveGameId: String(current.id || ''),
       teamAId,
       teamBId,
       goalsA: scoreA,
@@ -584,7 +586,7 @@ app.post('/api/public/live-game/end', async (req, res) => {
     tournament.matches = matches;
 
     const recent = Array.isArray(tournament.recentGames) ? tournament.recentGames : [];
-    recent.unshift(current);
+    recent.unshift({ ...current, linkedMatchId: matchId });
     tournament.recentGames = recent.slice(0, 20);
     tournament.liveGame = null;
 
