@@ -1,1535 +1,456 @@
-﻿const ADMIN_SESSION_KEY = "resenha-ferreira-admin-auth";
+﻿
+const ADMIN_SESSION_KEY = "resenha-ferreira-admin-auth";
 const ADMIN_FIXED_USER = "admin";
 const ADMIN_FIXED_PASSWORD = "ferreiras123@";
-const state = loadState();
+
+const state = {
+  teams: [], players: [], matches: [], gameSchedule: [], bracket: [], liveGame: null, recentGames: [], settings: { eventStartAt: "" }
+};
+let registeredUsers = [];
+let pendingGoalEvents = [];
 let selectedPenaltyPlayerId = null;
 let selectedTeamChangePlayerId = null;
-let pendingGoalEvents = [];
-let registeredUsers = [];
-let syncTimer = null;
-let remotePollTimer = null;
-let lastLocalChangeAt = 0;
-let lastSyncOkAt = 0;
+let loaded = false;
+let saving = false;
+let saveAgain = false;
 
 const els = {
-  tabs: [...document.querySelectorAll('.tab')],
-  panels: [...document.querySelectorAll('.tab-panel')],
-  adminLoginGate: document.getElementById('adminLoginGate'),
-  adminLoginForm: document.getElementById('adminLoginForm'),
-  adminUsername: document.getElementById('adminUsername'),
-  adminPassword: document.getElementById('adminPassword'),
-  adminLoginError: document.getElementById('adminLoginError'),
-  playerForm: document.getElementById('playerForm'),
-  playerName: document.getElementById('playerName'),
-  playerNumber: document.getElementById('playerNumber'),
-  playerPosition: document.getElementById('playerPosition'),
-  playerTeamId: document.getElementById('playerTeamId'),
-  playerUserId: document.getElementById('playerUserId'),
-  playerPhoto: document.getElementById('playerPhoto'),
-  playerSearch: document.getElementById('playerSearch'),
-  playersList: document.getElementById('playersList'),
-  teamForm: document.getElementById('teamForm'),
-  teamName: document.getElementById('teamName'),
-  teamColor: document.getElementById('teamColor'),
-  teamLogo: document.getElementById('teamLogo'),
-  teamsList: document.getElementById('teamsList'),
-  matchForm: document.getElementById('matchForm'),
-  matchTeamA: document.getElementById('matchTeamA'),
-  matchTeamB: document.getElementById('matchTeamB'),
-  matchGoalsA: document.getElementById('matchGoalsA'),
-  matchGoalsB: document.getElementById('matchGoalsB'),
-  matchStage: document.getElementById('matchStage'),
-  matchDate: document.getElementById('matchDate'),
-  eventSettingsForm: document.getElementById('eventSettingsForm'),
-  eventStartAt: document.getElementById('eventStartAt'),
-  eventSettingsMessage: document.getElementById('eventSettingsMessage'),
-  pushTestForm: document.getElementById('pushTestForm'),
-  pushTitle: document.getElementById('pushTitle'),
-  pushBody: document.getElementById('pushBody'),
-  pushUrl: document.getElementById('pushUrl'),
-  pushUserId: document.getElementById('pushUserId'),
-  pushTestMessage: document.getElementById('pushTestMessage'),
-  matchesList: document.getElementById('matchesList'),
-  scheduleForm: document.getElementById('scheduleForm'),
-  schedulePhase: document.getElementById('schedulePhase'),
-  scheduleTime: document.getElementById('scheduleTime'),
-  scheduleTeamALabel: document.getElementById('scheduleTeamALabel'),
-  scheduleTeamBLabel: document.getElementById('scheduleTeamBLabel'),
-  scheduleTeamAId: document.getElementById('scheduleTeamAId'),
-  scheduleTeamBId: document.getElementById('scheduleTeamBId'),
-  scheduleTeamASelectWrap: document.getElementById('scheduleTeamASelectWrap'),
-  scheduleTeamBSelectWrap: document.getElementById('scheduleTeamBSelectWrap'),
-  scheduleGroupLabel: document.getElementById('scheduleGroupLabel'),
-  scheduleList: document.getElementById('scheduleList'),
-  loadScheduleTemplateBtn: document.getElementById('loadScheduleTemplateBtn'),
-  sortScheduleBtn: document.getElementById('sortScheduleBtn'),
-  goalPlayerSelect: document.getElementById('goalPlayerSelect'),
-  addGoalBtn: document.getElementById('addGoalBtn'),
-  goalEvents: document.getElementById('goalEvents'),
-  bracketBoard: document.getElementById('bracketBoard'),
-  generateBracketBtn: document.getElementById('generateBracketBtn'),
-  playerRanking: document.getElementById('playerRanking'),
-  teamRanking: document.getElementById('teamRanking'),
-  penaltyDialog: document.getElementById('penaltyDialog'),
-  penaltyDialogTitle: document.getElementById('penaltyDialogTitle'),
-  teamChangeDialog: document.getElementById('teamChangeDialog'),
-  teamChangeDialogTitle: document.getElementById('teamChangeDialogTitle'),
-  teamChangeSelect: document.getElementById('teamChangeSelect'),
-  teamLineupDialog: document.getElementById('teamLineupDialog'),
-  teamLineupTitle: document.getElementById('teamLineupTitle'),
-  teamLineupList: document.getElementById('teamLineupList'),
-  resetStatsBtn: document.getElementById('resetStatsBtn'),
-  resetDataBtn: document.getElementById('resetDataBtn')
+  tabs: [...document.querySelectorAll(".tab")],
+  panels: [...document.querySelectorAll(".tab-panel")],
+  adminLoginGate: document.getElementById("adminLoginGate"),
+  adminLoginForm: document.getElementById("adminLoginForm"),
+  adminUsername: document.getElementById("adminUsername"),
+  adminPassword: document.getElementById("adminPassword"),
+  adminLoginError: document.getElementById("adminLoginError"),
+  resetDataBtn: document.getElementById("resetDataBtn"),
+  resetStatsBtn: document.getElementById("resetStatsBtn"),
+  playerForm: document.getElementById("playerForm"),
+  playerName: document.getElementById("playerName"),
+  playerNumber: document.getElementById("playerNumber"),
+  playerPosition: document.getElementById("playerPosition"),
+  playerTeamId: document.getElementById("playerTeamId"),
+  playerUserId: document.getElementById("playerUserId"),
+  playerPhoto: document.getElementById("playerPhoto"),
+  playerSearch: document.getElementById("playerSearch"),
+  playersList: document.getElementById("playersList"),
+  teamForm: document.getElementById("teamForm"),
+  teamName: document.getElementById("teamName"),
+  teamColor: document.getElementById("teamColor"),
+  teamLogo: document.getElementById("teamLogo"),
+  teamsList: document.getElementById("teamsList"),
+  matchForm: document.getElementById("matchForm"),
+  matchTeamA: document.getElementById("matchTeamA"),
+  matchTeamB: document.getElementById("matchTeamB"),
+  matchGoalsA: document.getElementById("matchGoalsA"),
+  matchGoalsB: document.getElementById("matchGoalsB"),
+  matchStage: document.getElementById("matchStage"),
+  matchDate: document.getElementById("matchDate"),
+  goalPlayerSelect: document.getElementById("goalPlayerSelect"),
+  addGoalBtn: document.getElementById("addGoalBtn"),
+  goalEvents: document.getElementById("goalEvents"),
+  matchesList: document.getElementById("matchesList"),
+  eventSettingsForm: document.getElementById("eventSettingsForm"),
+  eventStartAt: document.getElementById("eventStartAt"),
+  eventSettingsMessage: document.getElementById("eventSettingsMessage"),
+  pushTestForm: document.getElementById("pushTestForm"),
+  pushTitle: document.getElementById("pushTitle"),
+  pushBody: document.getElementById("pushBody"),
+  pushUrl: document.getElementById("pushUrl"),
+  pushUserId: document.getElementById("pushUserId"),
+  pushTestMessage: document.getElementById("pushTestMessage"),
+  scheduleForm: document.getElementById("scheduleForm"),
+  schedulePhase: document.getElementById("schedulePhase"),
+  scheduleTime: document.getElementById("scheduleTime"),
+  scheduleTeamALabel: document.getElementById("scheduleTeamALabel"),
+  scheduleTeamBLabel: document.getElementById("scheduleTeamBLabel"),
+  scheduleTeamAId: document.getElementById("scheduleTeamAId"),
+  scheduleTeamBId: document.getElementById("scheduleTeamBId"),
+  scheduleTeamASelectWrap: document.getElementById("scheduleTeamASelectWrap"),
+  scheduleTeamBSelectWrap: document.getElementById("scheduleTeamBSelectWrap"),
+  scheduleGroupLabel: document.getElementById("scheduleGroupLabel"),
+  scheduleList: document.getElementById("scheduleList"),
+  loadScheduleTemplateBtn: document.getElementById("loadScheduleTemplateBtn"),
+  sortScheduleBtn: document.getElementById("sortScheduleBtn"),
+  generateBracketBtn: document.getElementById("generateBracketBtn"),
+  bracketBoard: document.getElementById("bracketBoard"),
+  playerRanking: document.getElementById("playerRanking"),
+  teamRanking: document.getElementById("teamRanking"),
+  penaltyDialog: document.getElementById("penaltyDialog"),
+  penaltyDialogTitle: document.getElementById("penaltyDialogTitle"),
+  teamChangeDialog: document.getElementById("teamChangeDialog"),
+  teamChangeDialogTitle: document.getElementById("teamChangeDialogTitle"),
+  teamChangeSelect: document.getElementById("teamChangeSelect"),
+  teamLineupDialog: document.getElementById("teamLineupDialog"),
+  teamLineupTitle: document.getElementById("teamLineupTitle"),
+  teamLineupList: document.getElementById("teamLineupList")
 };
 
-bindEvents();
-renderGoalEvents();
-renderAll();
-registerServiceWorker();
-bootstrapRemote();
-bootstrapAdminGate();
-startRemotePolling();
+init().catch(() => alert("Falha ao iniciar admin"));
 
-function defaultState() {
-  return { teams: [], players: [], matches: [], gameSchedule: [], bracket: [], recentGames: [], settings: { eventStartAt: '' } };
+async function init() {
+  bindEvents();
+  registerServiceWorker();
+  if (sessionStorage.getItem(ADMIN_SESSION_KEY) === "1") {
+    unlockAdmin();
+    await bootstrap();
+  } else {
+    lockAdmin();
+  }
 }
 
-function loadState() {
-  return defaultState();
-}
-
-function saveState() {
-  // Persistencia oficial no banco via /api/state.
-}
-
-function persistAndRender() {
-  lastLocalChangeAt = Date.now();
-  saveState();
+async function bootstrap() {
+  const [a, b] = await Promise.allSettled([apiJson("/api/state"), apiJson("/api/users")]);
+  if (a.status === "fulfilled") assignState(a.value.tournament || {});
+  if (b.status === "fulfilled") registeredUsers = Array.isArray(b.value.users) ? b.value.users : [];
   renderAll();
-  queueServerSync();
+  loaded = true;
 }
 
 function bindEvents() {
-  els.adminLoginForm?.addEventListener('submit', (e) => {
+  els.adminLoginForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const user = String(els.adminUsername?.value || '').trim();
-    const pass = String(els.adminPassword?.value || '');
-    if (user === ADMIN_FIXED_USER && pass === ADMIN_FIXED_PASSWORD) {
-      sessionStorage.setItem(ADMIN_SESSION_KEY, '1');
-      if (els.adminLoginError) els.adminLoginError.textContent = '';
-      unlockAdminApp();
+    const u = String(els.adminUsername?.value || "").trim();
+    const p = String(els.adminPassword?.value || "");
+    if (u !== ADMIN_FIXED_USER || p !== ADMIN_FIXED_PASSWORD) {
+      if (els.adminLoginError) els.adminLoginError.textContent = "Usuario ou senha invalidos.";
       return;
     }
-    if (els.adminLoginError) els.adminLoginError.textContent = 'Usuario ou senha invalidos.';
+    sessionStorage.setItem(ADMIN_SESSION_KEY, "1");
+    if (els.adminLoginError) els.adminLoginError.textContent = "";
+    unlockAdmin();
+    await bootstrap();
   });
-  els.tabs.forEach((btn) => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
 
-  els.teamForm.addEventListener('submit', async (e) => {
+  els.tabs.forEach((t) => t.addEventListener("click", () => switchTab(t.dataset.tab || "jogadores")));
+  els.playerSearch?.addEventListener("input", renderPlayers);
+
+  els.teamForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const name = els.teamName.value.trim();
+    if (!loaded) return;
+    const name = String(els.teamName?.value || "").trim();
     if (!name) return;
-    const logoDataUrl = els.teamLogo?.files?.[0] ? await fileToDataURL(els.teamLogo.files[0]) : '';
-    state.teams.push({
-      id: uid(),
-      name,
-      color: els.teamColor.value || '#0f766e',
-      logoDataUrl,
-      stats: defaultTeamStats(),
-      createdAt: Date.now()
-    });
+    const logo = els.teamLogo?.files?.[0] ? await fileToDataURL(els.teamLogo.files[0]) : "";
+    state.teams.push({ id: uid(), name, color: String(els.teamColor?.value || "#0f766e"), logoDataUrl: logo, stats: defaultTeamStats(), createdAt: Date.now() });
     els.teamForm.reset();
-    els.teamColor.value = '#0f766e';
-    persistAndRender();
+    if (els.teamColor) els.teamColor.value = "#0f766e";
+    await persistAndRender();
   });
 
-  els.playerForm.addEventListener('submit', async (e) => {
+  els.playerForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const name = els.playerName.value.trim();
+    if (!loaded) return;
+    const name = String(els.playerName?.value || "").trim();
     if (!name) return;
-    const photoDataUrl = els.playerPhoto.files?.[0] ? await fileToDataURL(els.playerPhoto.files[0]) : '';
-    state.players.push({
-      id: uid(),
-      name,
-      number: toNumOrNull(els.playerNumber.value),
-      position: els.playerPosition.value,
-      teamId: els.playerTeamId.value || '',
-      userId: els.playerUserId?.value || '',
-      photoDataUrl,
-      yellowCards: 0,
-      redCards: 0,
-      goals: 0,
-      assists: 0,
-      goalsPro: 0,
-      goalsContra: 0,
-      isCaptain: false,
-      createdAt: Date.now()
-    });
+    const photo = els.playerPhoto?.files?.[0] ? await fileToDataURL(els.playerPhoto.files[0]) : "";
+    state.players.push({ id: uid(), name, number: toNumOrNull(els.playerNumber?.value), position: String(els.playerPosition?.value || ""), teamId: String(els.playerTeamId?.value || ""), userId: String(els.playerUserId?.value || ""), photoDataUrl: photo, yellowCards: 0, redCards: 0, goals: 0, assists: 0, goalsPro: 0, goalsContra: 0, isCaptain: false, createdAt: Date.now() });
     els.playerForm.reset();
-    persistAndRender();
+    await persistAndRender();
   });
-
-  els.playerSearch.addEventListener('input', renderPlayers);
-
-  els.eventSettingsForm?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    state.settings = state.settings || { eventStartAt: '' };
-    state.settings.eventStartAt = String(els.eventStartAt?.value || '');
-    if (els.eventSettingsMessage) {
-      els.eventSettingsMessage.textContent = state.settings.eventStartAt
-        ? 'Horário salvo para a contagem regressiva do app do jogador.'
-        : 'Horário removido. O jogador verá sem contagem configurada.';
-    }
-    persistAndRender();
-  });
-
-  els.pushTestForm?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    if (els.pushTestMessage) {
-      els.pushTestMessage.textContent = 'Enviando notificação...';
-      els.pushTestMessage.style.color = '';
-    }
-    const payload = {
-      title: String(els.pushTitle?.value || 'Resenha dos Ferreira').trim() || 'Resenha dos Ferreira',
-      body: String(els.pushBody?.value || 'Nova atualização da resenha.').trim() || 'Nova atualização da resenha.',
-      url: String(els.pushUrl?.value || '/player/home').trim() || '/player/home'
-    };
-    const userId = String(els.pushUserId?.value || '').trim();
-    if (userId) payload.userId = userId;
-    try {
-      const data = await apiJson('/api/push/test', {
-        method: 'POST',
-        body: JSON.stringify(payload),
-        timeoutMs: 45000
-      });
-      if (els.pushTestMessage) {
-        const total = Number(data?.total || 0);
-        const sent = Number(data?.sent || 0);
-        const removed = Number(data?.removed || 0);
-        const failed = Number(data?.failed || 0);
-        var details = '';
-        if (failed > 0 && Array.isArray(data?.failures) && data.failures.length) {
-          details = ' | ';
-          details += data.failures.slice(0, 3).map((f) => {
-            const st = Number(f?.status || 0);
-            const msg = String(f?.message || '').trim();
-            const body = String(f?.body || '').trim();
-            const suffix = body ? ` (${body})` : '';
-            return `[${st || '?'}] ${msg}${suffix}`;
-          }).join(' ; ');
-        }
-        els.pushTestMessage.textContent = `Notificação enviada. Inscrições: ${total}. Entregues: ${sent}. Falhas: ${failed}. Removidas: ${removed}.${details}`;
-        els.pushTestMessage.style.color = '#147a48';
-      }
-    } catch (err) {
-      if (els.pushTestMessage) {
-        els.pushTestMessage.textContent = `Falha ao enviar push: ${err.message || 'erro desconhecido'}`;
-        els.pushTestMessage.style.color = '#b42318';
-      }
-    }
-  });
-
-  els.addGoalBtn.addEventListener('click', () => {
-    const playerId = els.goalPlayerSelect.value;
-    if (!playerId) return;
-    const player = state.players.find((p) => p.id === playerId);
-    if (!player) return;
-    pendingGoalEvents.push({ playerId: player.id, playerName: player.name });
-    renderGoalEvents();
-  });
-
-  els.matchForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const teamAId = els.matchTeamA.value;
-    const teamBId = els.matchTeamB.value;
-    if (!teamAId || !teamBId || teamAId === teamBId) {
-      alert('Selecione dois times diferentes.');
-      return;
-    }
-    const goalsA = Number(els.matchGoalsA.value || 0);
-    const goalsB = Number(els.matchGoalsB.value || 0);
-    const goalEvents = [...pendingGoalEvents];
-    state.matches.push({
-      id: uid(), teamAId, teamBId, goalsA, goalsB,
-      stage: els.matchStage.value, date: els.matchDate.value || '', goalEvents, createdAt: Date.now()
-    });
-    goalEvents.forEach((g) => {
-      const p = state.players.find((x) => x.id === g.playerId);
-      if (p) p.goals = (p.goals || 0) + 1;
-    });
-    pendingGoalEvents = [];
-    rebuildTeamStatsFromMatches();
-    els.matchForm.reset();
-    els.matchGoalsA.value = '0';
-    els.matchGoalsB.value = '0';
-    renderGoalEvents();
-    persistAndRender();
-  });
-
-  els.scheduleForm?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const phase = String(els.schedulePhase?.value || '').trim();
-    const time = String(els.scheduleTime?.value || '').trim();
-    const isGroup = isGroupPhase(phase);
-    let teamALabel = String(els.scheduleTeamALabel?.value || '').trim();
-    let teamBLabel = String(els.scheduleTeamBLabel?.value || '').trim();
-    let teamAId = '';
-    let teamBId = '';
-    if (isGroup) {
-      teamAId = String(els.scheduleTeamAId?.value || '').trim();
-      teamBId = String(els.scheduleTeamBId?.value || '').trim();
-      if (!teamAId || !teamBId || teamAId === teamBId) {
-        alert('Na fase de grupos, selecione dois times diferentes.');
-        return;
-      }
-      const teamA = findTeam(teamAId);
-      const teamB = findTeam(teamBId);
-      teamALabel = String(teamA?.name || '').trim();
-      teamBLabel = String(teamB?.name || '').trim();
-    }
-    const groupLabel = String(els.scheduleGroupLabel?.value || '').trim();
-    if (!phase || !time || !teamALabel || !teamBLabel) return;
-    state.gameSchedule.push({
-      id: uid(),
-      phase,
-      time,
-      teamALabel,
-      teamBLabel,
-      teamAId,
-      teamBId,
-      groupLabel,
-      createdAt: Date.now()
-    });
-    els.scheduleForm.reset();
-    syncScheduleFormMode();
-    persistAndRender();
-  });
-
-  els.schedulePhase?.addEventListener('input', syncScheduleFormMode);
-
-  els.sortScheduleBtn?.addEventListener('click', () => {
-    state.gameSchedule = [...(state.gameSchedule || [])].sort((a, b) => {
-      const phaseCmp = String(a.phase || '').localeCompare(String(b.phase || ''), 'pt-BR');
-      if (phaseCmp) return phaseCmp;
-      return String(a.time || '').localeCompare(String(b.time || ''));
-    });
-    persistAndRender();
-  });
-
-  els.loadScheduleTemplateBtn?.addEventListener('click', loadDefaultScheduleTemplate);
-
-  els.generateBracketBtn.addEventListener('click', generateBracketFromTeams);
-
-  document.addEventListener('click', (e) => {
-    const target = e.target && e.target.closest ? e.target.closest('[data-team-open]') : null;
-    if (!target) return;
-    e.preventDefault();
-    openTeamLineupDialog(target.dataset.teamOpen || '', target.dataset.teamName || '');
-  });
-
-  els.teamsList?.addEventListener('click', async (e) => {
-    const target = e.target && e.target.closest ? e.target.closest('button') : null;
-    if (!target) return;
-    if (target.dataset.teamDelete) {
-      deleteTeam(target.dataset.teamDelete);
-      return;
-    }
-    if (target.dataset.teamSave) {
-      await saveTeamBasicFromCard(target.dataset.teamSave);
-      return;
-    }
-    if (target.dataset.teamLogoRemove) {
-      removeTeamLogo(target.dataset.teamLogoRemove);
-      return;
-    }
-    if (target.dataset.teamStatsSave) {
-      saveTeamStatsFromCard(target.dataset.teamStatsSave);
-      return;
-    }
-    if (target.dataset.teamStatsReset) {
-      resetTeamStats(target.dataset.teamStatsReset);
-    }
-  });
-
-  els.penaltyDialog.addEventListener('close', () => {
-    const action = els.penaltyDialog.returnValue;
-    if (!selectedPenaltyPlayerId || !action || action === 'cancel') { selectedPenaltyPlayerId = null; return; }
-    const p = state.players.find((x) => x.id === selectedPenaltyPlayerId);
+  els.addGoalBtn?.addEventListener("click", () => {
+    const id = String(els.goalPlayerSelect?.value || "");
+    const p = state.players.find((x) => x.id === id);
     if (!p) return;
-    if (action === 'yellow') applyPlayerRelatedDelta(p, 'yellowCards', 1);
-    if (action === 'red') applyPlayerRelatedDelta(p, 'redCards', 1);
-    selectedPenaltyPlayerId = null;
-    persistAndRender();
-  });
-
-  els.teamChangeDialog?.addEventListener('close', () => {
-    const action = els.teamChangeDialog.returnValue;
-    if (!selectedTeamChangePlayerId || action !== 'save') { selectedTeamChangePlayerId = null; return; }
-    const player = state.players.find((p) => p.id === selectedTeamChangePlayerId);
-    if (!player) { selectedTeamChangePlayerId = null; return; }
-    player.teamId = String(els.teamChangeSelect?.value || '');
-    selectedTeamChangePlayerId = null;
-    persistAndRender();
-  });
-
-  els.resetDataBtn.addEventListener('click', () => {
-    if (!confirm('Apagar todos os dados do campeonato?')) return;
-    const fresh = defaultState();
-    state.teams = fresh.teams; state.players = fresh.players; state.matches = fresh.matches; state.gameSchedule = fresh.gameSchedule; state.bracket = fresh.bracket; state.recentGames = fresh.recentGames; state.settings = fresh.settings;
-    pendingGoalEvents = [];
+    pendingGoalEvents.push({ playerId: p.id, playerName: p.name });
     renderGoalEvents();
-    persistAndRender();
   });
 
-  els.resetStatsBtn?.addEventListener('click', () => {
-    if (!confirm('Zerar estatísticas de jogadores e times, limpar tabela e apagar jogos recentes?')) return;
-    resetStatsAndGames();
+  els.matchForm?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const a = String(els.matchTeamA?.value || "");
+    const b = String(els.matchTeamB?.value || "");
+    if (!a || !b || a === b) return alert("Selecione dois times diferentes.");
+    const ga = Math.max(0, Number(els.matchGoalsA?.value || 0));
+    const gb = Math.max(0, Number(els.matchGoalsB?.value || 0));
+    const events = pendingGoalEvents.slice();
+    state.matches.push({ id: uid(), teamAId: a, teamBId: b, goalsA: ga, goalsB: gb, stage: String(els.matchStage?.value || "Grupo"), date: String(els.matchDate?.value || ""), goalEvents: events, createdAt: Date.now() });
+    events.forEach((ev) => {
+      const p = state.players.find((x) => x.id === ev.playerId);
+      if (p) {
+        p.goals = Math.max(0, Number(p.goals || 0) + 1);
+        p.goalsPro = Math.max(0, Number(p.goalsPro || 0) + 1);
+      }
+    });
+    rebuildTeamStatsFromMatches();
+    pendingGoalEvents = [];
+    els.matchForm.reset();
+    if (els.matchGoalsA) els.matchGoalsA.value = "0";
+    if (els.matchGoalsB) els.matchGoalsB.value = "0";
+    await persistAndRender();
   });
-}
 
-function switchTab(tabName) {
-  els.tabs.forEach((btn) => btn.classList.toggle('is-active', btn.dataset.tab === tabName));
-  els.panels.forEach((panel) => {
-    const active = panel.id === `tab-${tabName}`;
-    panel.hidden = !active;
-    panel.classList.toggle('is-active', active);
+  els.eventSettingsForm?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    state.settings.eventStartAt = String(els.eventStartAt?.value || "");
+    if (els.eventSettingsMessage) els.eventSettingsMessage.textContent = state.settings.eventStartAt ? "Horario salvo." : "Horario removido.";
+    await persistAndRender();
   });
-}
 
-function bootstrapAdminGate() {
-  const ok = sessionStorage.getItem(ADMIN_SESSION_KEY) === '1';
-  if (ok) unlockAdminApp(); else lockAdminApp();
-}
+  els.pushTestForm?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (els.pushTestMessage) els.pushTestMessage.textContent = "Enviando notificacao...";
+    try {
+      const payload = { title: String(els.pushTitle?.value || "Resenha dos Ferreira"), body: String(els.pushBody?.value || "Nova atualizacao da resenha."), url: String(els.pushUrl?.value || "/player/home") };
+      const uidValue = String(els.pushUserId?.value || "");
+      if (uidValue) payload.userId = uidValue;
+      const r = await apiJson("/api/push/test", { method: "POST", body: JSON.stringify(payload), timeoutMs: 45000 });
+      if (els.pushTestMessage) els.pushTestMessage.textContent = `Notificacao enviada. Inscricoes: ${Number(r.total || 0)}. Entregues: ${Number(r.sent || 0)}.`;
+    } catch (err) {
+      if (els.pushTestMessage) els.pushTestMessage.textContent = `Falha ao enviar push: ${err.message || "erro"}`;
+    }
+  });
 
-function lockAdminApp() {
-  document.body.classList.add('admin-locked');
-  if (els.adminLoginGate) {
-    els.adminLoginGate.hidden = false;
-    els.adminLoginGate.style.display = 'grid';
-    els.adminLoginGate.style.pointerEvents = 'auto';
-  }
-}
+  els.schedulePhase?.addEventListener("input", syncScheduleMode);
+  els.scheduleForm?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const phase = String(els.schedulePhase?.value || "").trim();
+    const time = String(els.scheduleTime?.value || "").trim();
+    let teamAId = "", teamBId = "";
+    let teamALabel = String(els.scheduleTeamALabel?.value || "").trim();
+    let teamBLabel = String(els.scheduleTeamBLabel?.value || "").trim();
+    if (isGroupPhase(phase)) {
+      teamAId = String(els.scheduleTeamAId?.value || "");
+      teamBId = String(els.scheduleTeamBId?.value || "");
+      if (!teamAId || !teamBId || teamAId === teamBId) return alert("Selecione dois times diferentes.");
+      teamALabel = findTeam(teamAId)?.name || "";
+      teamBLabel = findTeam(teamBId)?.name || "";
+    }
+    if (!phase || !time || !teamALabel || !teamBLabel) return;
+    state.gameSchedule.push({ id: uid(), phase, time, teamALabel, teamBLabel, teamAId, teamBId, groupLabel: String(els.scheduleGroupLabel?.value || ""), createdAt: Date.now() });
+    els.scheduleForm.reset();
+    syncScheduleMode();
+    await persistAndRender();
+  });
 
-function unlockAdminApp() {
-  document.body.classList.remove('admin-locked');
-  if (els.adminLoginGate) {
-    els.adminLoginGate.hidden = true;
-    els.adminLoginGate.style.display = 'none';
-    els.adminLoginGate.style.pointerEvents = 'none';
-  }
+  els.sortScheduleBtn?.addEventListener("click", async () => {
+    state.gameSchedule = state.gameSchedule.slice().sort((a, b) => phasePriority(a.phase) - phasePriority(b.phase) || String(a.time || "").localeCompare(String(b.time || "")));
+    await persistAndRender();
+  });
+
+  els.loadScheduleTemplateBtn?.addEventListener("click", async () => {
+    if (!confirm("Carregar agenda padrao e substituir a atual?")) return;
+    const rows = [["FASE DE GRUPO (2x7 minutos)", "09:00", "Time A", "Time B", "Grupo A"], ["FASE DE GRUPO (2x7 minutos)", "09:15", "Time D", "Time E", "Grupo B"], ["FASE DE GRUPO (2x7 minutos)", "09:30", "Time A", "Time C", "Grupo A"], ["FASE DE GRUPO (2x7 minutos)", "09:45", "Time D", "Time F", "Grupo B"], ["FASE DE GRUPO (2x7 minutos)", "10:00", "Time B", "Time C", "Grupo A"], ["FASE DE GRUPO (2x7 minutos)", "10:15", "Time E", "Time F", "Grupo B"], ["SEMIFINAIS (2x7 minutos)", "10:45", "1º Grupo A", "2º Grupo B", ""], ["SEMIFINAIS (2x7 minutos)", "11:00", "1º Grupo B", "2º Grupo A", ""], ["FINAL (2x7 minutos)", "11:30", "Vencedor SF1", "Vencedor SF2", ""]];
+    state.gameSchedule = rows.map((r, i) => ({ id: uid(), phase: r[0], time: r[1], teamALabel: r[2], teamBLabel: r[3], teamAId: "", teamBId: "", groupLabel: r[4], createdAt: Date.now() + i }));
+    await persistAndRender();
+  });
+
+  els.teamsList?.addEventListener("click", async (e) => {
+    const btn = e.target && e.target.closest ? e.target.closest("button") : null;
+    if (!btn) return;
+    if (btn.dataset.teamDelete) return deleteTeam(btn.dataset.teamDelete);
+    if (btn.dataset.teamSave) return saveTeam(btn.dataset.teamSave);
+    if (btn.dataset.teamLogoRemove) return removeTeamLogo(btn.dataset.teamLogoRemove);
+    if (btn.dataset.teamStatsSave) return saveTeamStats(btn.dataset.teamStatsSave);
+    if (btn.dataset.teamStatsReset) return resetTeamStats(btn.dataset.teamStatsReset);
+  });
+
+  els.teamsList?.addEventListener("change", async (e) => {
+    const input = e.target;
+    if (!input || !input.matches || !input.matches("[data-team-logo-file]")) return;
+    const team = findTeam(String(input.getAttribute("data-team-logo-file") || ""));
+    const file = input.files && input.files[0];
+    if (!team || !file) return;
+    team.logoDataUrl = await fileToDataURL(file);
+    await persistAndRender();
+  });
+
+  els.playersList?.addEventListener("click", async (e) => {
+    const btn = e.target && e.target.closest ? e.target.closest("button, [role='button']") : null;
+    if (!btn) return;
+    if (btn.dataset.playerDelete) return deletePlayer(btn.dataset.playerDelete);
+    if (btn.dataset.playerPenalty) return openPenalty(btn.dataset.playerPenalty);
+    if (btn.dataset.playerTeamChange) return openTeamChange(btn.dataset.playerTeamChange);
+    if (btn.dataset.playerCaptain) return toggleCaptain(btn.dataset.playerCaptain);
+    if (btn.dataset.playerAssist) return addPlayerStat(btn.dataset.playerAssist, "assists", 1);
+    if (btn.dataset.playerGp) return addPlayerStat(btn.dataset.playerGp, "goalsPro", 1);
+    if (btn.dataset.playerGc) return addPlayerStat(btn.dataset.playerGc, "goalsContra", 1);
+    if (btn.dataset.playerResetCards) return resetCards(btn.dataset.playerResetCards);
+    if (btn.dataset.playerResetAgs) return resetPlayerStats(btn.dataset.playerResetAgs);
+  });
+  els.matchesList?.addEventListener("click", async (e) => {
+    const btn = e.target && e.target.closest ? e.target.closest("button") : null;
+    if (!btn || !btn.dataset.matchDelete) return;
+    await deleteMatch(btn.dataset.matchDelete);
+  });
+
+  els.scheduleList?.addEventListener("click", async (e) => {
+    const btn = e.target && e.target.closest ? e.target.closest("button") : null;
+    if (!btn || !btn.dataset.scheduleDelete) return;
+    state.gameSchedule = state.gameSchedule.filter((g) => String(g.id) !== String(btn.dataset.scheduleDelete));
+    await persistAndRender();
+  });
+
+  document.addEventListener("click", (e) => {
+    const node = e.target && e.target.closest ? e.target.closest("[data-team-open]") : null;
+    if (!node) return;
+    openTeamLineup(node.dataset.teamOpen || "", node.dataset.teamName || "");
+  });
+
+  els.penaltyDialog?.addEventListener("close", async () => {
+    const action = String(els.penaltyDialog?.returnValue || "");
+    const p = state.players.find((x) => x.id === selectedPenaltyPlayerId);
+    selectedPenaltyPlayerId = null;
+    if (!p) return;
+    if (action === "yellow") p.yellowCards = Math.max(0, Number(p.yellowCards || 0) + 1);
+    if (action === "red") p.redCards = Math.max(0, Number(p.redCards || 0) + 1);
+    if (action === "yellow" || action === "red") await persistAndRender();
+  });
+
+  els.teamChangeDialog?.addEventListener("close", async () => {
+    if (String(els.teamChangeDialog?.returnValue || "") !== "save") return;
+    const p = state.players.find((x) => x.id === selectedTeamChangePlayerId);
+    selectedTeamChangePlayerId = null;
+    if (!p) return;
+    p.teamId = String(els.teamChangeSelect?.value || "");
+    await persistAndRender();
+  });
+
+  els.resetStatsBtn?.addEventListener("click", async () => {
+    if (!confirm("Zerar estatisticas de jogadores, times e tabela e apagar jogos recentes?")) return;
+    state.players = state.players.map((p) => ({ ...p, yellowCards: 0, redCards: 0, goals: 0, assists: 0, goalsPro: 0, goalsContra: 0 }));
+    state.teams = state.teams.map((t) => ({ ...t, stats: defaultTeamStats() }));
+    state.matches = [];
+    state.recentGames = [];
+    state.liveGame = null;
+    pendingGoalEvents = [];
+    await persistAndRender();
+  });
+
+  els.resetDataBtn?.addEventListener("click", async () => {
+    if (!confirm("Apagar todos os dados do campeonato?")) return;
+    assignState({});
+    pendingGoalEvents = [];
+    await persistAndRender();
+  });
 }
 
 function renderAll() {
-  renderEventSettings();
   renderTeamOptions();
-  syncScheduleFormMode();
-  renderUserOptions();
-  renderPlayerGoalOptions();
-  renderTeams();
+  renderUsersOptions();
+  renderGoalOptions();
+  renderGoalEvents();
   renderPlayers();
+  renderTeams();
   renderMatches();
   renderSchedule();
   renderBracket();
   renderRankings();
+  syncScheduleMode();
+  if (els.eventStartAt) els.eventStartAt.value = String(state.settings?.eventStartAt || "");
 }
 
-function renderEventSettings() {
-  state.settings = state.settings || { eventStartAt: '' };
-  if (els.eventStartAt) {
-    els.eventStartAt.value = String(state.settings.eventStartAt || '');
-  }
-}
-
-function renderTeamOptions() {
-  const teams = [...state.teams].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
-  const options = teams.map((t) => `<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('');
-  const keepPlayerTeam = els.playerTeamId.value;
-  const keepA = els.matchTeamA.value;
-  const keepB = els.matchTeamB.value;
-  const keepScheduleA = String(els.scheduleTeamAId?.value || '');
-  const keepScheduleB = String(els.scheduleTeamBId?.value || '');
-  els.playerTeamId.innerHTML = `<option value="">Sem time</option>${options}`;
-  els.matchTeamA.innerHTML = `<option value="">Selecione</option>${options}`;
-  els.matchTeamB.innerHTML = `<option value="">Selecione</option>${options}`;
-  if (els.scheduleTeamAId) els.scheduleTeamAId.innerHTML = `<option value="">Selecione</option>${options}`;
-  if (els.scheduleTeamBId) els.scheduleTeamBId.innerHTML = `<option value="">Selecione</option>${options}`;
-  if (keepPlayerTeam) els.playerTeamId.value = keepPlayerTeam;
-  if (keepA) els.matchTeamA.value = keepA;
-  if (keepB) els.matchTeamB.value = keepB;
-  if (els.scheduleTeamAId && keepScheduleA) els.scheduleTeamAId.value = keepScheduleA;
-  if (els.scheduleTeamBId && keepScheduleB) els.scheduleTeamBId.value = keepScheduleB;
-}
-
-function renderUserOptions() {
-  if (!els.playerUserId && !els.pushUserId) return;
-  const keep = els.playerUserId ? els.playerUserId.value : '';
-  const keepPush = els.pushUserId ? els.pushUserId.value : '';
-  const options = [...registeredUsers]
-    .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR'))
-    .map((u) => `<option value="${esc(u.id)}">${esc(u.name)} (${esc(u.email)})</option>`)
-    .join('');
-  if (els.playerUserId) {
-    els.playerUserId.innerHTML = `<option value="">Sem vínculo (jogador ainda não se cadastrou)</option>${options}`;
-    if (keep) els.playerUserId.value = keep;
-  }
-  if (els.pushUserId) {
-    els.pushUserId.innerHTML = `<option value="">Todos os jogadores com notificação ativa</option>${options}`;
-    if (keepPush) els.pushUserId.value = keepPush;
-  }
-}
-
-function renderPlayerGoalOptions() {
-  const keep = els.goalPlayerSelect.value;
-  const items = [...state.players].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
-  els.goalPlayerSelect.innerHTML = `<option value="">Selecione</option>` + items.map((p) => {
-    const t = findTeam(p.teamId);
-    return `<option value="${esc(p.id)}">${esc(p.name)}${t ? ` (${esc(t.name)})` : ''}</option>`;
-  }).join('');
-  if (keep) els.goalPlayerSelect.value = keep;
-}
 function renderPlayers() {
-  const term = (els.playerSearch.value || '').trim().toLowerCase();
-  const players = [...state.players]
-    .filter((p) => p.name.toLowerCase().includes(term))
-    .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
-
-  if (!players.length) {
-    els.playersList.innerHTML = '<p class="muted">Nenhum jogador cadastrado.</p>';
-    return;
-  }
-
-  els.playersList.innerHTML = players.map((p) => renderPlayerCard(p)).join('');
-
-  els.playersList.querySelectorAll('[data-player-photo]').forEach((btn) => btn.addEventListener('click', () => openPenaltyDialog(btn.dataset.playerPhoto)));
-  els.playersList.querySelectorAll('[data-player-change-team]').forEach((btn) => {
-    btn.addEventListener('click', () => openTeamChangeDialog(btn.dataset.playerChangeTeam));
-    btn.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        openTeamChangeDialog(btn.dataset.playerChangeTeam);
-      }
-    });
-  });
-  els.playersList.querySelectorAll('[data-player-delete]').forEach((btn) => btn.addEventListener('click', () => deletePlayer(btn.dataset.playerDelete)));
-  els.playersList.querySelectorAll('[data-player-reset-cards]').forEach((btn) => btn.addEventListener('click', () => resetPlayerCards(btn.dataset.playerResetCards)));
-  els.playersList.querySelectorAll('[data-player-add-assist]').forEach((btn) => btn.addEventListener('click', () => addPlayerAssist(btn.dataset.playerAddAssist)));
-  els.playersList.querySelectorAll('[data-player-reset-ags]').forEach((btn) => btn.addEventListener('click', () => resetPlayerAGS(btn.dataset.playerResetAgs)));
-  els.playersList.querySelectorAll('[data-player-stat-op]').forEach((btn) => btn.addEventListener('click', () => {
-    const [id, field, delta] = String(btn.dataset.playerStatOp || '').split('|');
-    changePlayerStat(id, field, Number(delta || 0));
-  }));
-  els.playersList.querySelectorAll('[data-player-toggle-captain]').forEach((btn) => btn.addEventListener('click', () => togglePlayerCaptain(btn.dataset.playerToggleCaptain)));
-}
-
-function renderPlayerCard(player) {
-  const team = findTeam(player.teamId);
-  const linkedUser = registeredUsers.find((u) => u.id === player.userId);
-  const isTopScorer = getTopScorerId() === player.id;
-  const teamNumbers = getTeamGoalsForAgainst(player.teamId);
-  const playerGP = Number((player.goalsPro ?? teamNumbers.gp) || 0);
-  const playerGC = Number((player.goalsContra ?? teamNumbers.gc) || 0);
-  const photo = player.photoDataUrl
-    ? `<img src="${esc(player.photoDataUrl)}" alt="Foto de ${esc(player.name)}">`
-    : `<div class="player-photo-placeholder">${esc(initials(player.name))}</div>`;
-  return `
-    <article class="player-card">
-      <button class="player-photo-wrap" type="button" data-player-photo="${esc(player.id)}" title="Clique para penalidade">
-        ${photo}
-        <div class="penalty-badges">
-          ${player.yellowCards ? `<span class="penalty-chip yellow">🟨 ${player.yellowCards}</span>` : ''}
-          ${player.redCards ? `<span class="penalty-chip red">🟥 ${player.redCards}</span>` : ''}
-        </div>
-        <div class="player-stat-badges">
-          ${player.isCaptain ? `<span class="mini-chip captain-chip">C Capitão</span>` : ''}
-          ${isTopScorer ? `<span class="mini-chip topscorer-chip">⚽ Artilheiro</span>` : ''}
-          <span class="mini-chip">A ${Number(player.assists || 0)}</span>
-          <span class="mini-chip">GP ${playerGP}</span>
-          <span class="mini-chip">GC ${playerGC}</span>
-        </div>
-      </button>
-      <div class="player-meta">
-        <div class="player-name" role="button" tabindex="0" title="Clique para trocar time" data-player-change-team="${esc(player.id)}">${esc(player.name)} ${player.number !== null ? `#${player.number}` : ''}</div>
-        <div class="player-sub">${esc(player.position || '-')} • ${esc(team?.name || 'Sem time')}</div>
-        <div class="player-sub">${linkedUser ? `Conta: ${esc(linkedUser.email)}` : 'Conta: sem vínculo'}</div>
-        <div class="player-sub">Capitão: ${player.isCaptain ? 'Sim' : 'Não'}</div>
-        <div class="player-sub">Gols: ${player.goals || 0}</div>
-        <div class="stat-crud-grid">
-          <button class="ghost" type="button" data-player-stat-op="${esc(player.id)}|assists|1">A +1</button>
-          <button class="ghost" type="button" data-player-stat-op="${esc(player.id)}|assists|-1">A -1</button>
-          <button class="ghost" type="button" data-player-stat-op="${esc(player.id)}|goalsPro|1">GP +1</button>
-          <button class="ghost" type="button" data-player-stat-op="${esc(player.id)}|goalsPro|-1">GP -1</button>
-          <button class="ghost" type="button" data-player-stat-op="${esc(player.id)}|goalsContra|1">GC +1</button>
-          <button class="ghost" type="button" data-player-stat-op="${esc(player.id)}|goalsContra|-1">GC -1</button>
-        </div>
-        <div class="mini-actions">
-          <button class="ghost" type="button" data-player-toggle-captain="${esc(player.id)}">${player.isCaptain ? 'Remover C' : 'Tornar C'}</button>
-          <button class="ghost" type="button" data-player-add-assist="${esc(player.id)}">Assist +1</button>
-          <button class="ghost" type="button" data-player-reset-ags="${esc(player.id)}">Zerar A/GP/GC</button>
-          <button class="ghost" type="button" data-player-reset-cards="${esc(player.id)}">Zerar cartões</button>
-          <button class="danger" type="button" data-player-delete="${esc(player.id)}">Excluir</button>
-        </div>
-      </div>
-    </article>`;
-}
-
-function getTopScorerId() {
-  let best = null;
-  state.players.forEach((p) => {
-    const goals = Math.max(0, Number(p.goals || 0));
-    if (!goals) return;
-    if (!best) {
-      best = { id: p.id, goals, name: String(p.name || '') };
-      return;
-    }
-    if (goals > best.goals) {
-      best = { id: p.id, goals, name: String(p.name || '') };
-      return;
-    }
-    if (goals === best.goals && String(p.name || '').localeCompare(best.name, 'pt-BR') < 0) {
-      best = { id: p.id, goals, name: String(p.name || '') };
-    }
-  });
-  return best ? best.id : '';
-}
-
-function getTeamGoalsForAgainst(teamId) {
-  if (!teamId) return { gp: 0, gc: 0 };
-  let gp = 0;
-  let gc = 0;
-  for (const m of state.matches) {
-    if (m.teamAId !== teamId && m.teamBId !== teamId) continue;
-    const isA = m.teamAId === teamId;
-    gp += Number(isA ? m.goalsA : m.goalsB) || 0;
-    gc += Number(isA ? m.goalsB : m.goalsA) || 0;
-  }
-  return { gp, gc };
-}
-
-function defaultTeamStats() {
-  return { points: 0, games: 0, wins: 0, draws: 0, losses: 0, goalsPro: 0, goalsContra: 0, goalDiff: 0 };
-}
-
-function getTeamManualStats(team) {
-  const s = team && team.stats && typeof team.stats === 'object' ? team.stats : {};
-  return {
-    points: Number(s.points || 0),
-    games: Number(s.games || 0),
-    wins: Number(s.wins || 0),
-    draws: Number(s.draws || 0),
-    losses: Number(s.losses || 0),
-    goalsPro: Number(s.goalsPro || 0),
-    goalsContra: Number(s.goalsContra || 0),
-    goalDiff: Number(s.goalDiff || 0)
-  };
-}
-
-function saveTeamStatsFromCard(teamId) {
-  const team = state.teams.find((t) => t.id === teamId);
-  if (!team) return;
-  const stats = defaultTeamStats();
-  document.querySelectorAll(`[data-team-stat-input^="${cssEscape(teamId)}|"]`).forEach((input) => {
-    const parts = String(input.dataset.teamStatInput || '').split('|');
-    if (parts.length !== 2) return;
-    const field = parts[1];
-    if (!(field in stats)) return;
-    stats[field] = Math.max(0, Number(input.value || 0));
-  });
-  team.stats = stats;
-  persistAndRender();
-}
-
-function resetTeamStats(teamId) {
-  const team = state.teams.find((t) => t.id === teamId);
-  if (!team) return;
-  team.stats = defaultTeamStats();
-  persistAndRender();
+  if (!els.playersList) return;
+  const term = String(els.playerSearch?.value || "").trim().toLowerCase();
+  const players = state.players.filter((p) => String(p.name || "").toLowerCase().includes(term)).sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "pt-BR"));
+  const topScorerId = getTopScorerId();
+  els.playersList.innerHTML = players.length ? players.map((p) => {
+    const team = findTeam(p.teamId);
+    const photo = p.photoDataUrl ? `<img src="${esc(p.photoDataUrl)}" alt="${esc(p.name)}">` : `<div class="player-photo-placeholder">${esc(initials(p.name))}</div>`;
+    return `<article class="player-card"><div class="player-photo-wrap" data-player-penalty="${esc(p.id)}" role="button">${photo}<div class="penalty-badges">${p.yellowCards ? `<span class="penalty-chip yellow">CA ${Number(p.yellowCards)}</span>` : ""}${p.redCards ? `<span class="penalty-chip red">CV ${Number(p.redCards)}</span>` : ""}</div><div class="player-stat-badges"><span class="mini-chip">A ${Number(p.assists || 0)}</span><span class="mini-chip">GP ${Number(p.goalsPro || 0)}</span><span class="mini-chip">GC ${Number(p.goalsContra || 0)}</span>${p.isCaptain ? '<span class="mini-chip captain-chip">C</span>' : ""}${topScorerId === p.id ? '<span class="mini-chip topscorer-chip">⚽</span>' : ""}</div></div><div class="player-meta"><div class="player-name" role="button" data-player-team-change="${esc(p.id)}">${esc(p.name)}</div><div class="player-sub">${esc(team ? team.name : "Sem time")} · #${p.number == null ? "-" : Number(p.number)} · ${esc(p.position || "-")}</div><div class="mini-actions"><button class="ghost" type="button" data-player-captain="${esc(p.id)}">${p.isCaptain ? "Remover C" : "Capitao"}</button><button class="ghost" type="button" data-player-assist="${esc(p.id)}">+A</button><button class="ghost" type="button" data-player-gp="${esc(p.id)}">+GP</button><button class="ghost" type="button" data-player-gc="${esc(p.id)}">+GC</button><button class="ghost" type="button" data-player-reset-ags="${esc(p.id)}">Zerar A/GP/GC</button><button class="ghost" type="button" data-player-reset-cards="${esc(p.id)}">Zerar cartoes</button><button class="danger" type="button" data-player-delete="${esc(p.id)}">Excluir</button></div></div></article>`;
+  }).join("") : '<p class="muted">Nenhum jogador cadastrado.</p>';
 }
 
 function renderTeams() {
-  const teams = [...state.teams].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
-  if (!teams.length) {
-    els.teamsList.innerHTML = '<p class="muted">Cadastre os times para montar jogos e chaveamento.</p>';
-    return;
-  }
-  els.teamsList.innerHTML = teams.map((team) => {
-    const count = state.players.filter((p) => p.teamId === team.id).length;
-    const s = getTeamManualStats(team);
-    return `
-      <article class="team-card" data-team-card="${esc(team.id)}">
-        <div class="team-card-top">
-          <div class="team-pill">${teamIdentityHtml(team)}</div>
-          <button class="danger" type="button" data-team-delete="${esc(team.id)}">Excluir</button>
-        </div>
-        <div class="team-edit-grid">
-          <label>Nome do time
-            <input type="text" value="${esc(team.name)}" data-team-basic-input="${esc(team.id)}|name" data-team-name-input>
-          </label>
-          <label>Cor
-            <input type="color" value="${esc(team.color || '#0f766e')}" data-team-basic-input="${esc(team.id)}|color" data-team-color-input>
-          </label>
-          <label class="full">Logo (opcional)
-            <input type="file" accept="image/*" data-team-logo-input="${esc(team.id)}" data-team-logo-input-file>
-          </label>
-        </div>
-        <p class="muted">${count} jogador(es)</p>
-        <div class="team-stats-grid">
-          ${teamStatInput(team.id, 'points', 'P', s.points)}
-          ${teamStatInput(team.id, 'games', 'J', s.games)}
-          ${teamStatInput(team.id, 'wins', 'V', s.wins)}
-          ${teamStatInput(team.id, 'draws', 'E', s.draws)}
-          ${teamStatInput(team.id, 'losses', 'D', s.losses)}
-          ${teamStatInput(team.id, 'goalsPro', 'GP', s.goalsPro)}
-          ${teamStatInput(team.id, 'goalsContra', 'GC', s.goalsContra)}
-          ${teamStatInput(team.id, 'goalDiff', 'SG', s.goalDiff)}
-        </div>
-        <div class="mini-actions">
-          <button class="ghost" type="button" data-team-save="${esc(team.id)}">Salvar time</button>
-          <button class="ghost" type="button" data-team-logo-remove="${esc(team.id)}">Remover logo</button>
-          <button class="ghost" type="button" data-team-stats-save="${esc(team.id)}">Salvar tabela</button>
-          <button class="ghost" type="button" data-team-stats-reset="${esc(team.id)}">Zerar tabela</button>
-        </div>
-      </article>`;
-  }).join('');
-}
-
-async function saveTeamBasicFromCard(teamId) {
-  const team = state.teams.find((t) => t.id === teamId);
-  if (!team) return;
-  const card = document.querySelector(`[data-team-card="${cssEscape(teamId)}"]`);
-  const patch = { name: team.name, color: team.color || '#0f766e', logoDataUrl: team.logoDataUrl || '' };
-  const nameInput = card ? card.querySelector('[data-team-name-input]') : null;
-  const colorInput = card ? card.querySelector('[data-team-color-input]') : null;
-  const logoInput = card ? card.querySelector('[data-team-logo-input-file]') : null;
-
-  if (nameInput) patch.name = String(nameInput.value || '').trim();
-  if (colorInput) patch.color = String(colorInput.value || '').trim() || '#0f766e';
-  if (logoInput && logoInput.files && logoInput.files[0]) {
-    patch.logoDataUrl = await fileToDataURL(logoInput.files[0]);
-  }
-  if (!patch.name) {
-    alert('Nome do time é obrigatório.');
-    return;
-  }
-  team.name = patch.name;
-  team.color = patch.color;
-  team.logoDataUrl = patch.logoDataUrl;
-  persistAndRender();
-  try {
-    await syncStateToServer();
-  } catch {
-    // Mantem estado local e evita rollback visual.
-  }
-}
-
-function removeTeamLogo(teamId) {
-  const team = state.teams.find((t) => t.id === teamId);
-  if (!team) return;
-  team.logoDataUrl = '';
-  persistAndRender();
-}
-
-function teamIdentityHtml(team) {
-  if (!team) return '<span>Time</span>';
-  const teamName = esc(team.name || 'Time');
-  const logo = String(team.logoDataUrl || '').trim();
-  if (logo) {
-    return `<button type="button" class="team-open-btn" data-team-open="${esc(team.id)}" data-team-name="${teamName}"><span class="team-logo"><img src="${esc(logo)}" alt="${teamName}"></span><span>${teamName}</span></button>`;
-  }
-  return `<button type="button" class="team-open-btn" data-team-open="${esc(team.id)}" data-team-name="${teamName}"><span class="team-dot" style="background:${esc(team.color || '#0f766e')}"></span><span>${teamName}</span></button>`;
-}
-
-function teamStatInput(teamId, field, label, value) {
-  return `<label class="team-stat-field">${label}<input type="number" min="0" value="${Number(value || 0)}" data-team-stat-input="${esc(teamId)}|${field}"></label>`;
-}
-
-function renderGoalEvents() {
-  if (!pendingGoalEvents.length) {
-    els.goalEvents.innerHTML = '<p class="muted">Nenhum gol por jogador adicionado.</p>';
-    return;
-  }
-  els.goalEvents.innerHTML = pendingGoalEvents.map((ev, i) => `
-    <div class="goal-event">
-      <div><strong>${esc(ev.playerName)}</strong><small>Gol ${i + 1}</small></div>
-      <button class="danger" type="button" data-goal-remove="${i}">Remover</button>
-    </div>`).join('');
-  els.goalEvents.querySelectorAll('[data-goal-remove]').forEach((btn) => btn.addEventListener('click', () => {
-    pendingGoalEvents.splice(Number(btn.dataset.goalRemove), 1);
-    renderGoalEvents();
-  }));
+  if (!els.teamsList) return;
+  const teams = [...state.teams].sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "pt-BR"));
+  els.teamsList.innerHTML = teams.length ? teams.map((team) => {
+    const s = teamStats(team);
+    const count = state.players.filter((p) => String(p.teamId || "") === String(team.id)).length;
+    return `<article class="team-card"><div class="team-card-top"><h3><span class="team-pill">${teamIdentityHtml(team)}</span></h3><button class="danger" type="button" data-team-delete="${esc(team.id)}">Excluir</button></div><div class="team-edit-grid"><label>Nome do time<input type="text" value="${esc(team.name || "")}" data-team-name-input="${esc(team.id)}"></label><label>Cor<input type="color" value="${esc(team.color || "#0f766e")}" data-team-color-input="${esc(team.id)}"></label><label class="full">Logo (opcional)<input type="file" accept="image/*" data-team-logo-file="${esc(team.id)}"></label></div><p class="muted">${count} jogador(es)</p><div class="team-stats-grid">${teamStatInput(team.id, "points", "P", s.points)}${teamStatInput(team.id, "games", "J", s.games)}${teamStatInput(team.id, "wins", "V", s.wins)}${teamStatInput(team.id, "draws", "E", s.draws)}${teamStatInput(team.id, "losses", "D", s.losses)}${teamStatInput(team.id, "goalsPro", "GP", s.goalsPro)}${teamStatInput(team.id, "goalsContra", "GC", s.goalsContra)}${teamStatInput(team.id, "goalDiff", "SG", s.goalDiff)}</div><div class="mini-actions"><button class="ghost" type="button" data-team-save="${esc(team.id)}">Salvar time</button><button class="ghost" type="button" data-team-logo-remove="${esc(team.id)}">Remover logo</button><button class="ghost" type="button" data-team-stats-save="${esc(team.id)}">Salvar tabela</button><button class="ghost" type="button" data-team-stats-reset="${esc(team.id)}">Zerar tabela</button></div></article>`;
+  }).join("") : '<p class="muted">Nenhum time cadastrado.</p>';
 }
 
 function renderMatches() {
-  const matches = [...state.matches].sort((a, b) => (b.date || '').localeCompare(a.date || '') || b.createdAt - a.createdAt);
-  if (!matches.length) {
-    els.matchesList.innerHTML = '<p class="muted">Nenhum jogo cadastrado.</p>';
-    return;
-  }
-  els.matchesList.innerHTML = matches.map((m) => {
-    const aTeam = findTeam(m.teamAId) || null;
-    const bTeam = findTeam(m.teamBId) || null;
-    const a = aTeam?.name || 'Time A';
-    const b = bTeam?.name || 'Time B';
-    const goals = (m.goalEvents || []).map((g) => esc(g.playerName)).join(', ');
-    return `
-      <article class="match-card">
-        <div class="match-row"><strong>${esc(m.stage || 'Jogo')}</strong><button class="danger" type="button" data-match-delete="${esc(m.id)}">Excluir</button></div>
-        <div class="match-row"><span class="team-inline">${teamInlineHtml(aTeam, a)}</span><strong>${Number(m.goalsA)} x ${Number(m.goalsB)}</strong><span class="team-inline">${teamInlineHtml(bTeam, b)}</span></div>
-        <p class="muted">${m.date ? formatDate(m.date) : 'Sem data'}</p>
-        ${(m.goalEvents || []).length ? `<p class="muted">Gols: ${goals}</p>` : ''}
-      </article>`;
-  }).join('');
-  els.matchesList.querySelectorAll('[data-match-delete]').forEach((btn) => btn.addEventListener('click', () => deleteMatch(btn.dataset.matchDelete)));
+  if (!els.matchesList) return;
+  const matches = [...state.matches].sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")) || Number(b.createdAt || 0) - Number(a.createdAt || 0));
+  els.matchesList.innerHTML = matches.length ? matches.map((m) => `<article class="match-card"><div class="match-row"><strong>${esc(m.stage || "Jogo")}</strong><button class="danger" type="button" data-match-delete="${esc(m.id)}">Excluir</button></div><div class="match-row"><span class="team-inline">${teamInlineHtml(findTeam(m.teamAId), "Time A")}</span><strong>${Number(m.goalsA || 0)} x ${Number(m.goalsB || 0)}</strong><span class="team-inline">${teamInlineHtml(findTeam(m.teamBId), "Time B")}</span></div><small class="muted">${m.date ? formatDate(m.date) : "Sem data"}</small></article>`).join("") : '<p class="muted">Nenhum jogo cadastrado.</p>';
 }
-
-function isGroupPhase(phase) {
-  const text = String(phase || '').trim().toLowerCase();
-  return text.includes('grupo');
-}
-
-function syncScheduleFormMode() {
-  if (!els.schedulePhase || !els.scheduleTeamALabel || !els.scheduleTeamBLabel) return;
-  const useTeamSelect = isGroupPhase(els.schedulePhase.value);
-  if (els.scheduleTeamASelectWrap) els.scheduleTeamASelectWrap.hidden = !useTeamSelect;
-  if (els.scheduleTeamBSelectWrap) els.scheduleTeamBSelectWrap.hidden = !useTeamSelect;
-  const labelWrapA = els.scheduleTeamALabel.closest('label');
-  const labelWrapB = els.scheduleTeamBLabel.closest('label');
-  if (labelWrapA) labelWrapA.hidden = useTeamSelect;
-  if (labelWrapB) labelWrapB.hidden = useTeamSelect;
-  els.scheduleTeamALabel.required = !useTeamSelect;
-  els.scheduleTeamBLabel.required = !useTeamSelect;
-  if (els.scheduleTeamAId) els.scheduleTeamAId.required = useTeamSelect;
-  if (els.scheduleTeamBId) els.scheduleTeamBId.required = useTeamSelect;
-}
-
-function scheduleTeamOptionsHtml(selectedId) {
-  const teams = [...state.teams].sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR'));
-  return `<option value="">Selecione</option>` + teams.map((t) => (
-    `<option value="${esc(t.id)}"${String(selectedId || '') === String(t.id) ? ' selected' : ''}>${esc(t.name)}</option>`
-  )).join('');
-}
-
-function resolveScheduleTeam(row, side) {
-  const idField = side === 'A' ? 'teamAId' : 'teamBId';
-  const labelField = side === 'A' ? 'teamALabel' : 'teamBLabel';
-  const id = String(row?.[idField] || '').trim();
-  if (id) {
-    const byId = findTeam(id);
-    if (byId) return byId;
-  }
-  return resolveTeamByLabel(row?.[labelField] || '');
-}
-
 function renderSchedule() {
   if (!els.scheduleList) return;
-  const rows = Array.isArray(state.gameSchedule) ? [...state.gameSchedule] : [];
-  if (!rows.length) {
-    els.scheduleList.innerHTML = '<p class="muted">Nenhum item na agenda. Cadastre a fase, horário e confronto.</p>';
-    return;
-  }
-
-  rows.sort((a, b) => {
-    const phaseCmp = String(a.phase || '').localeCompare(String(b.phase || ''), 'pt-BR');
-    if (phaseCmp) return phaseCmp;
-    return String(a.time || '').localeCompare(String(b.time || ''));
-  });
-
-  let lastPhase = '';
-  els.scheduleList.innerHTML = rows.map((row) => {
-    const groupPhase = isGroupPhase(row.phase);
-    const teamA = resolveScheduleTeam(row, 'A');
-    const teamB = resolveScheduleTeam(row, 'B');
-    const selectedAId = String(teamA?.id || row.teamAId || '');
-    const selectedBId = String(teamB?.id || row.teamBId || '');
-    const teamALabel = String(teamA?.name || row.teamALabel || '');
-    const teamBLabel = String(teamB?.name || row.teamBLabel || '');
-    const showPhase = String(row.phase || '') !== lastPhase;
-    lastPhase = String(row.phase || '');
-    return `
-      ${showPhase ? `<div class="schedule-phase">${esc(row.phase || 'Fase')}</div>` : ''}
-      <article class="schedule-card">
-        <div class="schedule-grid">
-          <label>Horário<input type="time" value="${esc(row.time || '')}" data-schedule-input="${esc(row.id)}|time"></label>
-          <label>Grupo/Chave<input type="text" value="${esc(row.groupLabel || '')}" placeholder="Grupo A" data-schedule-input="${esc(row.id)}|groupLabel"></label>
-          ${groupPhase
-            ? `<label>Confronto A
-                <select data-schedule-input="${esc(row.id)}|teamAId">
-                  ${scheduleTeamOptionsHtml(selectedAId)}
-                </select>
-              </label>`
-            : `<label>Confronto A<input type="text" value="${esc(teamALabel)}" data-schedule-input="${esc(row.id)}|teamALabel"></label>`
-          }
-          ${groupPhase
-            ? `<label>Confronto B
-                <select data-schedule-input="${esc(row.id)}|teamBId">
-                  ${scheduleTeamOptionsHtml(selectedBId)}
-                </select>
-              </label>`
-            : `<label>Confronto B<input type="text" value="${esc(teamBLabel)}" data-schedule-input="${esc(row.id)}|teamBLabel"></label>`
-          }
-          <label class="full">Fase<input type="text" value="${esc(row.phase || '')}" data-schedule-input="${esc(row.id)}|phase"></label>
-        </div>
-        <div class="mini-actions">
-          <button class="primary" type="button" data-schedule-start="${esc(row.id)}">Iniciar jogo</button>
-          <button class="ghost" type="button" data-schedule-save="${esc(row.id)}">Salvar</button>
-          <button class="danger" type="button" data-schedule-delete="${esc(row.id)}">Excluir</button>
-        </div>
-      </article>`;
-  }).join('');
-
-  els.scheduleList.querySelectorAll('[data-schedule-start]').forEach((btn) => btn.addEventListener('click', () => startScheduledGame(btn.dataset.scheduleStart)));
-  els.scheduleList.querySelectorAll('[data-schedule-save]').forEach((btn) => btn.addEventListener('click', () => saveScheduleRow(btn.dataset.scheduleSave)));
-  els.scheduleList.querySelectorAll('[data-schedule-delete]').forEach((btn) => btn.addEventListener('click', () => deleteScheduleRow(btn.dataset.scheduleDelete)));
-}
-
-function saveScheduleRow(id) {
-  const row = (state.gameSchedule || []).find((x) => x.id === id);
-  if (!row) return;
-  document.querySelectorAll(`[data-schedule-input^="${cssEscape(id)}|"]`).forEach((input) => {
-    const parts = String(input.dataset.scheduleInput || '').split('|');
-    if (parts.length !== 2) return;
-    const field = parts[1];
-    if (!['phase', 'time', 'teamALabel', 'teamBLabel', 'teamAId', 'teamBId', 'groupLabel'].includes(field)) return;
-    row[field] = String(input.value || '').trim();
-  });
-
-  if (isGroupPhase(row.phase)) {
-    const teamA = findTeam(String(row.teamAId || ''));
-    const teamB = findTeam(String(row.teamBId || ''));
-    if (!teamA || !teamB || String(teamA.id) === String(teamB.id)) {
-      alert('Na fase de grupos, selecione dois times cadastrados e diferentes.');
-      return;
-    }
-    row.teamALabel = String(teamA.name || '');
-    row.teamBLabel = String(teamB.name || '');
-  } else {
-    row.teamAId = '';
-    row.teamBId = '';
-  }
-
-  if (!row.phase || !row.time || !row.teamALabel || !row.teamBLabel) {
-    alert('Fase, horário e confrontos são obrigatórios.');
-    return;
-  }
-  persistAndRender();
-}
-
-function deleteScheduleRow(id) {
-  const row = (state.gameSchedule || []).find((x) => x.id === id);
-  if (!row) return;
-  if (!confirm(`Excluir agenda ${row.time} - ${row.teamALabel} x ${row.teamBLabel}?`)) return;
-  state.gameSchedule = (state.gameSchedule || []).filter((x) => x.id !== id);
-  persistAndRender();
-}
-
-function startScheduledGame(id) {
-  const row = (state.gameSchedule || []).find((x) => x.id === id);
-  if (!row) return;
-
-  const teamA = resolveScheduleTeam(row, 'A');
-  const teamB = resolveScheduleTeam(row, 'B');
-
-  if (!teamA || !teamB) {
-    alert('Nao foi possivel iniciar: um ou ambos os confrontos nao correspondem a times cadastrados.');
-    return;
-  }
-  if (teamA.id === teamB.id) {
-    alert('Confronto invalido: os times devem ser diferentes.');
-    return;
-  }
-
-  const url = '/jogo/ao-vivo?teamA=' + encodeURIComponent(teamA.id) +
-    '&teamB=' + encodeURIComponent(teamB.id) +
-    '&teamAName=' + encodeURIComponent(teamA.name) +
-    '&teamBName=' + encodeURIComponent(teamB.name);
-  window.location.href = url;
-}
-
-function resolveTeamByLabel(label) {
-  const normalized = String(label || '').trim().toLowerCase();
-  if (!normalized) return null;
-  return state.teams.find((t) => String(t.name || '').trim().toLowerCase() === normalized) || null;
-}
-
-function loadDefaultScheduleTemplate() {
-  const hasRows = Array.isArray(state.gameSchedule) && state.gameSchedule.length > 0;
-  if (hasRows && !confirm('Substituir a agenda atual pela agenda padrão que você enviou?')) return;
-
-  const now = Date.now();
-  const rows = [
-    ['FASE DE GRUPO (2x7 minutos)', '09:00', 'Time A', 'Time B', 'Grupo A'],
-    ['FASE DE GRUPO (2x7 minutos)', '09:15', 'Time D', 'Time E', 'Grupo B'],
-    ['FASE DE GRUPO (2x7 minutos)', '09:30', 'Time A', 'Time C', 'Grupo A'],
-    ['FASE DE GRUPO (2x7 minutos)', '09:45', 'Time D', 'Time F', 'Grupo B'],
-    ['FASE DE GRUPO (2x7 minutos)', '10:00', 'Time B', 'Time C', 'Grupo A'],
-    ['FASE DE GRUPO (2x7 minutos)', '10:15', 'Time E', 'Time F', 'Grupo B'],
-    ['SEMIFINAIS (2x7 minutos)', '10:45', '1º Grupo A', '2º Grupo B', ''],
-    ['SEMIFINAIS (2x7 minutos)', '11:00', '1º Grupo B', '2º Grupo A', ''],
-    ['FINAL (2x7 minutos)', '11:30', 'Vencedor SF1', 'Vencedor SF2', '']
-  ];
-
-  state.gameSchedule = rows.map((r, idx) => ({
-    id: uid(),
-    phase: r[0],
-    time: r[1],
-    teamALabel: r[2],
-    teamBLabel: r[3],
-    groupLabel: r[4],
-    createdAt: now + idx
-  }));
-
-  persistAndRender();
-  switchTab('jogos');
+  const rows = [...state.gameSchedule].sort((a, b) => phasePriority(a.phase) - phasePriority(b.phase) || String(a.time || "").localeCompare(String(b.time || "")));
+  let prev = "";
+  els.scheduleList.innerHTML = rows.length ? rows.map((r) => {
+    const phase = String(r.phase || "");
+    const head = phase !== prev ? `<div class="schedule-phase">${esc(phase)}</div>` : "";
+    prev = phase;
+    return `${head}<article class="schedule-card"><div class="match-row"><strong>${esc(r.time || "--:--")}</strong><button class="danger" type="button" data-schedule-delete="${esc(r.id)}">Excluir</button></div><div class="match-row"><span>${esc(r.teamALabel || "-")}</span><strong>X</strong><span>${esc(r.teamBLabel || "-")}</span></div>${r.groupLabel ? `<small class="muted">${esc(r.groupLabel)}</small>` : ""}</article>`;
+  }).join("") : '<p class="muted">Nenhum jogo na agenda.</p>';
 }
 
 function renderBracket() {
-  const fromMatches = buildBracketFromMatches();
-  const bracket = fromMatches.length ? fromMatches : state.bracket;
-  if (!bracket.length) {
-    els.bracketBoard.innerHTML = '<p class="muted">Sem chaveamento ainda. Cadastre jogos de mata-mata ou clique em "Gerar a partir dos times".</p>';
-    return;
-  }
-  const stages = ['Quartas', 'Semifinal', 'Final'];
-  els.bracketBoard.innerHTML = stages.map((stage) => {
-    const games = bracket.filter((g) => g.stage === stage);
-    if (!games.length) return '';
-    return `
-      <section class="bracket-stage">
-        <h3>${stage}</h3>
-        <div class="matches-list">
-          ${games.map((g) => `
-            <div class="bracket-match">
-              <div class="bracket-team"><span>${esc(g.teamAName || 'A definir')}</span><strong>${g.scoreA ?? '-'}</strong></div>
-              <div class="bracket-team"><span>${esc(g.teamBName || 'A definir')}</span><strong>${g.scoreB ?? '-'}</strong></div>
-            </div>`).join('')}
-        </div>
-      </section>`;
-  }).join('');
+  if (!els.bracketBoard) return;
+  const rows = [...state.matches].filter((m) => ["Quartas", "Semifinal", "Final"].includes(String(m.stage || ""))).sort((a, b) => stageOrder(a.stage) - stageOrder(b.stage));
+  const grouped = { Quartas: [], Semifinal: [], Final: [] };
+  rows.forEach((m) => grouped[m.stage].push(m));
+  els.bracketBoard.innerHTML = ["Quartas", "Semifinal", "Final"].map((stage) => grouped[stage].length ? `<section class="bracket-stage"><h3>${stage}</h3><div class="matches-list">${grouped[stage].map((m) => `<div class="bracket-match"><div class="bracket-team"><span>${esc(findTeam(m.teamAId)?.name || "Time A")}</span><strong>${Number(m.goalsA || 0)}</strong></div><div class="bracket-team"><span>${esc(findTeam(m.teamBId)?.name || "Time B")}</span><strong>${Number(m.goalsB || 0)}</strong></div></div>`).join("")}</div></section>` : "").join("") || '<p class="muted">Sem chaveamento ainda.</p>';
 }
 
-function buildBracketFromMatches() {
-  return state.matches
-    .filter((m) => ['Quartas', 'Semifinal', 'Final'].includes(m.stage))
-    .sort((a, b) => stageOrder(a.stage) - stageOrder(b.stage) || (a.date || '').localeCompare(b.date || ''))
-    .map((m) => ({
-      stage: m.stage,
-      teamAName: findTeam(m.teamAId)?.name || 'Time A',
-      teamBName: findTeam(m.teamBId)?.name || 'Time B',
-      scoreA: Number(m.goalsA),
-      scoreB: Number(m.goalsB)
-    }));
-}
-
-function generateBracketFromTeams() {
-  const teams = [...state.teams].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
-  if (teams.length < 2) { alert('Cadastre pelo menos 2 times.'); return; }
-  const limited = teams.slice(0, 8);
-  const pairs = [];
-  for (let i = 0; i < limited.length; i += 2) pairs.push([limited[i], limited[i + 1]]);
-  const generated = [];
-  if (limited.length > 4) {
-    pairs.forEach((pair) => generated.push({ stage: 'Quartas', teamAName: pair[0]?.name || 'A definir', teamBName: pair[1]?.name || 'A definir', scoreA: null, scoreB: null }));
-    generated.push({ stage: 'Semifinal', teamAName: 'Vencedor Q1', teamBName: 'Vencedor Q2', scoreA: null, scoreB: null });
-    if (pairs.length > 2) generated.push({ stage: 'Semifinal', teamAName: 'Vencedor Q3', teamBName: 'Vencedor Q4', scoreA: null, scoreB: null });
-    generated.push({ stage: 'Final', teamAName: 'Vencedor S1', teamBName: 'Vencedor S2', scoreA: null, scoreB: null });
-  } else {
-    if (pairs.length === 2) {
-      generated.push({ stage: 'Semifinal', teamAName: pairs[0][0]?.name || 'A definir', teamBName: pairs[0][1]?.name || 'A definir', scoreA: null, scoreB: null });
-      generated.push({ stage: 'Semifinal', teamAName: pairs[1][0]?.name || 'A definir', teamBName: pairs[1][1]?.name || 'A definir', scoreA: null, scoreB: null });
-    } else {
-      generated.push({ stage: 'Semifinal', teamAName: limited[0]?.name || 'A definir', teamBName: limited[1]?.name || 'A definir', scoreA: null, scoreB: null });
-    }
-    generated.push({ stage: 'Final', teamAName: 'Vencedor S1', teamBName: 'Vencedor S2', scoreA: null, scoreB: null });
-  }
-  state.bracket = generated;
-  persistAndRender();
-}
 function renderRankings() {
-  const players = [...state.players]
-    .map((p) => ({ ...p, rankingPoints: (p.goals || 0) * 3 - (p.yellowCards || 0) - (p.redCards || 0) * 3 }))
-    .filter((p) => Number(p.goals || 0) > 0 || Number(p.yellowCards || 0) > 0 || Number(p.redCards || 0) > 0)
-    .sort((a, b) => b.rankingPoints - a.rankingPoints || (b.goals || 0) - (a.goals || 0) || a.name.localeCompare(b.name, 'pt-BR'));
-
-  if (!players.length) {
-    els.playerRanking.innerHTML = '<p class="muted">Sem jogadores com gols ou cartões para ranking.</p>';
-  } else {
-    els.playerRanking.innerHTML = `
-      <table><thead><tr><th>#</th><th>Jogador</th><th>Time</th><th>Gols</th><th>🟨</th><th>🟥</th><th>Pontos</th></tr></thead><tbody>
-      ${players.map((p, i) => `<tr><td>${i + 1}</td><td>${esc(p.name)}</td><td>${esc(findTeam(p.teamId)?.name || '-')}</td><td>${p.goals || 0}</td><td>${p.yellowCards || 0}</td><td>${p.redCards || 0}</td><td>${p.rankingPoints}</td></tr>`).join('')}
-      </tbody></table>`;
+  if (els.playerRanking) {
+    const players = [...state.players].map((p) => ({ p, points: Number(p.goals || 0) * 3 - Number(p.yellowCards || 0) - Number(p.redCards || 0) * 3 })).sort((a, b) => b.points - a.points || Number(b.p.goals || 0) - Number(a.p.goals || 0));
+    els.playerRanking.innerHTML = players.length ? `<table><thead><tr><th>#</th><th>Jogador</th><th>Time</th><th>Gols</th><th>🟨</th><th>🟥</th><th>Pontos</th></tr></thead><tbody>${players.map((r, i) => `<tr><td>${i + 1}</td><td>${esc(r.p.name || "Jogador")}</td><td>${esc(findTeam(r.p.teamId)?.name || "Sem time")}</td><td>${Number(r.p.goals || 0)}</td><td>${Number(r.p.yellowCards || 0)}</td><td>${Number(r.p.redCards || 0)}</td><td>${r.points}</td></tr>`).join("")}</tbody></table>` : '<p class="muted">Sem jogadores cadastrados.</p>';
   }
-
-  const table = state.teams.map((team) => {
-    const matches = state.matches.filter((m) => m.teamAId === team.id || m.teamBId === team.id);
-    let pts = 0, v = 0, e = 0, d = 0, gp = 0, gc = 0;
-    matches.forEach((m) => {
-      const isA = m.teamAId === team.id;
-      const pro = Number(isA ? m.goalsA : m.goalsB);
-      const con = Number(isA ? m.goalsB : m.goalsA);
-      gp += pro; gc += con;
-      if (pro > con) { pts += 3; v++; } else if (pro === con) { pts += 1; e++; } else { d++; }
-    });
-    return { team, j: matches.length, v, e, d, gp, gc, sg: gp - gc, pts };
-  }).sort((a, b) => b.pts - a.pts || b.sg - a.sg || b.gp - a.gp || a.team.name.localeCompare(b.team.name, 'pt-BR'));
-
-  if (!table.length) {
-    els.teamRanking.innerHTML = '<p class="muted">Sem times para tabela.</p>';
-    return;
-  }
-
-  els.teamRanking.innerHTML = `
-    <table><thead><tr><th>#</th><th>Time</th><th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th><th>Pts</th></tr></thead><tbody>
-    ${table.map((r, i) => `<tr><td>${i + 1}</td><td><span class="team-pill">${teamIdentityHtml(r.team)}</span></td><td>${r.j}</td><td>${r.v}</td><td>${r.e}</td><td>${r.d}</td><td>${r.gp}</td><td>${r.gc}</td><td>${r.sg}</td><td><strong>${r.pts}</strong></td></tr>`).join('')}
-    </tbody></table>`;
-}
-
-function teamInlineHtml(team, fallbackName) {
-  const name = fallbackName || (team && team.name) || 'Time';
-  const nameEsc = esc(name);
-  const teamId = team && team.id ? String(team.id) : '';
-  if (team && team.logoDataUrl) {
-    return `<button type="button" class="team-open-btn" data-team-open="${esc(teamId)}" data-team-name="${nameEsc}"><span class="team-logo tiny"><img src="${esc(team.logoDataUrl)}" alt="${nameEsc}"></span><span>${nameEsc}</span></button>`;
-  }
-  if (team) {
-    return `<button type="button" class="team-open-btn" data-team-open="${esc(teamId)}" data-team-name="${nameEsc}"><span class="team-dot small" style="background:${esc(team.color || '#0f766e')}"></span><span>${nameEsc}</span></button>`;
-  }
-  return `<button type="button" class="team-open-btn" data-team-name="${nameEsc}"><span>${nameEsc}</span></button>`;
-}
-
-function openTeamLineupDialog(teamId, teamName) {
-  let team = null;
-  if (teamId) team = findTeam(String(teamId));
-  if (!team && teamName) {
-    const normalized = String(teamName).trim().toLowerCase();
-    team = state.teams.find((t) => String(t.name || '').trim().toLowerCase() === normalized) || null;
-  }
-
-  const title = team ? String(team.name || 'Time') : (String(teamName || '').trim() || 'Time');
-  const players = team
-    ? state.players
-      .filter((p) => String(p.teamId || '') === String(team.id))
-      .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR'))
-    : [];
-
-  if (els.teamLineupTitle) {
-    els.teamLineupTitle.textContent = `Escalação - ${title}`;
-  }
-
-  if (els.teamLineupList) {
-    if (!players.length) {
-      els.teamLineupList.innerHTML = '<p class="muted">Nenhum jogador vinculado a esse time.</p>';
-    } else {
-      els.teamLineupList.innerHTML = players.map((p) => {
-        const avatar = p.photoDataUrl
-          ? `<span class="lineup-avatar"><img src="${esc(p.photoDataUrl)}" alt="${esc(p.name || 'Jogador')}"></span>`
-          : `<span class="lineup-avatar">${esc(initials(p.name || 'J'))}</span>`;
-        return `<div class="lineup-item">
-          <div class="lineup-left">
-            ${avatar}
-            <div>
-              <div class="lineup-name">${esc(p.name || 'Jogador')} ${p.number !== null && typeof p.number !== 'undefined' ? `#${Number(p.number)}` : ''}</div>
-              <div class="lineup-meta">${esc(p.position || '-')}</div>
-            </div>
-          </div>
-          <div class="lineup-badges">
-            ${p.isCaptain ? '<span>C</span>' : ''}
-            <span>A ${Number(p.assists || 0)}</span>
-            <span>GP ${Number(p.goalsPro || 0)}</span>
-            <span>GC ${Number(p.goalsContra || 0)}</span>
-            <span>CA ${Number(p.yellowCards || 0)}</span>
-            <span>CV ${Number(p.redCards || 0)}</span>
-          </div>
-        </div>`;
-      }).join('');
-    }
-  }
-
-  if (els.teamLineupDialog && typeof els.teamLineupDialog.showModal === 'function') {
-    els.teamLineupDialog.showModal();
-    return;
-  }
-  alert(`Escalação de ${title}: ${players.map((p) => p.name).join(', ') || 'sem jogadores'}`);
-}
-
-function openPenaltyDialog(playerId) {
-  const player = state.players.find((p) => p.id === playerId);
-  if (!player) return;
-  selectedPenaltyPlayerId = playerId;
-  els.penaltyDialogTitle.textContent = `Penalidade - ${player.name}`;
-  if (typeof els.penaltyDialog.showModal === 'function') {
-    els.penaltyDialog.showModal();
-    return;
-  }
-  const ans = prompt(`Penalidade para ${player.name}: 1=amarelo, 2=vermelho`);
-  if (ans === '1') { applyPlayerRelatedDelta(player, 'yellowCards', 1); persistAndRender(); }
-  if (ans === '2') { applyPlayerRelatedDelta(player, 'redCards', 1); persistAndRender(); }
-}
-
-function openTeamChangeDialog(playerId) {
-  const player = state.players.find((p) => p.id === playerId);
-  if (!player || !els.teamChangeDialog || !els.teamChangeSelect) return;
-  selectedTeamChangePlayerId = playerId;
-  if (els.teamChangeDialogTitle) {
-    els.teamChangeDialogTitle.textContent = `Trocar time - ${player.name}`;
-  }
-  const options = ['<option value="">Sem time</option>']
-    .concat(
-      [...state.teams]
-        .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR'))
-        .map((t) => `<option value="${esc(t.id)}">${esc(t.name)}</option>`)
-    );
-  els.teamChangeSelect.innerHTML = options.join('');
-  els.teamChangeSelect.value = String(player.teamId || '');
-  if (typeof els.teamChangeDialog.showModal === 'function') {
-    els.teamChangeDialog.showModal();
-    return;
-  }
-  const choices = ['Sem time'].concat(state.teams.map((t) => t.name));
-  const ans = prompt(`Novo time para ${player.name}:\n${choices.join(' | ')}`);
-  if (ans === null) { selectedTeamChangePlayerId = null; return; }
-  const chosen = state.teams.find((t) => String(t.name || '').toLowerCase() === String(ans || '').trim().toLowerCase());
-  player.teamId = chosen ? chosen.id : '';
-  selectedTeamChangePlayerId = null;
-  persistAndRender();
-}
-
-function deletePlayer(id) {
-  const player = state.players.find((p) => p.id === id);
-  if (!player || !confirm(`Excluir jogador ${player.name}?`)) return;
-  state.players = state.players.filter((p) => p.id !== id);
-  state.matches = state.matches.map((m) => ({ ...m, goalEvents: (m.goalEvents || []).filter((g) => g.playerId !== id) }));
-  persistAndRender();
-}
-
-function resetPlayerCards(id) {
-  resetAllPlayerStats(id);
-}
-
-function togglePlayerCaptain(id) {
-  const player = state.players.find((p) => p.id === id);
-  if (!player) return;
-  player.isCaptain = !player.isCaptain;
-  persistAndRender();
-}
-
-function addPlayerAssist(id) {
-  const player = state.players.find((p) => p.id === id);
-  if (!player) return;
-  applyPlayerRelatedDelta(player, 'assists', 1);
-  persistAndRender();
-}
-
-function changePlayerStat(id, field, delta) {
-  const player = state.players.find((p) => p.id === id);
-  if (!player) return;
-  if (!['assists', 'goalsPro', 'goalsContra'].includes(field)) return;
-  applyPlayerRelatedDelta(player, field, Number(delta || 0));
-  persistAndRender();
-}
-
-function applyPlayerRelatedDelta(player, field, delta) {
-  if (!player) return;
-  const d = Number(delta || 0);
-  if (!Number.isFinite(d) || d === 0) return;
-
-  if (field === 'assists') {
-    player.assists = Math.max(0, Number(player.assists || 0) + d);
-    return;
-  }
-
-  if (field === 'goalsPro') {
-    player.goalsPro = Math.max(0, Number(player.goalsPro || 0) + d);
-    // GP manual do elenco deve refletir também no total de gols do jogador (ranking).
-    player.goals = Math.max(0, Number(player.goals || 0) + d);
-    return;
-  }
-
-  if (field === 'goalsContra') {
-    player.goalsContra = Math.max(0, Number(player.goalsContra || 0) + d);
-    return;
-  }
-
-  if (field === 'yellowCards') {
-    player.yellowCards = Math.max(0, Number(player.yellowCards || 0) + d);
-    return;
-  }
-
-  if (field === 'redCards') {
-    player.redCards = Math.max(0, Number(player.redCards || 0) + d);
+  if (els.teamRanking) {
+    const teams = [...state.teams].map((t) => ({ t, s: teamStats(t) })).sort((a, b) => Number(b.s.points || 0) - Number(a.s.points || 0) || Number(b.s.goalDiff || 0) - Number(a.s.goalDiff || 0) || Number(b.s.goalsPro || 0) - Number(a.s.goalsPro || 0));
+    els.teamRanking.innerHTML = teams.length ? `<table><thead><tr><th>#</th><th>Time</th><th>P</th><th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th></tr></thead><tbody>${teams.map((r, i) => `<tr><td>${i + 1}</td><td><span class="team-pill">${teamIdentityHtml(r.t)}</span></td><td>${Number(r.s.points || 0)}</td><td>${Number(r.s.games || 0)}</td><td>${Number(r.s.wins || 0)}</td><td>${Number(r.s.draws || 0)}</td><td>${Number(r.s.losses || 0)}</td><td>${Number(r.s.goalsPro || 0)}</td><td>${Number(r.s.goalsContra || 0)}</td><td>${Number(r.s.goalDiff || 0)}</td></tr>`).join("")}</tbody></table>` : '<p class="muted">Sem times para tabela.</p>';
   }
 }
 
-function resetPlayerAGS(id) {
-  resetAllPlayerStats(id);
+function renderTeamOptions() { const options = [...state.teams].sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "pt-BR")).map((t) => `<option value="${esc(t.id)}">${esc(t.name)}</option>`).join(""); const keep = { pt: String(els.playerTeamId?.value || ""), a: String(els.matchTeamA?.value || ""), b: String(els.matchTeamB?.value || ""), sa: String(els.scheduleTeamAId?.value || ""), sb: String(els.scheduleTeamBId?.value || "") }; if (els.playerTeamId) els.playerTeamId.innerHTML = `<option value="">Sem time</option>${options}`; if (els.matchTeamA) els.matchTeamA.innerHTML = `<option value="">Selecione</option>${options}`; if (els.matchTeamB) els.matchTeamB.innerHTML = `<option value="">Selecione</option>${options}`; if (els.scheduleTeamAId) els.scheduleTeamAId.innerHTML = `<option value="">Selecione</option>${options}`; if (els.scheduleTeamBId) els.scheduleTeamBId.innerHTML = `<option value="">Selecione</option>${options}`; if (els.playerTeamId && keep.pt) els.playerTeamId.value = keep.pt; if (els.matchTeamA && keep.a) els.matchTeamA.value = keep.a; if (els.matchTeamB && keep.b) els.matchTeamB.value = keep.b; if (els.scheduleTeamAId && keep.sa) els.scheduleTeamAId.value = keep.sa; if (els.scheduleTeamBId && keep.sb) els.scheduleTeamBId.value = keep.sb; }
+function renderUsersOptions() { const options = [...registeredUsers].sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "pt-BR")).map((u) => `<option value="${esc(u.id)}">${esc(u.name)} (${esc(u.email)})</option>`).join(""); const k1 = String(els.playerUserId?.value || ""); const k2 = String(els.pushUserId?.value || ""); if (els.playerUserId) els.playerUserId.innerHTML = `<option value="">Sem vinculo (jogador ainda nao se cadastrou)</option>${options}`; if (els.pushUserId) els.pushUserId.innerHTML = `<option value="">Todos os jogadores com notificacao ativa</option>${options}`; if (els.playerUserId && k1) els.playerUserId.value = k1; if (els.pushUserId && k2) els.pushUserId.value = k2; }
+function renderGoalOptions() { const keep = String(els.goalPlayerSelect?.value || ""); const options = [...state.players].sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "pt-BR")).map((p) => `<option value="${esc(p.id)}">${esc(p.name)} (${esc(findTeam(p.teamId)?.name || "Sem time")})</option>`).join(""); if (els.goalPlayerSelect) { els.goalPlayerSelect.innerHTML = `<option value="">Selecione</option>${options}`; if (keep) els.goalPlayerSelect.value = keep; } }
+function renderGoalEvents() { if (!els.goalEvents) return; els.goalEvents.innerHTML = pendingGoalEvents.length ? pendingGoalEvents.map((g, i) => `<div class="goal-event"><div><strong>${esc(g.playerName)}</strong><small>Gol para este jogo</small></div><button class="ghost" type="button" data-goal-remove="${i}">Remover</button></div>`).join("") : '<p class="muted">Nenhum gol de jogador adicionado.</p>'; els.goalEvents.querySelectorAll("[data-goal-remove]").forEach((b) => b.addEventListener("click", () => { pendingGoalEvents.splice(Number(b.dataset.goalRemove || -1), 1); renderGoalEvents(); })); }
+function syncScheduleMode() { const group = isGroupPhase(els.schedulePhase?.value || ""); if (els.scheduleTeamASelectWrap) els.scheduleTeamASelectWrap.hidden = !group; if (els.scheduleTeamBSelectWrap) els.scheduleTeamBSelectWrap.hidden = !group; if (els.scheduleTeamALabel) { els.scheduleTeamALabel.disabled = group; if (group) els.scheduleTeamALabel.value = ""; } if (els.scheduleTeamBLabel) { els.scheduleTeamBLabel.disabled = group; if (group) els.scheduleTeamBLabel.value = ""; } }
+
+function lockAdmin() { document.body.classList.add("admin-locked"); if (els.adminLoginGate) { els.adminLoginGate.hidden = false; els.adminLoginGate.style.display = "grid"; } }
+function unlockAdmin() { document.body.classList.remove("admin-locked"); if (els.adminLoginGate) { els.adminLoginGate.hidden = true; els.adminLoginGate.style.display = "none"; } }
+function switchTab(name) { els.tabs.forEach((b) => b.classList.toggle("is-active", b.dataset.tab === name)); els.panels.forEach((p) => { const active = p.id === `tab-${name}`; p.hidden = !active; p.classList.toggle("is-active", active); }); }
+async function persistAndRender() { renderAll(); await saveState(); }
+async function saveState() {
+  if (saving) { saveAgain = true; return; }
+  saving = true;
+  try { await apiJson("/api/state", { method: "PUT", body: JSON.stringify({ tournament: state }) }); }
+  finally { saving = false; if (saveAgain) { saveAgain = false; await saveState(); } }
 }
+function assignState(src) { state.teams = Array.isArray(src.teams) ? src.teams : []; state.players = Array.isArray(src.players) ? src.players : []; state.matches = Array.isArray(src.matches) ? src.matches : []; state.gameSchedule = Array.isArray(src.gameSchedule) ? src.gameSchedule : []; state.bracket = Array.isArray(src.bracket) ? src.bracket : []; state.liveGame = src.liveGame && typeof src.liveGame === "object" ? src.liveGame : null; state.recentGames = Array.isArray(src.recentGames) ? src.recentGames : []; state.settings = { eventStartAt: String(src?.settings?.eventStartAt || "") }; }
 
-function resetAllPlayerStats(id) {
-  const player = state.players.find((p) => p.id === id);
-  if (!player) return;
-  const confirmed = confirm(`Zerar todos os dados do jogador ${player.name}? (gols, assistencias, GP/GC e cartoes)`);
-  if (!confirmed) return;
+function defaultTeamStats() { return { points: 0, games: 0, wins: 0, draws: 0, losses: 0, goalsPro: 0, goalsContra: 0, goalDiff: 0 }; }
+function teamStats(team) { const s = team?.stats || {}; return { points: Number(s.points || 0), games: Number(s.games || 0), wins: Number(s.wins || 0), draws: Number(s.draws || 0), losses: Number(s.losses || 0), goalsPro: Number(s.goalsPro || 0), goalsContra: Number(s.goalsContra || 0), goalDiff: Number(s.goalDiff || 0) }; }
+function findTeam(id) { return state.teams.find((t) => String(t.id) === String(id)); }
+function isGroupPhase(phase) { return String(phase || "").toLowerCase().includes("grupo"); }
+function phasePriority(phase) { const p = String(phase || "").toLowerCase(); if (p.includes("grupo")) return 1; if (p.includes("semi")) return 2; if (p.includes("final")) return 3; return 9; }
+function uid() { return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-5); }
+function toNumOrNull(v) { if (String(v || "").trim() === "") return null; const n = Number(v); return Number.isFinite(n) ? n : null; }
+function initials(name) { return String(name || "J").split(/\s+/).slice(0, 2).map((p) => (p[0] || "").toUpperCase()).join("") || "J"; }
+function stageOrder(stage) { return { Quartas: 1, Semifinal: 2, Final: 3 }[String(stage || "")] || 99; }
+function formatDate(v) { const p = String(v || "").split("-"); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : String(v || ""); }
+function esc(v) { return String(v == null ? "" : v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/'/g, "&#39;"); }
+function cssEscape(v) { return String(v == null ? "" : v).replace(/[\"\\]/g, "\\$&"); }
 
-  // Zera todos os acumuladores exibidos no elenco/ranking/app do jogador.
-  player.goals = 0;
-  player.assists = 0;
-  player.goalsPro = 0;
-  player.goalsContra = 0;
-  player.yellowCards = 0;
-  player.redCards = 0;
+function getTopScorerId() { let best = null; for (const p of state.players) { const g = Math.max(0, Number(p.goals || 0)); if (g <= 0) continue; if (!best || g > best.g || (g === best.g && String(p.name || "").localeCompare(String(best.n || ""), "pt-BR") < 0)) best = { id: p.id, g, n: p.name }; } return best ? String(best.id) : ""; }
+function teamStatInput(id, key, label, value) { return `<label class="team-stat-field">${label}<input type="number" min="0" value="${Number(value || 0)}" data-team-stat-input="${esc(id)}:${key}"></label>`; }
 
-  // Remove atribuicao de gols desse jogador nos jogos cadastrados para manter consistencia do ranking.
-  state.matches = state.matches.map((m) => ({
-    ...m,
-    goalEvents: Array.isArray(m.goalEvents) ? m.goalEvents.filter((g) => g.playerId !== id) : []
-  }));
+function teamIdentityHtml(team) { const n = esc(team?.name || "Time"); if (team?.logoDataUrl) return `<button type="button" class="team-open-btn" data-team-open="${esc(team.id)}" data-team-name="${n}"><span class="team-logo"><img src="${esc(team.logoDataUrl)}" alt="${n}"></span><span>${n}</span></button>`; return `<button type="button" class="team-open-btn" data-team-open="${esc(team?.id || "")}" data-team-name="${n}"><span class="team-dot" style="background:${esc(team?.color || "#0f766e")}"></span><span>${n}</span></button>`; }
+function teamInlineHtml(team, fallback) { const n = esc(team?.name || fallback || "Time"); if (team?.logoDataUrl) return `<button type="button" class="team-open-btn" data-team-open="${esc(team.id)}" data-team-name="${n}"><span class="team-logo tiny"><img src="${esc(team.logoDataUrl)}" alt="${n}"></span><span>${n}</span></button>`; return `<button type="button" class="team-open-btn" data-team-open="${esc(team?.id || "")}" data-team-name="${n}"><span class="team-dot small" style="background:${esc(team?.color || "#0f766e")}"></span><span>${n}</span></button>`; }
 
-  persistAndRender();
-}
+function rebuildTeamStatsFromMatches() { const map = new Map(); state.teams.forEach((t) => map.set(String(t.id), defaultTeamStats())); state.matches.forEach((m) => { const a = map.get(String(m.teamAId || "")); const b = map.get(String(m.teamBId || "")); if (!a || !b) return; const ga = Number(m.goalsA || 0), gb = Number(m.goalsB || 0); a.games += 1; b.games += 1; a.goalsPro += ga; a.goalsContra += gb; b.goalsPro += gb; b.goalsContra += ga; if (ga > gb) { a.wins += 1; a.points += 3; b.losses += 1; } else if (gb > ga) { b.wins += 1; b.points += 3; a.losses += 1; } else { a.draws += 1; b.draws += 1; a.points += 1; b.points += 1; } }); state.teams = state.teams.map((t) => { const s = map.get(String(t.id)) || defaultTeamStats(); s.goalDiff = Number(s.goalsPro) - Number(s.goalsContra); return { ...t, stats: s }; }); }
 
-function deleteTeam(id) {
-  const team = state.teams.find((t) => t.id === id);
-  if (!team) return;
-  if (state.matches.some((m) => m.teamAId === id || m.teamBId === id)) { alert('Esse time já tem jogos cadastrados. Exclua os jogos antes.'); return; }
-  if (!confirm(`Excluir time ${team.name}?`)) return;
-  state.teams = state.teams.filter((t) => t.id !== id);
-  state.players = state.players.map((p) => p.teamId === id ? { ...p, teamId: '' } : p);
-  persistAndRender();
-}
+async function saveTeam(id) { const t = findTeam(id); if (!t) return; const n = document.querySelector(`[data-team-name-input="${cssEscape(t.id)}"]`); const c = document.querySelector(`[data-team-color-input="${cssEscape(t.id)}"]`); const name = String(n?.value || "").trim(); if (!name) return alert("Nome do time e obrigatorio."); t.name = name; t.color = String(c?.value || "#0f766e"); await persistAndRender(); }
+async function removeTeamLogo(id) { const t = findTeam(id); if (!t) return; t.logoDataUrl = ""; await persistAndRender(); }
+async function saveTeamStats(id) { const t = findTeam(id); if (!t) return; const s = defaultTeamStats(); ["points", "games", "wins", "draws", "losses", "goalsPro", "goalsContra", "goalDiff"].forEach((k) => { const i = document.querySelector(`[data-team-stat-input="${cssEscape(t.id)}:${k}"]`); s[k] = Math.max(0, Number(i?.value || 0)); }); s.goalDiff = Number(s.goalsPro) - Number(s.goalsContra); t.stats = s; await persistAndRender(); }
+async function resetTeamStats(id) { const t = findTeam(id); if (!t) return; t.stats = defaultTeamStats(); await persistAndRender(); }
+async function deleteTeam(id) { const t = findTeam(id); if (!t) return; if (state.matches.some((m) => String(m.teamAId) === String(id) || String(m.teamBId) === String(id))) return alert("Esse time ja tem jogos cadastrados. Exclua os jogos antes."); if (!confirm(`Excluir time ${t.name}?`)) return; state.teams = state.teams.filter((x) => String(x.id) !== String(id)); state.players = state.players.map((p) => String(p.teamId || "") === String(id) ? { ...p, teamId: "" } : p); await persistAndRender(); }
+async function deletePlayer(id) { const p = state.players.find((x) => x.id === id); if (!p) return; if (!confirm(`Excluir jogador ${p.name}?`)) return; state.players = state.players.filter((x) => x.id !== id); state.matches = state.matches.map((m) => ({ ...m, goalEvents: Array.isArray(m.goalEvents) ? m.goalEvents.filter((g) => String(g.playerId) !== String(id)) : [] })); await persistAndRender(); }
+async function deleteMatch(id) { const m = state.matches.find((x) => x.id === id); if (!m) return; if (!confirm("Excluir jogo?")) return; (m.goalEvents || []).forEach((g) => { const p = state.players.find((x) => x.id === g.playerId); if (p) { p.goals = Math.max(0, Number(p.goals || 0) - 1); p.goalsPro = Math.max(0, Number(p.goalsPro || 0) - 1); } }); state.matches = state.matches.filter((x) => x.id !== id); state.recentGames = state.recentGames.filter((g) => String(g?.linkedMatchId || g?.matchId || "") !== String(id)); rebuildTeamStatsFromMatches(); await persistAndRender(); }
+function openPenalty(id) { const p = state.players.find((x) => x.id === id); if (!p || !els.penaltyDialog) return; selectedPenaltyPlayerId = id; if (els.penaltyDialogTitle) els.penaltyDialogTitle.textContent = `Penalidade - ${p.name}`; els.penaltyDialog.showModal?.(); }
+function openTeamChange(id) { const p = state.players.find((x) => x.id === id); if (!p || !els.teamChangeDialog || !els.teamChangeSelect) return; selectedTeamChangePlayerId = id; if (els.teamChangeDialogTitle) els.teamChangeDialogTitle.textContent = `Trocar time - ${p.name}`; els.teamChangeSelect.innerHTML = `<option value="">Sem time</option>${[...state.teams].sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "pt-BR")).map((t) => `<option value="${esc(t.id)}">${esc(t.name)}</option>`).join("")}`; els.teamChangeSelect.value = String(p.teamId || ""); els.teamChangeDialog.showModal?.(); }
+async function toggleCaptain(id) { const p = state.players.find((x) => x.id === id); if (!p) return; p.isCaptain = !p.isCaptain; await persistAndRender(); }
+async function addPlayerStat(id, field, delta) { const p = state.players.find((x) => x.id === id); if (!p) return; const d = Number(delta || 0); if (!d) return; if (field === "assists") p.assists = Math.max(0, Number(p.assists || 0) + d); if (field === "goalsPro") { p.goalsPro = Math.max(0, Number(p.goalsPro || 0) + d); p.goals = Math.max(0, Number(p.goals || 0) + d); } if (field === "goalsContra") p.goalsContra = Math.max(0, Number(p.goalsContra || 0) + d); await persistAndRender(); }
+async function resetCards(id) { const p = state.players.find((x) => x.id === id); if (!p) return; p.yellowCards = 0; p.redCards = 0; await persistAndRender(); }
+async function resetPlayerStats(id) { const p = state.players.find((x) => x.id === id); if (!p) return; if (!confirm(`Zerar todos os dados do jogador ${p.name}?`)) return; p.goals = 0; p.assists = 0; p.goalsPro = 0; p.goalsContra = 0; p.yellowCards = 0; p.redCards = 0; state.matches = state.matches.map((m) => ({ ...m, goalEvents: Array.isArray(m.goalEvents) ? m.goalEvents.filter((g) => String(g.playerId) !== String(id)) : [] })); await persistAndRender(); }
 
-function deleteMatch(id) {
-  const match = state.matches.find((m) => m.id === id);
-  if (!match || !confirm('Excluir jogo?')) return;
-  (match.goalEvents || []).forEach((g) => {
-    const p = state.players.find((x) => x.id === g.playerId);
-    if (p) p.goals = Math.max(0, (p.goals || 0) - 1);
-  });
-  state.matches = state.matches.filter((m) => m.id !== id);
-  removeRecentGameByMatch(match);
-  rebuildTeamStatsFromMatches();
-  persistAndRender();
-}
+function openTeamLineup(teamId, teamName) { const t = findTeam(teamId) || state.teams.find((x) => String(x.name || "").trim().toLowerCase() === String(teamName || "").trim().toLowerCase()) || null; const title = t ? String(t.name || "Time") : String(teamName || "Time"); const players = t ? state.players.filter((p) => String(p.teamId || "") === String(t.id || "")).sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "pt-BR")) : []; if (els.teamLineupTitle) els.teamLineupTitle.textContent = `Escalacao - ${title}`; if (els.teamLineupList) els.teamLineupList.innerHTML = players.length ? players.map((p) => `<div class="lineup-item"><div class="lineup-left">${p.photoDataUrl ? `<span class="lineup-avatar"><img src="${esc(p.photoDataUrl)}" alt="${esc(p.name)}"></span>` : `<span class="lineup-avatar">${esc(initials(p.name))}</span>`}<div><div class="lineup-name">${esc(p.name)} ${p.number == null ? "" : `#${Number(p.number)}`}</div><div class="lineup-meta">${esc(p.position || "-")}</div></div></div><div class="lineup-badges">${p.isCaptain ? "<span>C</span>" : ""}<span>A ${Number(p.assists || 0)}</span><span>GP ${Number(p.goalsPro || 0)}</span><span>GC ${Number(p.goalsContra || 0)}</span><span>CA ${Number(p.yellowCards || 0)}</span><span>CV ${Number(p.redCards || 0)}</span></div></div>`).join("") : '<p class="muted">Nenhum jogador vinculado a esse time.</p>'; els.teamLineupDialog?.showModal?.(); }
 
-function resetStatsAndGames() {
-  state.players = (state.players || []).map((p) => ({
-    ...p,
-    yellowCards: 0,
-    redCards: 0,
-    goals: 0,
-    assists: 0,
-    goalsPro: 0,
-    goalsContra: 0
-  }));
-
-  state.teams = (state.teams || []).map((t) => ({
-    ...t,
-    stats: defaultTeamStats()
-  }));
-
-  state.matches = [];
-  state.recentGames = [];
-  state.liveGame = null;
-  pendingGoalEvents = [];
-  renderGoalEvents();
-  persistAndRender();
-}
-
-function rebuildTeamStatsFromMatches() {
-  const statsByTeam = new Map();
-  state.teams.forEach((team) => {
-    statsByTeam.set(team.id, defaultTeamStats());
-  });
-
-  (state.matches || []).forEach((m) => {
-    const teamAId = String(m.teamAId || '');
-    const teamBId = String(m.teamBId || '');
-    if (!teamAId || !teamBId) return;
-    const statsA = statsByTeam.get(teamAId);
-    const statsB = statsByTeam.get(teamBId);
-    if (!statsA || !statsB) return;
-
-    const goalsA = Number(m.goalsA || 0);
-    const goalsB = Number(m.goalsB || 0);
-
-    statsA.games += 1;
-    statsB.games += 1;
-    statsA.goalsPro += goalsA;
-    statsA.goalsContra += goalsB;
-    statsB.goalsPro += goalsB;
-    statsB.goalsContra += goalsA;
-
-    if (goalsA > goalsB) {
-      statsA.wins += 1;
-      statsA.points += 3;
-      statsB.losses += 1;
-    } else if (goalsB > goalsA) {
-      statsB.wins += 1;
-      statsB.points += 3;
-      statsA.losses += 1;
-    } else {
-      statsA.draws += 1;
-      statsB.draws += 1;
-      statsA.points += 1;
-      statsB.points += 1;
-    }
-  });
-
-  state.teams = state.teams.map((team) => {
-    const stats = statsByTeam.get(team.id) || defaultTeamStats();
-    stats.goalDiff = Number(stats.goalsPro || 0) - Number(stats.goalsContra || 0);
-    return { ...team, stats };
-  });
-}
-
-function removeRecentGameByMatch(match) {
-  if (!match || !Array.isArray(state.recentGames) || !state.recentGames.length) return;
-  const matchId = String(match.id || '');
-  let index = state.recentGames.findIndex((g) => {
-    const linked = String(g?.linkedMatchId || g?.matchId || '');
-    return linked && linked === matchId;
-  });
-
-  if (index < 0) {
-    const aTeam = findTeam(match.teamAId);
-    const bTeam = findTeam(match.teamBId);
-    const aName = String(aTeam?.name || '').trim().toLowerCase();
-    const bName = String(bTeam?.name || '').trim().toLowerCase();
-    index = state.recentGames.findIndex((g) => {
-      const sameIds = String(g?.teamAId || '') === String(match.teamAId || '') &&
-        String(g?.teamBId || '') === String(match.teamBId || '');
-      const sameNames = String(g?.teamAName || '').trim().toLowerCase() === aName &&
-        String(g?.teamBName || '').trim().toLowerCase() === bName;
-      const sameScore = Number(g?.scoreA || 0) === Number(match.goalsA || 0) &&
-        Number(g?.scoreB || 0) === Number(match.goalsB || 0);
-      return sameScore && (sameIds || sameNames);
-    });
-  }
-
-  if (index >= 0) {
-    state.recentGames.splice(index, 1);
-  }
-}
-
-function findTeam(teamId) { return state.teams.find((t) => t.id === teamId); }
-function uid() { return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4); }
-function toNumOrNull(v) { if (String(v).trim() === '') return null; const n = Number(v); return Number.isFinite(n) ? n : null; }
-function initials(name) { return String(name).split(/\s+/).slice(0, 2).map((p) => (p[0] || '').toUpperCase()).join(''); }
-function esc(v) { return String(v ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;'); }
-function cssEscape(v) { return String(v ?? '').replace(/["\\]/g, '\\$&'); }
-function formatDate(v) { const [y, m, d] = String(v).split('-'); return y && m && d ? `${d}/${m}/${y}` : String(v); }
-function stageOrder(stage) { return { Quartas: 1, Semifinal: 2, Final: 3 }[stage] || 99; }
-
-function fileToDataURL(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ''));
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-async function bootstrapRemote() {
-  await Promise.allSettled([fetchUsersForLinking(), hydrateStateFromServer()]);
-}
-
-function startRemotePolling() {
-  if (remotePollTimer) clearInterval(remotePollTimer);
-  remotePollTimer = setInterval(() => {
-    // Evita sobrescrever formulário enquanto admin está digitando.
-    const activeTag = document.activeElement && document.activeElement.tagName ? document.activeElement.tagName : '';
-    if (activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT') return;
-    fetchUsersForLinking().catch(() => {});
-    // Só hidrata remoto quando não há mudanças locais pendentes de sync.
-    if (lastSyncOkAt >= lastLocalChangeAt) {
-      hydrateStateFromServer().catch(() => {});
-    }
-  }, 10000);
-}
-
-function queueServerSync() {
-  clearTimeout(syncTimer);
-  syncTimer = setTimeout(() => {
-    syncStateToServer().catch(() => {});
-  }, 250);
-}
-
-async function hydrateStateFromServer() {
-  try {
-    const data = await apiJson('/api/state');
-    if (!data || !data.tournament) return;
-    const t = data.tournament;
-    state.teams = Array.isArray(t.teams) ? t.teams : [];
-    state.players = Array.isArray(t.players) ? t.players : [];
-    state.matches = Array.isArray(t.matches) ? t.matches : [];
-    state.gameSchedule = Array.isArray(t.gameSchedule) ? t.gameSchedule : [];
-    state.bracket = Array.isArray(t.bracket) ? t.bracket : [];
-    state.recentGames = Array.isArray(t.recentGames) ? t.recentGames : [];
-    state.settings = { eventStartAt: String(t?.settings?.eventStartAt || '') };
-    lastSyncOkAt = Date.now();
-    renderAll();
-  } catch {
-    // Mantem o estado atual em memoria.
-  }
-}
-
-async function fetchUsersForLinking() {
-  try {
-    const data = await apiJson('/api/users');
-    registeredUsers = Array.isArray(data.users) ? data.users : [];
-    renderUserOptions();
-  } catch {
-    registeredUsers = [];
-    renderUserOptions();
-  }
-}
-
-async function syncStateToServer() {
-  await apiJson('/api/state', {
-    method: 'PUT',
-    body: JSON.stringify({ tournament: state })
-  });
-  lastSyncOkAt = Date.now();
-  await fetchUsersForLinking();
-}
-
-
-async function apiJson(url, options = {}) {
-  const timeoutMs = Number(options.timeoutMs || 0);
-  const controller = timeoutMs > 0 && typeof AbortController !== 'undefined' ? new AbortController() : null;
-  let timeoutId = null;
-  if (controller) {
-    timeoutId = setTimeout(() => controller.abort('timeout'), timeoutMs);
-  }
-  try {
-    const response = await fetch(url, {
-      headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
-      signal: controller ? controller.signal : options.signal,
-      ...options
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error || `Erro ${response.status}`);
-    return data;
-  } catch (err) {
-    if (err && (err.name === 'AbortError' || String(err.message || '').toLowerCase().includes('signal is aborted'))) {
-      throw new Error(`Tempo limite excedido (${timeoutMs}ms).`);
-    }
-    throw err;
-  } finally {
-    if (timeoutId) clearTimeout(timeoutId);
-  }
-}
-
-function registerServiceWorker() {
-  if (!('serviceWorker' in navigator)) return;
-  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
+async function apiJson(url, options = {}) { const timeoutMs = Number(options.timeoutMs || 0); const controller = timeoutMs > 0 && typeof AbortController !== "undefined" ? new AbortController() : null; let timer = null; if (controller) timer = setTimeout(() => controller.abort("timeout"), timeoutMs); try { const res = await fetch(url, { headers: { "Content-Type": "application/json", ...(options.headers || {}) }, ...options, signal: controller ? controller.signal : options.signal }); const data = await res.json().catch(() => ({})); if (!res.ok) throw new Error(data.error || `Erro ${res.status}`); return data; } finally { if (timer) clearTimeout(timer); } }
+function fileToDataURL(file) { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result || "")); reader.onerror = reject; reader.readAsDataURL(file); }); }
+function registerServiceWorker() { if (!("serviceWorker" in navigator)) return; window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {})); }
